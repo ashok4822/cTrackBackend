@@ -2,8 +2,12 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { connectDB } from "./src/infrastructure/database/MongoConnection";
 
 dotenv.config();
+
+//Connect DB
+connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
