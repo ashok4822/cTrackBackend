@@ -24,7 +24,7 @@ export class AdminCreateUser {
     }
 
     const hashedPassword = await this.hashService.hash(password);
-    const user = new User("", email, hashedPassword, role, name);
+    const user = new User("", email, role, hashedPassword, name);
 
     await this.userRepository.save(user);
   }

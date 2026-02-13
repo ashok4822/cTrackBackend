@@ -16,7 +16,7 @@ export class CustomerSignup {
     }
 
     const hashedPassword = await this.hashService.hash(password);
-    const user = new User("", email, hashedPassword, "customer", name);
+    const user = new User("", email, "customer", hashedPassword, name);
 
     await this.userRepository.save(user);
   }

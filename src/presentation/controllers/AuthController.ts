@@ -3,13 +3,41 @@ import { Login } from "../../application/useCases/Login";
 import { CustomerSignup } from "../../application/useCases/CustomerSignup";
 import { RefreshToken } from "../../application/useCases/RefreshToken";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
+import { GoogleLogin } from "../../application/useCases/GoogleLogin";
 
 export class AuthController {
   constructor(
     private loginUseCase: Login,
     private customerSignUpUseCase: CustomerSignup,
     private refrershTokenUseCase: RefreshToken,
+    private googleLoginUseCase: GoogleLogin,
   ) {}
+
+  async googleLogin(req: Request, res: Response) {
+    try {
+      const { idToken } = req.body;
+      if (!idToken) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ message: "Google ID token is required" });
+      }
+      const result = await this.googleLoginUseCase.execute(idToken);
+      res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      return res.status(HttpStatus.OK).json({
+        accessToken: result.accessToken,
+        user: result.user,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      return res.status(HttpStatus.UNAUTHORIZED).json({ message });
+    }
+  }
 
   async login(req: Request, res: Response) {
     try {

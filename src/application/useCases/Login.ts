@@ -24,6 +24,10 @@ export class Login {
       throw new Error("INvalid credentials");
     }
 
+    if (!user.password) {
+      throw new Error("Invalid credentials");
+    }
+
     const isPasswordValid = await this.hashService.compare(
       password,
       user.password,

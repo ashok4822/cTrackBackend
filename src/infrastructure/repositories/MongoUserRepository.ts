@@ -11,9 +11,10 @@ export class MongoUserRepository implements IUserRepository {
     return new User(
       userDoc._id.toString(),
       userDoc.email,
-      userDoc.password,
       userDoc.role as UserRole,
+      userDoc.password,
       userDoc.name,
+      userDoc.googleId,
     );
   }
 
@@ -24,9 +25,24 @@ export class MongoUserRepository implements IUserRepository {
     return new User(
       userDoc._id.toString(),
       userDoc.email,
-      userDoc.password,
       userDoc.role as UserRole,
+      userDoc.password,
       userDoc.name,
+      userDoc.googleId,
+    );
+  }
+
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    const userDoc = await UserModel.findOne({ googleId });
+    if (!userDoc) return null;
+
+    return new User(
+      userDoc._id.toString(),
+      userDoc.email,
+      userDoc.role as UserRole,
+      userDoc.password,
+      userDoc.name,
+      userDoc.googleId,
     );
   }
 
@@ -36,6 +52,7 @@ export class MongoUserRepository implements IUserRepository {
       password: user.password,
       role: user.role,
       name: user.name,
+      googleId: user.googleId,
     };
 
     if (user.id) {
