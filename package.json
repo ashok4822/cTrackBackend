@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "accepts": "^2.0.0",
+    "bcrypt": "^6.0.0",
     "body-parser": "^2.2.2",
     "bytes": "^3.1.2",
     "call-bind-apply-helpers": "^1.0.2",
@@ -48,6 +49,7 @@
     "inherits": "^2.0.4",
     "ipaddr.js": "^1.9.1",
     "is-promise": "^4.0.0",
+    "jsonwebtoken": "^9.0.3",
     "math-intrinsics": "^1.1.0",
     "media-typer": "^1.1.0",
     "merge-descriptors": "^2.0.0",
@@ -83,9 +85,11 @@
     "wrappy": "^1.0.2"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.2.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
