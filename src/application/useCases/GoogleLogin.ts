@@ -10,18 +10,38 @@ export class GoogleLogin {
     private userRepository: IUserRepository,
     private tokenService: ITokenService,
     private googleClientId: string,
+    private googleClientSecret: string,
   ) {
-    if (!googleClientId) {
-      throw new Error("Google client ID is required for GoogleLogin use case");
+    if (!googleClientId || !googleClientSecret) {
+      throw new Error(
+        "Google client ID and Secret are required for GoogleLogin use case",
+      );
     }
-    this.client = new OAuth2Client(googleClientId);
+    this.client = new OAuth2Client(
+      googleClientId,
+      googleClientSecret,
+      "postmessage",
+    );
   }
 
-  async execute(idToken: string): Promise<{
+  async execute(
+    code: string,
+    requiredRole?: UserRole,
+  ): Promise<{
     accessToken: string;
     refreshToken: string;
     user: { id: string; email: string; role: UserRole; name?: string };
   }> {
+    console.log("GoogleLogin: Exchanging code for tokens...");
+    const { tokens } = await this.client.getToken(code);
+    const idToken = tokens.id_token;
+
+    if (!idToken) {
+      console.error("GoogleLogin: No ID token in response", tokens);
+      throw new Error("Failed to retrieve ID token from Google");
+    }
+
+    console.log("GoogleLogin: Verifying ID token...");
     const ticket = await this.client.verifyIdToken({
       idToken,
       audience: this.googleClientId,
@@ -29,9 +49,11 @@ export class GoogleLogin {
 
     const payload: TokenPayload | undefined = ticket.getPayload();
     if (!payload || !payload.email) {
-      throw new Error("Invalid Google token");
+      console.error("GoogleLogin: Invalid payload", payload);
+      throw new Error("Invalid Google token payload");
     }
 
+    console.log("GoogleLogin: Payload verified", { email: payload.email });
     const { email, sub: googleId, name } = payload;
 
     if (!googleId) {
@@ -78,11 +100,24 @@ export class GoogleLogin {
       throw new Error("Failed to authenticate with Google");
     }
 
+    // Role validation
+    console.log("GoogleLogin: Verifying role", {
+      requiredRole,
+      userRole: user.role,
+    });
+    if (requiredRole && user.role !== requiredRole) {
+      console.warn("GoogleLogin: Role mismatch", {
+        requiredRole,
+        userRole: user.role,
+      });
+      throw new Error("Access denied: Unauthorized role for this portal");
+    }
+
     //Access token
     const accessToken = this.tokenService.generate(
       {
         id: user.id,
-        emaila: user.email,
+        email: user.email,
         role: user.role,
       },
       process.env.JWT_ACCESS_SECRET || "access_fallback",

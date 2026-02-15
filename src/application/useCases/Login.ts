@@ -8,11 +8,12 @@ export class Login {
     private userRepository: IUserRepository,
     private hashService: IHashService,
     private tokenService: ITokenService,
-  ) {}
+  ) { }
 
   async execute(
     email: string,
     password: string,
+    requiredRole?: UserRole,
   ): Promise<{
     accessToken: string;
     refreshToken: string;
@@ -21,7 +22,7 @@ export class Login {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new Error("INvalid credentials");
+      throw new Error("Invalid credentials");
     }
 
     if (!user.password) {
@@ -35,6 +36,19 @@ export class Login {
 
     if (!isPasswordValid) {
       throw new Error("Invalid credentials");
+    }
+
+    // Role check
+    console.log("LoginUseCase: Verifying role", {
+      requiredRole,
+      userRole: user.role,
+    });
+    if (requiredRole && user.role !== requiredRole) {
+      console.warn("LoginUseCase: Role mismatch", {
+        requiredRole,
+        userRole: user.role,
+      });
+      throw new Error("Access denied: Unauthorized role for this portal");
     }
 
     //Access Token (short-lived)
