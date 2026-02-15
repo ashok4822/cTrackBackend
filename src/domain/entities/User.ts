@@ -11,5 +11,6 @@ export class User {
     public readonly googleId?: string,
     public readonly profileImage?: string,
     public readonly companyName?: string,
+    public readonly isBlocked: boolean = false
   ) { }
 }

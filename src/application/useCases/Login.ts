@@ -25,6 +25,10 @@ export class Login {
       throw new Error("Invalid credentials");
     }
 
+    if (user.isBlocked) {
+      throw new Error("Your account has been blocked. Please contact admin.");
+    }
+
     if (!user.password) {
       throw new Error("Invalid credentials");
     }

@@ -104,6 +104,10 @@ export class GoogleLogin {
       throw new Error("Failed to authenticate with Google");
     }
 
+    if (user.isBlocked) {
+      throw new Error("Your account has been blocked. Please contact admin.");
+    }
+
     // Role validation
     console.log("GoogleLogin: Verifying role", {
       requiredRole,

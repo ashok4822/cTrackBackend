@@ -18,6 +18,7 @@ export class MongoUserRepository implements IUserRepository {
       userDoc.googleId,
       userDoc.profileImage,
       userDoc.companyName,
+      userDoc.isBlocked
     );
   }
 
@@ -35,6 +36,7 @@ export class MongoUserRepository implements IUserRepository {
       userDoc.googleId,
       userDoc.profileImage,
       userDoc.companyName,
+      userDoc.isBlocked
     );
   }
 
@@ -52,6 +54,7 @@ export class MongoUserRepository implements IUserRepository {
       userDoc.googleId,
       userDoc.profileImage,
       userDoc.companyName,
+      userDoc.isBlocked
     );
   }
 
@@ -65,6 +68,7 @@ export class MongoUserRepository implements IUserRepository {
       googleId: user.googleId,
       profileImage: user.profileImage,
       companyName: user.companyName,
+      isBlocked: user.isBlocked,
     };
 
     if (user.id) {
@@ -72,6 +76,25 @@ export class MongoUserRepository implements IUserRepository {
     } else {
       await UserModel.create(userData);
     }
+  }
+
+  async findAll(): Promise<User[]> {
+    const userDocs = await UserModel.find();
+    return userDocs.map(
+      (userDoc) =>
+        new User(
+          userDoc._id.toString(),
+          userDoc.email,
+          userDoc.role as UserRole,
+          userDoc.password,
+          userDoc.name,
+          userDoc.phone,
+          userDoc.googleId,
+          userDoc.profileImage,
+          userDoc.companyName,
+          userDoc.isBlocked
+        )
+    );
   }
 
   async exists(email: string): Promise<boolean> {

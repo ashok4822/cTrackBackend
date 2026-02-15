@@ -4,6 +4,9 @@ import { GetUserProfile } from "../../application/useCases/GetUserProfile";
 import { UpdateUserProfile } from "../../application/useCases/UpdateUserProfile";
 import { UpdatePassword } from "../../application/useCases/UpdatePassword";
 import { UpdateUserProfileImage } from "../../application/useCases/UpdateUserProfileImage";
+import { GetAllUsers } from "../../application/useCases/GetAllUsers";
+import { ToggleUserBlockStatus } from "../../application/useCases/ToggleUserBlockStatus";
+import { AdminUpdateUser } from "../../application/useCases/AdminUpdateUser";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 
 export class UserController {
@@ -12,7 +15,10 @@ export class UserController {
     private getUserProfileUseCase: GetUserProfile,
     private updateUserProfileUseCase: UpdateUserProfile,
     private updatePasswordUseCase: UpdatePassword,
-    private updateProfileImageUseCase: UpdateUserProfileImage
+    private updateProfileImageUseCase: UpdateUserProfileImage,
+    private getAllUsersUseCase: GetAllUsers,
+    private toggleUserBlockStatusUseCase: ToggleUserBlockStatus,
+    private adminUpdateUserUseCase: AdminUpdateUser
   ) { }
 
   async createUser(req: Request, res: Response) {
@@ -153,6 +159,73 @@ export class UserController {
       return res.status(HttpStatus.OK).json({
         message: "Profile image updated successfully",
         profileImage: updatedUser.profileImage,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occured";
+      return res.status(HttpStatus.BAD_REQUEST).json({ message });
+    }
+  }
+
+  async getAllUsers(req: Request, res: Response) {
+    try {
+      const users = await this.getAllUsersUseCase.execute();
+      return res.status(HttpStatus.OK).json(
+        users.map((user) => ({
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name: user.name,
+          phone: user.phone,
+          profileImage: user.profileImage,
+          companyName: user.companyName,
+          isBlocked: user.isBlocked,
+        }))
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occured";
+      return res.status(HttpStatus.BAD_REQUEST).json({ message });
+    }
+  }
+
+  async toggleBlockStatus(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const updatedUser = await this.toggleUserBlockStatusUseCase.execute(id as string);
+      return res.status(HttpStatus.OK).json({
+        message: `User ${updatedUser.isBlocked ? "blocked" : "unblocked"} successfully`,
+        user: {
+          id: updatedUser.id,
+          isBlocked: updatedUser.isBlocked,
+        },
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occured";
+      return res.status(HttpStatus.BAD_REQUEST).json({ message });
+    }
+  }
+
+  async updateUser(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { name, role, organization } = req.body;
+      const updatedUser = await this.adminUpdateUserUseCase.execute(id as string, {
+        name,
+        role,
+        companyName: organization,
+      });
+
+      return res.status(HttpStatus.OK).json({
+        message: "User updated successfully",
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          name: updatedUser.name,
+          organization: updatedUser.companyName,
+        },
       });
     } catch (error: unknown) {
       const message =

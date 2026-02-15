@@ -10,6 +10,7 @@ export interface IUserDocument extends Document {
   googleId?: string;
   profileImage?: string;
   companyName?: string;
+  isBlocked: boolean;
 }
 
 const UserSchema: Schema = new Schema(
@@ -26,6 +27,7 @@ const UserSchema: Schema = new Schema(
     googleId: { type: String, sparse: true, unique: true },
     profileImage: { type: String },
     companyName: { type: String },
+    isBlocked: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
