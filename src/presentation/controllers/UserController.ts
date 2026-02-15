@@ -37,7 +37,7 @@ export class UserController {
 
   async getProfile(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
 
       if (!userId) {
         return res
@@ -66,7 +66,7 @@ export class UserController {
 
   async updateProfile(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
 
       if (!userId) {
         return res
@@ -102,7 +102,7 @@ export class UserController {
 
   async updatePassword(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
 
       if (!userId) {
         return res
@@ -137,7 +137,7 @@ export class UserController {
 
   async updateProfileImage(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         return res
           .status(HttpStatus.UNAUTHORIZED)
