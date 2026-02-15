@@ -14,7 +14,10 @@ export class MongoUserRepository implements IUserRepository {
       userDoc.role as UserRole,
       userDoc.password,
       userDoc.name,
+      userDoc.phone,
       userDoc.googleId,
+      userDoc.profileImage,
+      userDoc.companyName,
     );
   }
 
@@ -28,7 +31,10 @@ export class MongoUserRepository implements IUserRepository {
       userDoc.role as UserRole,
       userDoc.password,
       userDoc.name,
+      userDoc.phone,
       userDoc.googleId,
+      userDoc.profileImage,
+      userDoc.companyName,
     );
   }
 
@@ -42,7 +48,10 @@ export class MongoUserRepository implements IUserRepository {
       userDoc.role as UserRole,
       userDoc.password,
       userDoc.name,
+      userDoc.phone,
       userDoc.googleId,
+      userDoc.profileImage,
+      userDoc.companyName,
     );
   }
 
@@ -52,7 +61,10 @@ export class MongoUserRepository implements IUserRepository {
       password: user.password,
       role: user.role,
       name: user.name,
+      phone: user.phone,
       googleId: user.googleId,
+      profileImage: user.profileImage,
+      companyName: user.companyName,
     };
 
     if (user.id) {

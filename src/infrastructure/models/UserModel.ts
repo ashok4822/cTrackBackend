@@ -6,7 +6,10 @@ export interface IUserDocument extends Document {
   password?: string;
   role: UserRole;
   name?: string;
+  phone?: string;
   googleId?: string;
+  profileImage?: string;
+  companyName?: string;
 }
 
 const UserSchema: Schema = new Schema(
@@ -19,7 +22,10 @@ const UserSchema: Schema = new Schema(
       required: true,
     },
     name: { type: String },
+    phone: { type: String },
     googleId: { type: String, sparse: true, unique: true },
+    profileImage: { type: String },
+    companyName: { type: String },
   },
   { timestamps: true },
 );

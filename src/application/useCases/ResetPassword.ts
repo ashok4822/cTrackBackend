@@ -11,6 +11,14 @@ export class ResetPassword {
     ) { }
 
     async execute(email: string, otp: string, newPassword: string): Promise<void> {
+        // Validation for new password strength
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            throw new Error(
+                "Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character"
+            );
+        }
+
         // 1. Verify OTP with strict expiration check
         const savedOtpData = await this.otpRepository.findOtp(email);
         if (!savedOtpData || savedOtpData.otp !== otp) {
@@ -44,7 +52,9 @@ export class ResetPassword {
             user.role,
             hashedPassword,
             user.name,
-            user.googleId
+            user.phone,
+            user.googleId,
+            user.profileImage
         );
 
         await this.userRepository.save(updatedUser);
