@@ -16,6 +16,14 @@ export class VerifyOtpAndSignup {
         password: string,
         name: string,
     ): Promise<void> {
+        // Validation for password strength
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        if (!passwordRegex.test(password)) {
+            throw new Error(
+                "Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character"
+            );
+        }
+
         const savedOtpData = await this.otpRepository.findOtp(email);
         if (!savedOtpData || savedOtpData.otp !== otp) {
             throw new Error("Invalid OTP");
@@ -31,7 +39,7 @@ export class VerifyOtpAndSignup {
         }
 
         const hashedPassword = await this.hashService.hash(password);
-        const user = new User("", email, "customer", hashedPassword, name);
+        const user = new User("", email, "customer", hashedPassword, name, undefined, undefined, undefined);
 
         await this.userRepository.save(user);
         await this.otpRepository.deleteOtp(email);

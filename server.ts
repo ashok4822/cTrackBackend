@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import path from "path";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { connectDB } from "./src/infrastructure/database/MongoConnection";
@@ -17,11 +18,25 @@ const PORT = process.env.PORT || 5001;
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:8080",
-      "http://localhost:5173",
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      // Allow any localhost origin
+      if (origin.startsWith("http://localhost:")) {
+        return callback(null, true);
+      }
+
+      const allowedOrigins = [
+        "https://www.caryo.store", // Added for potential production/staging
+      ];
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   }),
 );
@@ -29,9 +44,18 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+// Request logging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 //Routes
 app.use("/api/auth", createAuthRouter());
 app.use("/api/users", userRouter);
+
+// Serve static files from uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/health", (req, res) => {
   res.status(HttpStatus.OK).json({ status: "ok" });

@@ -30,7 +30,7 @@ export class GoogleLogin {
   ): Promise<{
     accessToken: string;
     refreshToken: string;
-    user: { id: string; email: string; role: UserRole; name?: string };
+    user: { id: string; email: string; role: UserRole; name?: string; profileImage?: string };
   }> {
     console.log("GoogleLogin: Exchanging code for tokens...");
     const { tokens } = await this.client.getToken(code);
@@ -74,7 +74,9 @@ export class GoogleLogin {
           user.role,
           user.password,
           (user.name || name) as string | undefined,
+          user.phone, // Current phone
           googleId,
+          user.profileImage // Current profile image
         );
 
         await this.userRepository.save(updatedUser);
@@ -87,7 +89,9 @@ export class GoogleLogin {
           "customer",
           undefined, //No password for Google users
           name,
+          undefined, // No phone for new OAuth users
           googleId,
+          undefined // No profile image for new OAuth users
         );
 
         await this.userRepository.save(user);
@@ -139,6 +143,7 @@ export class GoogleLogin {
         email: user.email,
         role: user.role,
         name: user.name,
+        profileImage: user.profileImage,
       },
     };
   }

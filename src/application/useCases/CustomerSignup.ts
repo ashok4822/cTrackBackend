@@ -6,7 +6,7 @@ export class CustomerSignup {
   constructor(
     private userRepository: IUserRepository,
     private hashService: IHashService,
-  ) {}
+  ) { }
 
   async execute(email: string, password: string, name?: string): Promise<void> {
     const userExists = await this.userRepository.exists(email);
@@ -16,7 +16,7 @@ export class CustomerSignup {
     }
 
     const hashedPassword = await this.hashService.hash(password);
-    const user = new User("", email, "customer", hashedPassword, name);
+    const user = new User("", email, "customer", hashedPassword, name, undefined, undefined, undefined);
 
     await this.userRepository.save(user);
   }

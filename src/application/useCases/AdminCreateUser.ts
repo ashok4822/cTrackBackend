@@ -6,7 +6,7 @@ export class AdminCreateUser {
   constructor(
     private userRepository: IUserRepository,
     private hashService: IHashService,
-  ) {}
+  ) { }
 
   async execute(
     email: string,
@@ -24,7 +24,7 @@ export class AdminCreateUser {
     }
 
     const hashedPassword = await this.hashService.hash(password);
-    const user = new User("", email, role, hashedPassword, name);
+    const user = new User("", email, role, hashedPassword, name, undefined, undefined, undefined);
 
     await this.userRepository.save(user);
   }
