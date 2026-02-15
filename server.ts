@@ -8,6 +8,7 @@ import { createAuthRouter } from "./src/presentation/routes/authRoutes";
 import { userRouter } from "./src/presentation/routes/userRoutes";
 import { createYardRouter } from "./src/presentation/routes/yardRoutes";
 import { createShippingLineRouter } from "./src/presentation/routes/shippingLineRoutes";
+import { createContainerRouter } from "./src/presentation/routes/containerRoutes";
 import { HttpStatus } from "./src/domain/constants/HttpStatus";
 
 dotenv.config();
@@ -57,6 +58,7 @@ app.use("/api/auth", createAuthRouter());
 app.use("/api/users", userRouter);
 app.use("/api/yard", createYardRouter());
 app.use("/api/shipping-lines", createShippingLineRouter());
+app.use("/api/containers", createContainerRouter());
 
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
