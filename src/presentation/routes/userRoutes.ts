@@ -5,6 +5,9 @@ import { GetUserProfile } from "../../application/useCases/GetUserProfile";
 import { UpdateUserProfile } from "../../application/useCases/UpdateUserProfile";
 import { UpdatePassword } from "../../application/useCases/UpdatePassword";
 import { UpdateUserProfileImage } from "../../application/useCases/UpdateUserProfileImage";
+import { GetAllUsers } from "../../application/useCases/GetAllUsers";
+import { ToggleUserBlockStatus } from "../../application/useCases/ToggleUserBlockStatus";
+import { AdminUpdateUser } from "../../application/useCases/AdminUpdateUser";
 import { MongoUserRepository } from "../../infrastructure/repositories/MongoUserRepository";
 import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
 import { upload } from "../../infrastructure/services/UploadService";
@@ -23,18 +26,42 @@ const getUserProfileUseCase = new GetUserProfile(userRepository);
 const updateUserProfileUseCase = new UpdateUserProfile(userRepository);
 const updatePasswordUseCase = new UpdatePassword(userRepository, hashService);
 const updateProfileImageUseCase = new UpdateUserProfileImage(userRepository);
+const getAllUsersUseCase = new GetAllUsers(userRepository);
+const toggleUserBlockStatusUseCase = new ToggleUserBlockStatus(userRepository);
+const adminUpdateUserUseCase = new AdminUpdateUser(userRepository);
 
 const userController = new UserController(
   adminCreateUserUseCase,
   getUserProfileUseCase,
   updateUserProfileUseCase,
   updatePasswordUseCase,
-  updateProfileImageUseCase
+  updateProfileImageUseCase,
+  getAllUsersUseCase,
+  toggleUserBlockStatusUseCase,
+  adminUpdateUserUseCase
 );
 
-//Only admins can create users
+//Only admins can create and manage users
 userRouter.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
   userController.createUser(req, res),
+);
+
+userRouter.get("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
+  userController.getAllUsers(req, res)
+);
+
+userRouter.patch(
+  "/:id/block",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  (req, res) => userController.toggleBlockStatus(req, res)
+);
+
+userRouter.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  (req, res) => userController.updateUser(req, res)
 );
 
 // Profile routes - authenticated users only
