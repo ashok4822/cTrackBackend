@@ -15,7 +15,14 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
 
-    "sourceMap": true
+    "sourceMap": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"]
+  },
+  "include": ["src/**/*"],
+  "files": ["src/types/express.d.ts"],
+  "exclude": ["node_modules"],
+  "ts-node": {
+    "files": true
   }
 }
 
