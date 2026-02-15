@@ -49,6 +49,7 @@ export class UserController {
         name: user.name,
         phone: user.phone,
         profileImage: user.profileImage,
+        companyName: user.companyName,
       });
     } catch (error: unknown) {
       const message =
@@ -67,10 +68,11 @@ export class UserController {
           .json({ message: "Unauthorized" });
       }
 
-      const { name, phone } = req.body;
+      const { name, phone, companyName } = req.body;
       const updatedUser = await this.updateUserProfileUseCase.execute(userId, {
         name,
         phone,
+        companyName,
       });
 
       return res.status(HttpStatus.OK).json({
@@ -82,6 +84,7 @@ export class UserController {
           name: updatedUser.name,
           phone: updatedUser.phone,
           profileImage: updatedUser.profileImage,
+          companyName: updatedUser.companyName,
         },
       });
     } catch (error: unknown) {

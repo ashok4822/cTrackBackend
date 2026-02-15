@@ -17,6 +17,7 @@ export class MongoUserRepository implements IUserRepository {
       userDoc.phone,
       userDoc.googleId,
       userDoc.profileImage,
+      userDoc.companyName,
     );
   }
 
@@ -33,6 +34,7 @@ export class MongoUserRepository implements IUserRepository {
       userDoc.phone,
       userDoc.googleId,
       userDoc.profileImage,
+      userDoc.companyName,
     );
   }
 
@@ -49,6 +51,7 @@ export class MongoUserRepository implements IUserRepository {
       userDoc.phone,
       userDoc.googleId,
       userDoc.profileImage,
+      userDoc.companyName,
     );
   }
 
@@ -61,6 +64,7 @@ export class MongoUserRepository implements IUserRepository {
       phone: user.phone,
       googleId: user.googleId,
       profileImage: user.profileImage,
+      companyName: user.companyName,
     };
 
     if (user.id) {

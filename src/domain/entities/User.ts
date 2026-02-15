@@ -10,5 +10,6 @@ export class User {
     public readonly phone?: string,
     public readonly googleId?: string,
     public readonly profileImage?: string,
+    public readonly companyName?: string,
   ) { }
 }

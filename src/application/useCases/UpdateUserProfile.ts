@@ -4,13 +4,14 @@ import { User } from "../../domain/entities/User";
 interface UpdateProfileData {
     name?: string;
     phone?: string;
+    companyName?: string;
 }
 
 export class UpdateUserProfile {
     constructor(private userRepository: IUserRepository) { }
 
     async execute(userId: string, data: UpdateProfileData): Promise<User> {
-        // Validation
+        // Validation for name and phone (already present)
         if (data.name !== undefined) {
             const trimmedName = data.name.trim();
             if (trimmedName.length < 3 || trimmedName.length > 50) {
@@ -41,7 +42,8 @@ export class UpdateUserProfile {
             data.name !== undefined ? data.name : user.name,
             data.phone !== undefined ? data.phone : user.phone,
             user.googleId,
-            user.profileImage
+            user.profileImage,
+            data.companyName !== undefined ? data.companyName : user.companyName
         );
 
         await this.userRepository.save(updatedUser);

@@ -9,6 +9,7 @@ export interface IUserDocument extends Document {
   phone?: string;
   googleId?: string;
   profileImage?: string;
+  companyName?: string;
 }
 
 const UserSchema: Schema = new Schema(
@@ -24,6 +25,7 @@ const UserSchema: Schema = new Schema(
     phone: { type: String },
     googleId: { type: String, sparse: true, unique: true },
     profileImage: { type: String },
+    companyName: { type: String },
   },
   { timestamps: true },
 );
