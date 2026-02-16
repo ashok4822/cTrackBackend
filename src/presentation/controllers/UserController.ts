@@ -150,7 +150,7 @@ export class UserController {
           .json({ message: "No image file provided" });
       }
 
-      const imageUrl = `/uploads/profiles/${req.file.filename}`;
+      const imageUrl = req.file.path;
       const updatedUser = await this.updateProfileImageUseCase.execute(
         userId,
         imageUrl
