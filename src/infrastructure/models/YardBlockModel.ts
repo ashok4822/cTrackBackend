@@ -4,6 +4,8 @@ export interface IYardBlockDocument extends Document {
     name: string;
     capacity: number;
     occupied: number;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 const YardBlockSchema: Schema = new Schema(

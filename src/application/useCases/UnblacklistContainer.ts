@@ -1,7 +1,13 @@
 import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
+import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
+import { ContainerHistory } from "../../domain/entities/ContainerHistory";
+import { Container } from "../../domain/entities/Container";
 
 export class UnblacklistContainer {
-    constructor(private containerRepository: IContainerRepository) { }
+    constructor(
+        private containerRepository: IContainerRepository,
+        private historyRepository: IContainerHistoryRepository
+    ) { }
 
     async execute(id: string): Promise<void> {
         const container = await this.containerRepository.findById(id);
@@ -9,7 +15,7 @@ export class UnblacklistContainer {
             throw new Error("Container not found");
         }
 
-        const updatedContainer = new (container.constructor as any)(
+        const updatedContainer = new Container(
             container.id,
             container.containerNumber,
             container.size,
@@ -34,5 +40,13 @@ export class UnblacklistContainer {
         );
 
         await this.containerRepository.save(updatedContainer);
+
+        await this.historyRepository.save(new ContainerHistory(
+            null,
+            id,
+            "Unblacklisted",
+            "Container has been unblacklisted",
+            "Admin"
+        ));
     }
 }

@@ -14,7 +14,7 @@ export class MongoContainerRepository implements IContainerRepository {
         return this.toEntity(container);
     }
 
-    async save(container: Container): Promise<void> {
+    async save(container: Container): Promise<Container> {
         const data = {
             containerNumber: container.containerNumber,
             size: container.size,
@@ -37,10 +37,12 @@ export class MongoContainerRepository implements IContainerRepository {
         };
 
         if (container.id && container.id.match(/^[0-9a-fA-F]{24}$/)) {
-            await ContainerModel.findByIdAndUpdate(container.id, data);
+            const updated = await ContainerModel.findByIdAndUpdate(container.id, data, { new: true });
+            return this.toEntity(updated);
         } else {
             const newContainer = new ContainerModel(data);
-            await newContainer.save();
+            const saved = await newContainer.save();
+            return this.toEntity(saved);
         }
     }
 

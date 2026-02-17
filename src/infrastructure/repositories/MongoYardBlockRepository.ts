@@ -6,14 +6,14 @@ export class MongoYardBlockRepository implements IYardBlockRepository {
     async findAll(): Promise<YardBlock[]> {
         const blocks = await YardBlockModel.find();
         return blocks.map(
-            (b) => new YardBlock(b.id, b.name, b.capacity, b.occupied)
+            (b) => new YardBlock(b.id, b.name, b.capacity, b.occupied, b.createdAt, b.updatedAt)
         );
     }
 
     async findById(id: string): Promise<YardBlock | null> {
         const block = await YardBlockModel.findById(id);
         if (!block) return null;
-        return new YardBlock(block.id, block.name, block.capacity, block.occupied);
+        return new YardBlock(block.id, block.name, block.capacity, block.occupied, block.createdAt, block.updatedAt);
     }
 
     async save(yardBlock: YardBlock): Promise<void> {

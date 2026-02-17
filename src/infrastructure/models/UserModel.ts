@@ -11,6 +11,8 @@ export interface IUserDocument extends Document {
   profileImage?: string;
   companyName?: string;
   isBlocked: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const UserSchema: Schema = new Schema(

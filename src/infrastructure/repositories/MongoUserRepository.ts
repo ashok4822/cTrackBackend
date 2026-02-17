@@ -92,7 +92,9 @@ export class MongoUserRepository implements IUserRepository {
           userDoc.googleId,
           userDoc.profileImage,
           userDoc.companyName,
-          userDoc.isBlocked
+          userDoc.isBlocked,
+          userDoc.createdAt,
+          userDoc.updatedAt
         )
     );
   }

@@ -6,19 +6,23 @@ import { GetContainerById } from "../../application/useCases/GetContainerById";
 import { UpdateContainer } from "../../application/useCases/UpdateContainer";
 import { BlacklistContainer } from "../../application/useCases/BlacklistContainer";
 import { UnblacklistContainer } from "../../application/useCases/UnblacklistContainer";
+import { GetContainerHistory } from "../../application/useCases/GetContainerHistory";
 import { MongoContainerRepository } from "../../infrastructure/repositories/MongoContainerRepository";
+import { MongoContainerHistoryRepository } from "../../infrastructure/repositories/MongoContainerHistoryRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createContainerRouter = () => {
     const router = Router();
     const repository = new MongoContainerRepository();
+    const historyRepository = new MongoContainerHistoryRepository();
 
-    const createUseCase = new CreateContainer(repository);
+    const createUseCase = new CreateContainer(repository, historyRepository);
     const getAllUseCase = new GetAllContainers(repository);
     const getByIdUseCase = new GetContainerById(repository);
-    const updateUseCase = new UpdateContainer(repository);
-    const blacklistUseCase = new BlacklistContainer(repository);
-    const unblacklistUseCase = new UnblacklistContainer(repository);
+    const updateUseCase = new UpdateContainer(repository, historyRepository);
+    const blacklistUseCase = new BlacklistContainer(repository, historyRepository);
+    const unblacklistUseCase = new UnblacklistContainer(repository, historyRepository);
+    const getHistoryUseCase = new GetContainerHistory(historyRepository);
 
     const controller = new ContainerController(
         createUseCase,
@@ -26,7 +30,8 @@ export const createContainerRouter = () => {
         getByIdUseCase,
         updateUseCase,
         blacklistUseCase,
-        unblacklistUseCase
+        unblacklistUseCase,
+        getHistoryUseCase
     );
 
     router.get("/", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), (req, res) =>
@@ -35,6 +40,10 @@ export const createContainerRouter = () => {
 
     router.get("/:id", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), (req, res) =>
         controller.getContainerById(req, res)
+    );
+
+    router.get("/:id/history", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), (req, res) =>
+        controller.getContainerHistory(req, res)
     );
 
     router.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>

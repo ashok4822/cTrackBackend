@@ -1,8 +1,13 @@
 import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
+import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
 import { Container } from "../../domain/entities/Container";
+import { ContainerHistory } from "../../domain/entities/ContainerHistory";
 
 export class UpdateContainer {
-    constructor(private containerRepository: IContainerRepository) { }
+    constructor(
+        private containerRepository: IContainerRepository,
+        private historyRepository: IContainerHistoryRepository
+    ) { }
 
     async execute(id: string, data: Partial<Container>): Promise<void> {
         const container = await this.containerRepository.findById(id);
@@ -35,5 +40,46 @@ export class UpdateContainer {
         );
 
         await this.containerRepository.save(updatedContainer);
+
+        // Log history for important changes
+        if (data.status && data.status !== container.status) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Status Changed",
+                `Status updated from ${container.status} to ${data.status}`,
+                "Admin"
+            ));
+        }
+
+        if (data.yardLocation && data.yardLocation.block !== container.yardLocation?.block) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Location Updated",
+                `Location updated from ${container.yardLocation?.block || "None"} to ${data.yardLocation.block}`,
+                "Admin"
+            ));
+        }
+
+        if (data.gateInTime) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Gate In",
+                `Container gated in at ${new Date(data.gateInTime).toLocaleString()}`,
+                "Admin"
+            ));
+        }
+
+        if (data.gateOutTime) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Gate Out",
+                `Container gated out at ${new Date(data.gateOutTime).toLocaleString()}`,
+                "Admin"
+            ));
+        }
     }
 }

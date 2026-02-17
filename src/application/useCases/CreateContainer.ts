@@ -1,8 +1,13 @@
 import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
+import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
 import { Container } from "../../domain/entities/Container";
+import { ContainerHistory } from "../../domain/entities/ContainerHistory";
 
 export class CreateContainer {
-    constructor(private containerRepository: IContainerRepository) { }
+    constructor(
+        private containerRepository: IContainerRepository,
+        private historyRepository: IContainerHistoryRepository
+    ) { }
 
     async execute(data: {
         containerNumber: string;
@@ -33,6 +38,17 @@ export class CreateContainer {
             undefined, // cargoWeight
             data.sealNumber
         );
-        await this.containerRepository.save(container);
+        const savedContainer = await this.containerRepository.save(container);
+
+        if (savedContainer.id) {
+            const history = new ContainerHistory(
+                null,
+                savedContainer.id,
+                "Container Created",
+                `Container created with status: ${savedContainer.status}`,
+                "Admin" // Generic for now, can be updated later if user info is available
+            );
+            await this.historyRepository.save(history);
+        }
     }
 }
