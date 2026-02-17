@@ -10,6 +10,7 @@ import { ToggleUserBlockStatus } from "../../application/useCases/ToggleUserBloc
 import { AdminUpdateUser } from "../../application/useCases/AdminUpdateUser";
 import { MongoUserRepository } from "../../infrastructure/repositories/MongoUserRepository";
 import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
+import { EmailService } from "../../infrastructure/services/EmailService";
 import { upload } from "../../infrastructure/services/UploadService";
 import {
   authMiddleware,
@@ -21,7 +22,8 @@ const userRouter = Router();
 //DI
 const userRepository = new MongoUserRepository();
 const hashService = new BcryptHashService();
-const adminCreateUserUseCase = new AdminCreateUser(userRepository, hashService);
+const emailService = new EmailService();
+const adminCreateUserUseCase = new AdminCreateUser(userRepository, hashService, emailService);
 const getUserProfileUseCase = new GetUserProfile(userRepository);
 const updateUserProfileUseCase = new UpdateUserProfile(userRepository);
 const updatePasswordUseCase = new UpdatePassword(userRepository, hashService);
@@ -39,29 +41,6 @@ const userController = new UserController(
   getAllUsersUseCase,
   toggleUserBlockStatusUseCase,
   adminUpdateUserUseCase
-);
-
-//Only admins can create and manage users
-userRouter.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-  userController.createUser(req, res),
-);
-
-userRouter.get("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-  userController.getAllUsers(req, res)
-);
-
-userRouter.patch(
-  "/:id/block",
-  authMiddleware,
-  roleMiddleware(["admin"]),
-  (req, res) => userController.toggleBlockStatus(req, res)
-);
-
-userRouter.put(
-  "/:id",
-  authMiddleware,
-  roleMiddleware(["admin"]),
-  (req, res) => userController.updateUser(req, res)
 );
 
 // Profile routes - authenticated users only
@@ -82,6 +61,29 @@ userRouter.post(
   authMiddleware,
   upload.single("image"),
   (req, res) => userController.updateProfileImage(req, res),
+);
+
+// Only admins can create and manage users
+userRouter.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
+  userController.createUser(req, res),
+);
+
+userRouter.get("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
+  userController.getAllUsers(req, res)
+);
+
+userRouter.patch(
+  "/:id/block",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  (req, res) => userController.toggleBlockStatus(req, res)
+);
+
+userRouter.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  (req, res) => userController.updateUser(req, res)
 );
 
 export { userRouter };

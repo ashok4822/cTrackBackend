@@ -99,7 +99,6 @@ export class AuthController {
 
       return res.status(HttpStatus.OK).json({
         accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
         user: result.user,
       });
     } catch (error: unknown) {
@@ -179,7 +178,7 @@ export class AuthController {
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
-  
+
       return res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }

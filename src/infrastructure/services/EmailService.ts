@@ -39,4 +39,29 @@ export class EmailService implements IEmailService {
         await this.transporter.sendMail(mailOptions);
         console.log(`Password reset OTP sent to ${email}`);
     }
+
+    async sendWelcomeEmail(email: string, password: string, name?: string): Promise<void> {
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Welcome to cTrack - Your Account Details",
+            text: `Hello ${name || 'User'},\n\nYour account has been created successfully. Your login credentials are:\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password for security.`,
+            html: `
+                <div style="font-family: Arial, sans-serif; color: #333;">
+                    <h2>Welcome to cTrack!</h2>
+                    <p>Hello ${name || 'User'},</p>
+                    <p>Your account has been created successfully. Below are your login credentials:</p>
+                    <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="margin: 0;"><strong>Email:</strong> ${email}</p>
+                        <p style="margin: 0;"><strong>Password:</strong> ${password}</p>
+                    </div>
+                    <p>For security reasons, we recommend that you log in and change your password immediately.</p>
+                    <p>Best Regards,<br>The cTrack Team</p>
+                </div>
+            `,
+        };
+
+        await this.transporter.sendMail(mailOptions);
+        console.log(`Welcome email sent to ${email}`);
+    }
 }

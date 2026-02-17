@@ -25,10 +25,13 @@ export class UpdateContainer {
             data.gateOutTime !== undefined ? data.gateOutTime : container.gateOutTime,
             data.dwellTime !== undefined ? data.dwellTime : container.dwellTime,
             data.weight !== undefined ? data.weight : container.weight,
-            undefined, // cargoWeight (not in data)
+            data.cargoWeight !== undefined ? data.cargoWeight : container.cargoWeight,
             data.sealNumber !== undefined ? data.sealNumber : container.sealNumber,
             data.damaged !== undefined ? data.damaged : container.damaged,
-            data.damageDetails !== undefined ? data.damageDetails : container.damageDetails
+            data.damageDetails !== undefined ? data.damageDetails : container.damageDetails,
+            data.blacklisted !== undefined ? data.blacklisted : container.blacklisted,
+            container.createdAt,
+            container.updatedAt
         );
 
         await this.containerRepository.save(updatedContainer);
