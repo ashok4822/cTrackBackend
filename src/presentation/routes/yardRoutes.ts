@@ -22,7 +22,7 @@ export function createYardRouter(): Router {
     );
 
     // Routes
-    // Both admins and operators might need to see the yard configuration
+    // Both admins and operators need to see the yard configuration
     router.get("/", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) =>
         yardController.getYardBlocks(req, res)
     );

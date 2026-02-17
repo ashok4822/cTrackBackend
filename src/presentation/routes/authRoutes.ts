@@ -13,6 +13,7 @@ import { EmailService } from "../../infrastructure/services/EmailService";
 import { OtpRepository } from "../../infrastructure/repositories/OtpRepository";
 import { ForgotPassword } from "../../application/useCases/ForgotPassword";
 import { ResetPassword } from "../../application/useCases/ResetPassword";
+import { VerifyResetOtp } from "../../application/useCases/VerifyResetOtp";
 
 export const createAuthRouter = () => {
   const authRouter = Router();
@@ -53,6 +54,9 @@ export const createAuthRouter = () => {
     otpRepository,
     hashService,
   );
+  const verifyResetOtpUseCase = new VerifyResetOtp(
+    otpRepository,
+  );
 
   const authController = new AuthController(
     loginUseCase,
@@ -63,6 +67,7 @@ export const createAuthRouter = () => {
     verifyOtpAndSignupUseCase,
     forgotPasswordUseCase,
     resetPasswordUseCase,
+    verifyResetOtpUseCase,
   );
 
   authRouter.post("/login", (req, res) => authController.login(req, res));
@@ -80,6 +85,9 @@ export const createAuthRouter = () => {
   );
   authRouter.post("/reset-password", (req, res) =>
     authController.resetPassword(req, res),
+  );
+  authRouter.post("/verify-reset-otp", (req, res) =>
+    authController.verifyResetOtp(req, res),
   );
 
   return authRouter;

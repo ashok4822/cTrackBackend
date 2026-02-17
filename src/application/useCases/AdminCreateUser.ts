@@ -14,8 +14,8 @@ export class AdminCreateUser {
     role: UserRole,
     name?: string,
   ): Promise<void> {
-    // Note: Business rule could be that only admins can call this,
-    // but the controller/middleware should handle the auth check.
+    // Business rule is that only admins can call this.
+    // The controller/middleware handle the auth check.
 
     const userExists = await this.userRepository.exists(email);
 

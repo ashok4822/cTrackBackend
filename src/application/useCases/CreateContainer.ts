@@ -6,8 +6,8 @@ export class CreateContainer {
 
     async execute(data: {
         containerNumber: string;
-        size: "20ft" | "40ft" | "45ft";
-        type: "standard" | "reefer" | "tank" | "open-top" | "flat-rack";
+        size: "20ft" | "40ft";
+        type: "standard" | "reefer" | "tank" | "open-top";
         status: "pending" | "gate-in" | "in-yard" | "in-transit" | "at-port" | "at-factory" | "gate-out" | "damaged";
         shippingLine: string;
         movementType?: "import" | "export" | "domestic";
@@ -22,6 +22,7 @@ export class CreateContainer {
             data.type,
             data.status,
             data.shippingLine,
+            undefined, // empty
             data.movementType,
             data.customer,
             undefined, // yardLocation
@@ -29,6 +30,7 @@ export class CreateContainer {
             undefined, // gateOutTime
             undefined, // dwellTime
             data.weight,
+            undefined, // cargoWeight
             data.sealNumber
         );
         await this.containerRepository.save(container);

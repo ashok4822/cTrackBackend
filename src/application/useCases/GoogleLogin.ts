@@ -30,7 +30,7 @@ export class GoogleLogin {
   ): Promise<{
     accessToken: string;
     refreshToken: string;
-    user: { id: string; email: string; role: UserRole; name?: string; profileImage?: string };
+    user: { id: string; email: string; role: UserRole; name?: string; profileImage?: string; isBlocked: boolean };
   }> {
     console.log("GoogleLogin: Exchanging code for tokens...");
     const { tokens } = await this.client.getToken(code);
@@ -148,6 +148,7 @@ export class GoogleLogin {
         role: user.role,
         name: user.name,
         profileImage: user.profileImage,
+        isBlocked: user.isBlocked,
       },
     };
   }

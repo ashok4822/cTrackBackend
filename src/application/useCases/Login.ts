@@ -17,7 +17,7 @@ export class Login {
   ): Promise<{
     accessToken: string;
     refreshToken: string;
-    user: { id: string; email: string; role: UserRole; name?: string; profileImage?: string };
+    user: { id: string; email: string; role: UserRole; name?: string; profileImage?: string; isBlocked: boolean };
   }> {
     const user = await this.userRepository.findByEmail(email);
 
@@ -78,6 +78,7 @@ export class Login {
         role: user.role,
         name: user.name,
         profileImage: user.profileImage,
+        isBlocked: user.isBlocked,
       },
     };
   }

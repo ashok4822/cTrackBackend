@@ -28,10 +28,12 @@ export class MongoContainerRepository implements IContainerRepository {
             gateOutTime: container.gateOutTime,
             dwellTime: container.dwellTime,
             weight: container.weight,
+            cargoWeight: container.cargoWeight,
             sealNumber: container.sealNumber,
             damaged: container.damaged,
             damageDetails: container.damageDetails,
             blacklisted: container.blacklisted,
+            empty: container.empty,
         };
 
         if (container.id && container.id.match(/^[0-9a-fA-F]{24}$/)) {
@@ -50,6 +52,7 @@ export class MongoContainerRepository implements IContainerRepository {
             c.type,
             c.status,
             c.shippingLine,
+            c.empty,
             c.movementType,
             c.customer,
             c.yardLocation,
@@ -57,6 +60,7 @@ export class MongoContainerRepository implements IContainerRepository {
             c.gateOutTime,
             c.dwellTime,
             c.weight,
+            c.cargoWeight,
             c.sealNumber,
             c.damaged,
             c.damageDetails,
