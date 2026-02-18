@@ -2,7 +2,7 @@ import { IContainerHistoryRepository } from "../../domain/repositories/IContaine
 import { ContainerHistory } from "../../domain/entities/ContainerHistory";
 import { ContainerHistoryModel } from "../models/ContainerHistoryModel";
 
-export class MongoContainerHistoryRepository implements IContainerHistoryRepository {
+export class ContainerHistoryRepository implements IContainerHistoryRepository {
     async findByContainerId(containerId: string): Promise<ContainerHistory[]> {
         const histories = await ContainerHistoryModel.find({ containerId }).sort({ timestamp: -1 });
         return histories.map(h => new ContainerHistory(

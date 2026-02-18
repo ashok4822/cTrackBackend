@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { UserController } from "../controllers/UserController";
+import { AuditLogController } from "../controllers/AuditLogController";
 import { AdminCreateUser } from "../../application/useCases/AdminCreateUser";
 import { GetUserProfile } from "../../application/useCases/GetUserProfile";
 import { UpdateUserProfile } from "../../application/useCases/UpdateUserProfile";
@@ -8,7 +9,9 @@ import { UpdateUserProfileImage } from "../../application/useCases/UpdateUserPro
 import { GetAllUsers } from "../../application/useCases/GetAllUsers";
 import { ToggleUserBlockStatus } from "../../application/useCases/ToggleUserBlockStatus";
 import { AdminUpdateUser } from "../../application/useCases/AdminUpdateUser";
-import { MongoUserRepository } from "../../infrastructure/repositories/MongoUserRepository";
+import { GetAuditLogs } from "../../application/useCases/GetAuditLogs";
+import { UserRepository } from "../../infrastructure/repositories/UserRepository";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
 import { EmailService } from "../../infrastructure/services/EmailService";
 import { upload } from "../../infrastructure/services/UploadService";
@@ -20,17 +23,19 @@ import {
 const userRouter = Router();
 
 //DI
-const userRepository = new MongoUserRepository();
+const userRepository = new UserRepository();
+const auditLogRepository = new MongoAuditLogRepository();
 const hashService = new BcryptHashService();
 const emailService = new EmailService();
-const adminCreateUserUseCase = new AdminCreateUser(userRepository, hashService, emailService);
+const adminCreateUserUseCase = new AdminCreateUser(userRepository, hashService, emailService, auditLogRepository);
 const getUserProfileUseCase = new GetUserProfile(userRepository);
-const updateUserProfileUseCase = new UpdateUserProfile(userRepository);
-const updatePasswordUseCase = new UpdatePassword(userRepository, hashService);
+const updateUserProfileUseCase = new UpdateUserProfile(userRepository, auditLogRepository);
+const updatePasswordUseCase = new UpdatePassword(userRepository, hashService, auditLogRepository);
 const updateProfileImageUseCase = new UpdateUserProfileImage(userRepository);
 const getAllUsersUseCase = new GetAllUsers(userRepository);
-const toggleUserBlockStatusUseCase = new ToggleUserBlockStatus(userRepository);
-const adminUpdateUserUseCase = new AdminUpdateUser(userRepository);
+const toggleUserBlockStatusUseCase = new ToggleUserBlockStatus(userRepository, auditLogRepository);
+const adminUpdateUserUseCase = new AdminUpdateUser(userRepository, auditLogRepository);
+const getAuditLogsUseCase = new GetAuditLogs(auditLogRepository);
 
 const userController = new UserController(
   adminCreateUserUseCase,
@@ -42,6 +47,8 @@ const userController = new UserController(
   toggleUserBlockStatusUseCase,
   adminUpdateUserUseCase
 );
+
+const auditLogController = new AuditLogController(getAuditLogsUseCase);
 
 // Profile routes - authenticated users only
 userRouter.get("/profile", authMiddleware, (req, res) =>
@@ -84,6 +91,14 @@ userRouter.put(
   authMiddleware,
   roleMiddleware(["admin"]),
   (req, res) => userController.updateUser(req, res)
+);
+
+// Audit logs - admin only
+userRouter.get(
+  "/audit-logs",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  (req, res) => auditLogController.getAuditLogs(req, res)
 );
 
 export { userRouter };

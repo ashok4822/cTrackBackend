@@ -2,18 +2,22 @@ import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { IHashService } from "../services/IHashService";
 import { UserRole } from "../../domain/entities/User";
 import { ITokenService } from "../services/ITokenService";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
 
 export class Login {
   constructor(
     private userRepository: IUserRepository,
     private hashService: IHashService,
     private tokenService: ITokenService,
+    private auditLogRepository: IAuditLogRepository,
   ) { }
 
   async execute(
     email: string,
     password: string,
     requiredRole?: UserRole,
+    ipAddress?: string,
   ): Promise<{
     accessToken: string;
     refreshToken: string;
@@ -68,6 +72,21 @@ export class Login {
       process.env.JWT_REFRESH_SECRET || "refresh_fallback",
       "7d",
     );
+
+    // Log successful login
+    if (ipAddress) {
+      await this.auditLogRepository.save(new AuditLog(
+        null,
+        user.id,
+        user.role,
+        user.name || user.email,
+        "USER_LOGIN",
+        "Auth",
+        user.id,
+        JSON.stringify({ email: user.email, role: user.role }),
+        ipAddress
+      ));
+    }
 
     return {
       accessToken,

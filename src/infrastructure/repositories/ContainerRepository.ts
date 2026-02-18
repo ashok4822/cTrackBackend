@@ -2,9 +2,33 @@ import { IContainerRepository } from "../../domain/repositories/IContainerReposi
 import { Container } from "../../domain/entities/Container";
 import { ContainerModel } from "../models/ContainerModel";
 
-export class MongoContainerRepository implements IContainerRepository {
-    async findAll(): Promise<Container[]> {
-        const containers = await ContainerModel.find();
+export class ContainerRepository implements IContainerRepository {
+    async findAll(filters?: {
+        containerNumber?: string;
+        size?: string;
+        type?: string;
+        block?: string;
+        status?: string;
+    }): Promise<Container[]> {
+        const query: any = {};
+
+        if (filters?.containerNumber) {
+            query.containerNumber = { $regex: filters.containerNumber, $options: "i" };
+        }
+        if (filters?.size) {
+            query.size = filters.size;
+        }
+        if (filters?.type) {
+            query.type = filters.type.toLowerCase();
+        }
+        if (filters?.block) {
+            query["yardLocation.block"] = filters.block;
+        }
+        if (filters?.status) {
+            query.status = filters.status;
+        }
+
+        const containers = await ContainerModel.find(query);
         return containers.map(this.toEntity);
     }
 

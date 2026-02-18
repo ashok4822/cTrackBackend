@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { MongoUserRepository } from "../../infrastructure/repositories/MongoUserRepository";
+import { UserRepository } from "../../infrastructure/repositories/UserRepository";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
 import { JwtTokenService } from "../../infrastructure/services/JwtTokenService";
 import { Login } from "../../application/useCases/Login";
@@ -19,13 +20,14 @@ export const createAuthRouter = () => {
   const authRouter = Router();
 
   //DI
-  const userRepository = new MongoUserRepository();
+  const userRepository = new UserRepository();
+  const auditLogRepository = new MongoAuditLogRepository();
   const otpRepository = new OtpRepository();
   const hashService = new BcryptHashService();
   const tokenService = new JwtTokenService();
   const emailService = new EmailService();
 
-  const loginUseCase = new Login(userRepository, hashService, tokenService);
+  const loginUseCase = new Login(userRepository, hashService, tokenService, auditLogRepository);
   const signupUseCase = new CustomerSignup(userRepository, hashService);
   const refreshUseCase = new RefreshToken(userRepository, tokenService);
   const googleLoginUseCase = new GoogleLogin(

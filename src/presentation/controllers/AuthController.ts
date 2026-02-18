@@ -88,7 +88,8 @@ export class AuthController {
           .json({ message: "Invalid email format" });
       }
 
-      const result = await this.loginUseCase.execute(email, password, role);
+      const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
+      const result = await this.loginUseCase.execute(email, password, role, ipAddress);
 
       res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,

@@ -1,4 +1,4 @@
-export class YardBlock {
+export class Block {
     constructor(
         public readonly id: string,
         public readonly name: string,

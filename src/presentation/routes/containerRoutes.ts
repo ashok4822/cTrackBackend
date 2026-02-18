@@ -7,14 +7,14 @@ import { UpdateContainer } from "../../application/useCases/UpdateContainer";
 import { BlacklistContainer } from "../../application/useCases/BlacklistContainer";
 import { UnblacklistContainer } from "../../application/useCases/UnblacklistContainer";
 import { GetContainerHistory } from "../../application/useCases/GetContainerHistory";
-import { MongoContainerRepository } from "../../infrastructure/repositories/MongoContainerRepository";
-import { MongoContainerHistoryRepository } from "../../infrastructure/repositories/MongoContainerHistoryRepository";
+import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
+import { ContainerHistoryRepository } from "../../infrastructure/repositories/ContainerHistoryRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createContainerRouter = () => {
     const router = Router();
-    const repository = new MongoContainerRepository();
-    const historyRepository = new MongoContainerHistoryRepository();
+    const repository = new ContainerRepository();
+    const historyRepository = new ContainerHistoryRepository();
 
     const createUseCase = new CreateContainer(repository, historyRepository);
     const getAllUseCase = new GetAllContainers(repository);

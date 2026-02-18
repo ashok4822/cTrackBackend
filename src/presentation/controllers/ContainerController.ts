@@ -30,7 +30,8 @@ export class ContainerController {
 
     async getAllContainers(req: Request, res: Response) {
         try {
-            const containers = await this.getAllContainersUseCase.execute();
+            const filters = req.query as any;
+            const containers = await this.getAllContainersUseCase.execute(filters);
             return res.status(HttpStatus.OK).json(containers);
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });

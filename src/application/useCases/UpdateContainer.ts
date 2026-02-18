@@ -62,7 +62,7 @@ export class UpdateContainer {
             ));
         }
 
-        if (data.gateInTime) {
+        if (data.gateInTime && (!container.gateInTime || new Date(data.gateInTime).getTime() !== new Date(container.gateInTime).getTime())) {
             await this.historyRepository.save(new ContainerHistory(
                 null,
                 id,
@@ -72,12 +72,112 @@ export class UpdateContainer {
             ));
         }
 
-        if (data.gateOutTime) {
+        if (data.gateOutTime && (!container.gateOutTime || new Date(data.gateOutTime).getTime() !== new Date(container.gateOutTime).getTime())) {
             await this.historyRepository.save(new ContainerHistory(
                 null,
                 id,
                 "Gate Out",
                 `Container gated out at ${new Date(data.gateOutTime).toLocaleString()}`,
+                "Admin"
+            ));
+        }
+
+        if (data.damaged !== undefined && data.damaged !== container.damaged) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Damage Status Updated",
+                `Damage status changed to ${data.damaged ? "Damaged" : "Undamaged"}`,
+                "Admin"
+            ));
+        }
+
+        if (data.damageDetails !== undefined && data.damageDetails !== container.damageDetails) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Damage Details Updated",
+                `Damage details updated: ${data.damageDetails || "Cleared"}`,
+                "Admin"
+            ));
+        }
+
+        if (data.weight !== undefined && data.weight !== container.weight) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Weight Updated",
+                `Weight updated from ${container.weight || "None"} to ${data.weight} kg`,
+                "Admin"
+            ));
+        }
+
+        if (data.cargoWeight !== undefined && data.cargoWeight !== container.cargoWeight) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Cargo Weight Updated",
+                `Cargo weight updated from ${container.cargoWeight || "None"} to ${data.cargoWeight} kg`,
+                "Admin"
+            ));
+        }
+
+        if (data.sealNumber !== undefined && data.sealNumber !== container.sealNumber) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Seal Number Updated",
+                `Seal number changed from ${container.sealNumber || "None"} to ${data.sealNumber}`,
+                "Admin"
+            ));
+        }
+
+        if (data.shippingLine !== undefined && data.shippingLine !== container.shippingLine) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Shipping Line Updated",
+                `Shipping line changed from ${container.shippingLine} to ${data.shippingLine}`,
+                "Admin"
+            ));
+        }
+
+        if (data.customer !== undefined && data.customer !== container.customer) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Customer Updated",
+                `Customer changed from ${container.customer || "None"} to ${data.customer}`,
+                "Admin"
+            ));
+        }
+
+        if (data.size !== undefined && data.size !== container.size) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Size Updated",
+                `Container size changed from ${container.size} to ${data.size}`,
+                "Admin"
+            ));
+        }
+
+        if (data.type !== undefined && data.type !== container.type) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Type Updated",
+                `Container type changed from ${container.type} to ${data.type}`,
+                "Admin"
+            ));
+        }
+
+        if (data.movementType !== undefined && data.movementType !== container.movementType) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Movement Type Updated",
+                `Movement type changed from ${container.movementType || "None"} to ${data.movementType}`,
                 "Admin"
             ));
         }

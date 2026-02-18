@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export interface IYardBlockDocument extends Document {
+export interface IBlockDocument extends Document {
     name: string;
     capacity: number;
     occupied: number;
@@ -8,7 +8,7 @@ export interface IYardBlockDocument extends Document {
     updatedAt: Date;
 }
 
-const YardBlockSchema: Schema = new Schema(
+const BlockSchema: Schema = new Schema(
     {
         name: { type: String, required: true },
         capacity: { type: Number, required: true },
@@ -19,7 +19,7 @@ const YardBlockSchema: Schema = new Schema(
     }
 );
 
-export const YardBlockModel = mongoose.model<IYardBlockDocument>(
-    "YardBlock",
-    YardBlockSchema
+export const BlockModel = mongoose.model<IBlockDocument>(
+    "Block",
+    BlockSchema
 );

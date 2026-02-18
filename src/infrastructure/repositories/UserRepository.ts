@@ -2,7 +2,7 @@ import { User, UserRole } from "../../domain/entities/User";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { UserModel } from "../models/UserModel";
 
-export class MongoUserRepository implements IUserRepository {
+export class UserRepository implements IUserRepository {
   async findByEmail(email: string): Promise<User | null> {
     const userDoc = await UserModel.findOne({ email });
 
@@ -58,7 +58,7 @@ export class MongoUserRepository implements IUserRepository {
     );
   }
 
-  async save(user: User): Promise<void> {
+  async save(user: User): Promise<User> {
     const userData = {
       email: user.email,
       password: user.password,
@@ -71,11 +71,27 @@ export class MongoUserRepository implements IUserRepository {
       isBlocked: user.isBlocked,
     };
 
+    let savedDoc;
     if (user.id) {
-      await UserModel.findByIdAndUpdate(user.id, userData, { upsert: true });
+      savedDoc = await UserModel.findByIdAndUpdate(user.id, userData, { new: true, upsert: true });
     } else {
-      await UserModel.create(userData);
+      savedDoc = await UserModel.create(userData);
     }
+
+    return new User(
+      savedDoc!._id.toString(),
+      savedDoc!.email,
+      savedDoc!.role as UserRole,
+      savedDoc!.password,
+      savedDoc!.name,
+      savedDoc!.phone,
+      savedDoc!.googleId,
+      savedDoc!.profileImage,
+      savedDoc!.companyName,
+      savedDoc!.isBlocked,
+      savedDoc!.createdAt,
+      savedDoc!.updatedAt
+    );
   }
 
   async findAll(): Promise<User[]> {

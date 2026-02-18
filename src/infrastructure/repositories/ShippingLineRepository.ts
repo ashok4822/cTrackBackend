@@ -2,7 +2,7 @@ import { IShippingLineRepository } from "../../domain/repositories/IShippingLine
 import { ShippingLine } from "../../domain/entities/ShippingLine";
 import { ShippingLineModel } from "../models/ShippingLineModel";
 
-export class MongoShippingLineRepository implements IShippingLineRepository {
+export class ShippingLineRepository implements IShippingLineRepository {
     async findAll(): Promise<ShippingLine[]> {
         const lines = await ShippingLineModel.find();
         return lines.map(
@@ -16,18 +16,20 @@ export class MongoShippingLineRepository implements IShippingLineRepository {
         return new ShippingLine(line.id, line.shipping_line_name, line.shipping_line_code, line.createdAt, line.updatedAt);
     }
 
-    async save(shippingLine: ShippingLine): Promise<void> {
+    async save(shippingLine: ShippingLine): Promise<ShippingLine> {
+        let savedDoc;
         if (shippingLine.id && shippingLine.id.match(/^[0-9a-fA-F]{24}$/)) {
-            await ShippingLineModel.findByIdAndUpdate(shippingLine.id, {
+            savedDoc = await ShippingLineModel.findByIdAndUpdate(shippingLine.id, {
                 shipping_line_name: shippingLine.shipping_line_name,
                 shipping_line_code: shippingLine.shipping_line_code,
-            });
+            }, { new: true });
         } else {
             const newLine = new ShippingLineModel({
                 shipping_line_name: shippingLine.shipping_line_name,
                 shipping_line_code: shippingLine.shipping_line_code,
             });
-            await newLine.save();
+            savedDoc = await newLine.save();
         }
+        return new ShippingLine(savedDoc!.id, savedDoc!.shipping_line_name, savedDoc!.shipping_line_code, savedDoc!.createdAt, savedDoc!.updatedAt);
     }
 }

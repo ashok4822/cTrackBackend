@@ -5,6 +5,6 @@ export interface IUserRepository {
   findById(id: string): Promise<User | null>;
   findByGoogleId(googleId: string): Promise<User | null>;
   findAll(): Promise<User[]>;
-  save(user: User): Promise<void>;
+  save(user: User): Promise<User>;
   exists(email: string): Promise<boolean>;
 }
