@@ -71,6 +71,14 @@ export class ContainerRepository implements IContainerRepository {
     }
 
     private toEntity(c: any): Container {
+        let calculatedDwellTime = c.dwellTime;
+        if (c.gateInTime) {
+            const start = new Date(c.gateInTime);
+            const end = c.gateOutTime ? new Date(c.gateOutTime) : new Date();
+            const diffTime = end.getTime() - start.getTime();
+            calculatedDwellTime = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+        }
+
         return new Container(
             c.id,
             c.containerNumber,
@@ -84,7 +92,7 @@ export class ContainerRepository implements IContainerRepository {
             c.yardLocation,
             c.gateInTime,
             c.gateOutTime,
-            c.dwellTime,
+            calculatedDwellTime,
             c.weight,
             c.cargoWeight,
             c.sealNumber,

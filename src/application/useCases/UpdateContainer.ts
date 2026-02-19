@@ -15,6 +15,15 @@ export class UpdateContainer {
             throw new Error("Container not found");
         }
 
+        // Automatically set local gate timestamps if status changes and they are not set
+        const gateInTime = ((data.status === "gate-in" || data.status === "in-yard") && !container.gateInTime && !data.gateInTime)
+            ? new Date()
+            : (data.gateInTime !== undefined ? data.gateInTime : container.gateInTime);
+
+        const gateOutTime = (data.status === "gate-out" && !container.gateOutTime && !data.gateOutTime)
+            ? new Date()
+            : (data.gateOutTime !== undefined ? data.gateOutTime : container.gateOutTime);
+
         const updatedContainer = new Container(
             container.id,
             data.containerNumber !== undefined ? data.containerNumber : container.containerNumber,
@@ -26,8 +35,8 @@ export class UpdateContainer {
             data.movementType !== undefined ? (data.movementType as any) : container.movementType,
             data.customer !== undefined ? data.customer : container.customer,
             data.yardLocation !== undefined ? data.yardLocation : container.yardLocation,
-            data.gateInTime !== undefined ? data.gateInTime : container.gateInTime,
-            data.gateOutTime !== undefined ? data.gateOutTime : container.gateOutTime,
+            gateInTime,
+            gateOutTime,
             data.dwellTime !== undefined ? data.dwellTime : container.dwellTime,
             data.weight !== undefined ? data.weight : container.weight,
             data.cargoWeight !== undefined ? data.cargoWeight : container.cargoWeight,
@@ -178,6 +187,16 @@ export class UpdateContainer {
                 id,
                 "Movement Type Updated",
                 `Movement type changed from ${container.movementType || "None"} to ${data.movementType}`,
+                "Admin"
+            ));
+        }
+
+        if (data.empty !== undefined && data.empty !== container.empty) {
+            await this.historyRepository.save(new ContainerHistory(
+                null,
+                id,
+                "Empty Status Updated",
+                `Container status changed from ${container.empty ? "Empty" : "Loaded"} to ${data.empty ? "Empty" : "Loaded"}`,
                 "Admin"
             ));
         }

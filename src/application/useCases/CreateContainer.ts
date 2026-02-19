@@ -15,11 +15,14 @@ export class CreateContainer {
         type: "standard" | "reefer" | "tank" | "open-top";
         status: "pending" | "gate-in" | "in-yard" | "in-transit" | "at-port" | "at-factory" | "gate-out" | "damaged";
         shippingLine: string;
+        empty?: boolean;
         movementType?: "import" | "export" | "domestic";
         customer?: string;
         weight?: number;
         sealNumber?: string;
     }): Promise<void> {
+        const gateInTime = data.status === "in-yard" || data.status === "gate-in" ? new Date() : undefined;
+
         const container = new Container(
             null,
             data.containerNumber,
@@ -27,11 +30,11 @@ export class CreateContainer {
             data.type,
             data.status,
             data.shippingLine,
-            undefined, // empty
+            data.empty,
             data.movementType,
             data.customer,
             undefined, // yardLocation
-            undefined, // gateInTime
+            gateInTime, // gateInTime
             undefined, // gateOutTime
             undefined, // dwellTime
             data.weight,
