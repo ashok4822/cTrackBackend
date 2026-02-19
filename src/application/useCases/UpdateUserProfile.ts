@@ -1,5 +1,8 @@
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { User } from "../../domain/entities/User";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
+import { UserContext } from "./AdminCreateUser";
 
 interface UpdateProfileData {
     name?: string;
@@ -8,9 +11,12 @@ interface UpdateProfileData {
 }
 
 export class UpdateUserProfile {
-    constructor(private userRepository: IUserRepository) { }
+    constructor(
+        private userRepository: IUserRepository,
+        private auditLogRepository: IAuditLogRepository
+    ) { }
 
-    async execute(userId: string, data: UpdateProfileData): Promise<User> {
+    async execute(userId: string, data: UpdateProfileData, userContext: UserContext): Promise<User> {
         // Validation for name and phone (already present)
         if (data.name !== undefined) {
             const trimmedName = data.name.trim();
@@ -47,6 +53,24 @@ export class UpdateUserProfile {
         );
 
         await this.userRepository.save(updatedUser);
+
+        // Log audit event
+        const changes: string[] = [];
+        if (data.name !== undefined) changes.push(`name: ${data.name}`);
+        if (data.phone !== undefined) changes.push(`phone: ${data.phone}`);
+        if (data.companyName !== undefined) changes.push(`companyName: ${data.companyName}`);
+
+        await this.auditLogRepository.save(new AuditLog(
+            null,
+            userContext.userId,
+            userContext.userRole,
+            userContext.userName,
+            "PROFILE_UPDATED",
+            "Profile",
+            userId,
+            JSON.stringify({ changes }),
+            userContext.ipAddress
+        ));
 
         return updatedUser;
     }

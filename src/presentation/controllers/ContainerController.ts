@@ -5,6 +5,7 @@ import { GetContainerById } from "../../application/useCases/GetContainerById";
 import { UpdateContainer } from "../../application/useCases/UpdateContainer";
 import { BlacklistContainer } from "../../application/useCases/BlacklistContainer";
 import { UnblacklistContainer } from "../../application/useCases/UnblacklistContainer";
+import { GetContainerHistory } from "../../application/useCases/GetContainerHistory";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 
 export class ContainerController {
@@ -14,7 +15,8 @@ export class ContainerController {
         private getContainerByIdUseCase: GetContainerById,
         private updateContainerUseCase: UpdateContainer,
         private blacklistContainerUseCase: BlacklistContainer,
-        private unblacklistContainerUseCase: UnblacklistContainer
+        private unblacklistContainerUseCase: UnblacklistContainer,
+        private getContainerHistoryUseCase: GetContainerHistory
     ) { }
 
     async createContainer(req: Request, res: Response) {
@@ -28,7 +30,8 @@ export class ContainerController {
 
     async getAllContainers(req: Request, res: Response) {
         try {
-            const containers = await this.getAllContainersUseCase.execute();
+            const filters = req.query as any;
+            const containers = await this.getAllContainersUseCase.execute(filters);
             return res.status(HttpStatus.OK).json(containers);
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
@@ -73,6 +76,16 @@ export class ContainerController {
             const { id } = req.params;
             await this.unblacklistContainerUseCase.execute(id as string);
             return res.status(HttpStatus.OK).json({ message: "Container unblacklisted successfully" });
+        } catch (error: any) {
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async getContainerHistory(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const history = await this.getContainerHistoryUseCase.execute(id as string);
+            return res.status(HttpStatus.OK).json(history);
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
         }

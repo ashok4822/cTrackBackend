@@ -1,18 +1,23 @@
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { IHashService } from "../services/IHashService";
 import { User } from "../../domain/entities/User";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
+import { UserContext } from "./AdminCreateUser";
 
 export class UpdatePassword {
     constructor(
         private userRepository: IUserRepository,
-        private hashService: IHashService
+        private hashService: IHashService,
+        private auditLogRepository: IAuditLogRepository
     ) { }
 
     async execute(
         userId: string,
         currentPassword: string,
         newPassword: string,
-        confirmPassword: string
+        confirmPassword: string,
+        userContext: UserContext
     ): Promise<void> {
         // Validation for new password matching
         if (newPassword !== confirmPassword) {
@@ -64,5 +69,18 @@ export class UpdatePassword {
         );
 
         await this.userRepository.save(updatedUser);
+
+        // Log audit event
+        await this.auditLogRepository.save(new AuditLog(
+            null,
+            userContext.userId,
+            userContext.userRole,
+            userContext.userName,
+            "PASSWORD_CHANGED",
+            "Profile",
+            userId,
+            JSON.stringify({ message: "Password changed successfully" }),
+            userContext.ipAddress
+        ));
     }
 }

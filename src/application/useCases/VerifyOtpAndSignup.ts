@@ -33,7 +33,7 @@ export class VerifyOtpAndSignup {
         const otpTime = savedOtpData.createdAt.getTime();
         const timeDifference = currentTime - otpTime;
 
-        if (timeDifference > 60 * 1000) { // 1 minute in milliseconds
+        if (timeDifference > 300 * 1000) { // 5 minutes in milliseconds
             await this.otpRepository.deleteOtp(email);
             throw new Error("OTP has expired");
         }

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AdminCreateUser } from "../../application/useCases/AdminCreateUser";
+import { AdminCreateUser, UserContext } from "../../application/useCases/AdminCreateUser";
 import { GetUserProfile } from "../../application/useCases/GetUserProfile";
 import { UpdateUserProfile } from "../../application/useCases/UpdateUserProfile";
 import { UpdatePassword } from "../../application/useCases/UpdatePassword";
@@ -21,10 +21,22 @@ export class UserController {
     private adminUpdateUserUseCase: AdminUpdateUser
   ) { }
 
+  private getUserContext(req: Request): UserContext {
+    const user = (req as any).user;
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
+    return {
+      userId: user?.id || 'unknown',
+      userName: user?.name || user?.email || 'unknown',
+      userRole: user?.role || 'unknown',
+      ipAddress
+    };
+  }
+
   async createUser(req: Request, res: Response) {
     try {
-      const { email, password, role, name } = req.body;
-      await this.adminCreateUserUseCase.execute(email, password, role, name);
+      const { email, role, name } = req.body;
+      const userContext = this.getUserContext(req);
+      await this.adminCreateUserUseCase.execute(email, role, userContext, name);
       return res
         .status(HttpStatus.CREATED)
         .json({ message: `${role} created successfully` });
@@ -75,11 +87,12 @@ export class UserController {
       }
 
       const { name, phone, companyName } = req.body;
+      const userContext = this.getUserContext(req);
       const updatedUser = await this.updateUserProfileUseCase.execute(userId, {
         name,
         phone,
         companyName,
-      });
+      }, userContext);
 
       return res.status(HttpStatus.OK).json({
         message: "Profile updated successfully",
@@ -118,11 +131,13 @@ export class UserController {
           .json({ message: "All password fields are required" });
       }
 
+      const userContext = this.getUserContext(req);
       await this.updatePasswordUseCase.execute(
         userId,
         currentPassword,
         newPassword,
-        confirmPassword
+        confirmPassword,
+        userContext
       );
 
       return res
@@ -192,7 +207,8 @@ export class UserController {
   async toggleBlockStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const updatedUser = await this.toggleUserBlockStatusUseCase.execute(id as string);
+      const userContext = this.getUserContext(req);
+      const updatedUser = await this.toggleUserBlockStatusUseCase.execute(id as string, userContext);
       return res.status(HttpStatus.OK).json({
         message: `User ${updatedUser.isBlocked ? "blocked" : "unblocked"} successfully`,
         user: {
@@ -211,11 +227,12 @@ export class UserController {
     try {
       const { id } = req.params;
       const { name, role, organization } = req.body;
+      const userContext = this.getUserContext(req);
       const updatedUser = await this.adminUpdateUserUseCase.execute(id as string, {
         name,
         role,
         companyName: organization,
-      });
+      }, userContext);
 
       return res.status(HttpStatus.OK).json({
         message: "User updated successfully",

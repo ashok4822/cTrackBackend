@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { UserController } from "../controllers/UserController";
+import { AuditLogController } from "../controllers/AuditLogController";
 import { AdminCreateUser } from "../../application/useCases/AdminCreateUser";
 import { GetUserProfile } from "../../application/useCases/GetUserProfile";
 import { UpdateUserProfile } from "../../application/useCases/UpdateUserProfile";
@@ -8,8 +9,11 @@ import { UpdateUserProfileImage } from "../../application/useCases/UpdateUserPro
 import { GetAllUsers } from "../../application/useCases/GetAllUsers";
 import { ToggleUserBlockStatus } from "../../application/useCases/ToggleUserBlockStatus";
 import { AdminUpdateUser } from "../../application/useCases/AdminUpdateUser";
-import { MongoUserRepository } from "../../infrastructure/repositories/MongoUserRepository";
+import { GetAuditLogs } from "../../application/useCases/GetAuditLogs";
+import { UserRepository } from "../../infrastructure/repositories/UserRepository";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
+import { EmailService } from "../../infrastructure/services/EmailService";
 import { upload } from "../../infrastructure/services/UploadService";
 import {
   authMiddleware,
@@ -19,16 +23,19 @@ import {
 const userRouter = Router();
 
 //DI
-const userRepository = new MongoUserRepository();
+const userRepository = new UserRepository();
+const auditLogRepository = new MongoAuditLogRepository();
 const hashService = new BcryptHashService();
-const adminCreateUserUseCase = new AdminCreateUser(userRepository, hashService);
+const emailService = new EmailService();
+const adminCreateUserUseCase = new AdminCreateUser(userRepository, hashService, emailService, auditLogRepository);
 const getUserProfileUseCase = new GetUserProfile(userRepository);
-const updateUserProfileUseCase = new UpdateUserProfile(userRepository);
-const updatePasswordUseCase = new UpdatePassword(userRepository, hashService);
+const updateUserProfileUseCase = new UpdateUserProfile(userRepository, auditLogRepository);
+const updatePasswordUseCase = new UpdatePassword(userRepository, hashService, auditLogRepository);
 const updateProfileImageUseCase = new UpdateUserProfileImage(userRepository);
 const getAllUsersUseCase = new GetAllUsers(userRepository);
-const toggleUserBlockStatusUseCase = new ToggleUserBlockStatus(userRepository);
-const adminUpdateUserUseCase = new AdminUpdateUser(userRepository);
+const toggleUserBlockStatusUseCase = new ToggleUserBlockStatus(userRepository, auditLogRepository);
+const adminUpdateUserUseCase = new AdminUpdateUser(userRepository, auditLogRepository);
+const getAuditLogsUseCase = new GetAuditLogs(auditLogRepository);
 
 const userController = new UserController(
   adminCreateUserUseCase,
@@ -41,7 +48,29 @@ const userController = new UserController(
   adminUpdateUserUseCase
 );
 
-//Only admins can create and manage users
+const auditLogController = new AuditLogController(getAuditLogsUseCase);
+
+// Profile routes - authenticated users only
+userRouter.get("/profile", authMiddleware, (req, res) =>
+  userController.getProfile(req, res),
+);
+
+userRouter.put("/profile", authMiddleware, (req, res) =>
+  userController.updateProfile(req, res),
+);
+
+userRouter.put("/password", authMiddleware, (req, res) =>
+  userController.updatePassword(req, res),
+);
+
+userRouter.post(
+  "/profile/image",
+  authMiddleware,
+  upload.single("image"),
+  (req, res) => userController.updateProfileImage(req, res),
+);
+
+// Only admins can create and manage users
 userRouter.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
   userController.createUser(req, res),
 );
@@ -64,24 +93,12 @@ userRouter.put(
   (req, res) => userController.updateUser(req, res)
 );
 
-// Profile routes - authenticated users only
-userRouter.get("/profile", authMiddleware, (req, res) =>
-  userController.getProfile(req, res),
-);
-
-userRouter.put("/profile", authMiddleware, (req, res) =>
-  userController.updateProfile(req, res),
-);
-
-userRouter.put("/password", authMiddleware, (req, res) =>
-  userController.updatePassword(req, res),
-);
-
-userRouter.post(
-  "/profile/image",
+// Audit logs - admin only
+userRouter.get(
+  "/audit-logs",
   authMiddleware,
-  upload.single("image"),
-  (req, res) => userController.updateProfileImage(req, res),
+  roleMiddleware(["admin"]),
+  (req, res) => auditLogController.getAuditLogs(req, res)
 );
 
 export { userRouter };

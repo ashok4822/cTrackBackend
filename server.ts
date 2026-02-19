@@ -10,6 +10,10 @@ import { createYardRouter } from "./src/presentation/routes/yardRoutes";
 import { createShippingLineRouter } from "./src/presentation/routes/shippingLineRoutes";
 import { createContainerRouter } from "./src/presentation/routes/containerRoutes";
 import { HttpStatus } from "./src/domain/constants/HttpStatus";
+import {
+  globalLimiter,
+  authLimiter,
+} from "./src/presentation/middlewares/rateLimiter";
 
 dotenv.config();
 
@@ -31,7 +35,7 @@ app.use(
       }
 
       const allowedOrigins = [
-        "https://www.caryo.store", // Added for potential production/staging
+        "https://www.caryo.store", // Added for production/staging
       ];
 
       if (allowedOrigins.includes(origin)) {
@@ -53,14 +57,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Apply global rate limiter to all api routes
+app.use("/api", globalLimiter);
+
 //Routes
-app.use("/api/auth", createAuthRouter());
+app.use("/api/auth", authLimiter, createAuthRouter());
 app.use("/api/users", userRouter);
 app.use("/api/yard", createYardRouter());
 app.use("/api/shipping-lines", createShippingLineRouter());
 app.use("/api/containers", createContainerRouter());
 
-// Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/health", (req, res) => {

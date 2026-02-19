@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { MongoUserRepository } from "../../infrastructure/repositories/MongoUserRepository";
+import { UserRepository } from "../../infrastructure/repositories/UserRepository";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
 import { JwtTokenService } from "../../infrastructure/services/JwtTokenService";
 import { Login } from "../../application/useCases/Login";
@@ -13,18 +14,20 @@ import { EmailService } from "../../infrastructure/services/EmailService";
 import { OtpRepository } from "../../infrastructure/repositories/OtpRepository";
 import { ForgotPassword } from "../../application/useCases/ForgotPassword";
 import { ResetPassword } from "../../application/useCases/ResetPassword";
+import { VerifyResetOtp } from "../../application/useCases/VerifyResetOtp";
 
 export const createAuthRouter = () => {
   const authRouter = Router();
 
   //DI
-  const userRepository = new MongoUserRepository();
+  const userRepository = new UserRepository();
+  const auditLogRepository = new MongoAuditLogRepository();
   const otpRepository = new OtpRepository();
   const hashService = new BcryptHashService();
   const tokenService = new JwtTokenService();
   const emailService = new EmailService();
 
-  const loginUseCase = new Login(userRepository, hashService, tokenService);
+  const loginUseCase = new Login(userRepository, hashService, tokenService, auditLogRepository);
   const signupUseCase = new CustomerSignup(userRepository, hashService);
   const refreshUseCase = new RefreshToken(userRepository, tokenService);
   const googleLoginUseCase = new GoogleLogin(
@@ -53,6 +56,9 @@ export const createAuthRouter = () => {
     otpRepository,
     hashService,
   );
+  const verifyResetOtpUseCase = new VerifyResetOtp(
+    otpRepository,
+  );
 
   const authController = new AuthController(
     loginUseCase,
@@ -63,6 +69,7 @@ export const createAuthRouter = () => {
     verifyOtpAndSignupUseCase,
     forgotPasswordUseCase,
     resetPasswordUseCase,
+    verifyResetOtpUseCase,
   );
 
   authRouter.post("/login", (req, res) => authController.login(req, res));
@@ -80,6 +87,9 @@ export const createAuthRouter = () => {
   );
   authRouter.post("/reset-password", (req, res) =>
     authController.resetPassword(req, res),
+  );
+  authRouter.post("/verify-reset-otp", (req, res) =>
+    authController.verifyResetOtp(req, res),
   );
 
   return authRouter;

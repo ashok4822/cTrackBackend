@@ -1,7 +1,13 @@
 import { Container } from "../entities/Container";
 
 export interface IContainerRepository {
-    findAll(): Promise<Container[]>;
+    findAll(filters?: {
+        containerNumber?: string;
+        size?: string;
+        type?: string;
+        block?: string;
+        status?: string;
+    }): Promise<Container[]>;
     findById(id: string): Promise<Container | null>;
-    save(container: Container): Promise<void>;
+    save(container: Container): Promise<Container>;
 }

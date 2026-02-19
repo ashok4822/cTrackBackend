@@ -1,39 +1,41 @@
 import { Router } from "express";
 import { YardController } from "../controllers/YardController";
-import { GetYardBlocks } from "../../application/useCases/GetYardBlocks";
-import { CreateYardBlock } from "../../application/useCases/CreateYardBlock";
-import { UpdateYardBlock } from "../../application/useCases/UpdateYardBlock";
-import { MongoYardBlockRepository } from "../../infrastructure/repositories/MongoYardBlockRepository";
+import { GetBlocks } from "../../application/useCases/GetBlocks";
+import { CreateBlock } from "../../application/useCases/CreateBlock";
+import { UpdateBlock } from "../../application/useCases/UpdateBlock";
+import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export function createYardRouter(): Router {
     const router = Router();
 
     // DI
-    const yardBlockRepository = new MongoYardBlockRepository();
-    const getYardBlocksUseCase = new GetYardBlocks(yardBlockRepository);
-    const createYardBlockUseCase = new CreateYardBlock(yardBlockRepository);
-    const updateYardBlockUseCase = new UpdateYardBlock(yardBlockRepository);
+    const blockRepository = new BlockRepository();
+    const auditLogRepository = new MongoAuditLogRepository();
+    const getBlocksUseCase = new GetBlocks(blockRepository);
+    const createBlockUseCase = new CreateBlock(blockRepository, auditLogRepository);
+    const updateBlockUseCase = new UpdateBlock(blockRepository, auditLogRepository);
 
     const yardController = new YardController(
-        getYardBlocksUseCase,
-        createYardBlockUseCase,
-        updateYardBlockUseCase
+        getBlocksUseCase,
+        createBlockUseCase,
+        updateBlockUseCase
     );
 
     // Routes
-    // Both admins and operators might need to see the yard configuration
+    // Both admins and operators need to see the configuration
     router.get("/", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) =>
-        yardController.getYardBlocks(req, res)
+        yardController.getBlocks(req, res)
     );
 
     // Only admins can create or update the configuration
     router.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        yardController.createYardBlock(req, res)
+        yardController.createBlock(req, res)
     );
 
     router.put("/:id", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        yardController.updateYardBlock(req, res)
+        yardController.updateBlock(req, res)
     );
 
     return router;

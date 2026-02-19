@@ -2,9 +2,33 @@ import { IContainerRepository } from "../../domain/repositories/IContainerReposi
 import { Container } from "../../domain/entities/Container";
 import { ContainerModel } from "../models/ContainerModel";
 
-export class MongoContainerRepository implements IContainerRepository {
-    async findAll(): Promise<Container[]> {
-        const containers = await ContainerModel.find();
+export class ContainerRepository implements IContainerRepository {
+    async findAll(filters?: {
+        containerNumber?: string;
+        size?: string;
+        type?: string;
+        block?: string;
+        status?: string;
+    }): Promise<Container[]> {
+        const query: any = {};
+
+        if (filters?.containerNumber) {
+            query.containerNumber = { $regex: filters.containerNumber, $options: "i" };
+        }
+        if (filters?.size) {
+            query.size = filters.size;
+        }
+        if (filters?.type) {
+            query.type = filters.type.toLowerCase();
+        }
+        if (filters?.block) {
+            query["yardLocation.block"] = filters.block;
+        }
+        if (filters?.status) {
+            query.status = filters.status;
+        }
+
+        const containers = await ContainerModel.find(query);
         return containers.map(this.toEntity);
     }
 
@@ -14,7 +38,7 @@ export class MongoContainerRepository implements IContainerRepository {
         return this.toEntity(container);
     }
 
-    async save(container: Container): Promise<void> {
+    async save(container: Container): Promise<Container> {
         const data = {
             containerNumber: container.containerNumber,
             size: container.size,
@@ -28,17 +52,21 @@ export class MongoContainerRepository implements IContainerRepository {
             gateOutTime: container.gateOutTime,
             dwellTime: container.dwellTime,
             weight: container.weight,
+            cargoWeight: container.cargoWeight,
             sealNumber: container.sealNumber,
             damaged: container.damaged,
             damageDetails: container.damageDetails,
             blacklisted: container.blacklisted,
+            empty: container.empty,
         };
 
         if (container.id && container.id.match(/^[0-9a-fA-F]{24}$/)) {
-            await ContainerModel.findByIdAndUpdate(container.id, data);
+            const updated = await ContainerModel.findByIdAndUpdate(container.id, data, { new: true });
+            return this.toEntity(updated);
         } else {
             const newContainer = new ContainerModel(data);
-            await newContainer.save();
+            const saved = await newContainer.save();
+            return this.toEntity(saved);
         }
     }
 
@@ -50,6 +78,7 @@ export class MongoContainerRepository implements IContainerRepository {
             c.type,
             c.status,
             c.shippingLine,
+            c.empty,
             c.movementType,
             c.customer,
             c.yardLocation,
@@ -57,6 +86,7 @@ export class MongoContainerRepository implements IContainerRepository {
             c.gateOutTime,
             c.dwellTime,
             c.weight,
+            c.cargoWeight,
             c.sealNumber,
             c.damaged,
             c.damageDetails,

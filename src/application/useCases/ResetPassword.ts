@@ -29,8 +29,8 @@ export class ResetPassword {
         const otpTime = savedOtpData.createdAt.getTime();
         const timeDifference = currentTime - otpTime;
 
-        // 1 minute expiration
-        if (timeDifference > 60 * 1000) {
+        // 5 minute expiration
+        if (timeDifference > 300 * 1000) {
             await this.otpRepository.deleteOtp(email);
             throw new Error("OTP has expired");
         }

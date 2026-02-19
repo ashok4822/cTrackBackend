@@ -3,15 +3,17 @@ import { ShippingLineController } from "../controllers/ShippingLineController";
 import { CreateShippingLine } from "../../application/useCases/CreateShippingLine";
 import { GetAllShippingLines } from "../../application/useCases/GetAllShippingLines";
 import { UpdateShippingLine } from "../../application/useCases/UpdateShippingLine";
-import { MongoShippingLineRepository } from "../../infrastructure/repositories/MongoShippingLineRepository";
+import { ShippingLineRepository } from "../../infrastructure/repositories/ShippingLineRepository";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createShippingLineRouter = () => {
     const router = Router();
-    const repository = new MongoShippingLineRepository();
-    const createUseCase = new CreateShippingLine(repository);
+    const repository = new ShippingLineRepository();
+    const auditLogRepository = new MongoAuditLogRepository();
+    const createUseCase = new CreateShippingLine(repository, auditLogRepository);
     const getAllUseCase = new GetAllShippingLines(repository);
-    const updateUseCase = new UpdateShippingLine(repository);
+    const updateUseCase = new UpdateShippingLine(repository, auditLogRepository);
     const controller = new ShippingLineController(createUseCase, getAllUseCase, updateUseCase);
 
     router.get("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>

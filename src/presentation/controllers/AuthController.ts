@@ -8,6 +8,7 @@ import { InitiateSignup } from "../../application/useCases/InitiateSignup";
 import { VerifyOtpAndSignup } from "../../application/useCases/VerifyOtpAndSignup";
 import { ForgotPassword } from "../../application/useCases/ForgotPassword";
 import { ResetPassword } from "../../application/useCases/ResetPassword";
+import { VerifyResetOtp } from "../../application/useCases/VerifyResetOtp";
 
 export class AuthController {
   constructor(
@@ -19,6 +20,7 @@ export class AuthController {
     private verifyOtpAndSignupUseCase: VerifyOtpAndSignup,
     private forgotPasswordUseCase: ForgotPassword,
     private resetPasswordUseCase: ResetPassword,
+    private verifyResetOtpUseCase: VerifyResetOtp,
   ) { }
 
   async initiateSignup(req: Request, res: Response) {
@@ -86,7 +88,8 @@ export class AuthController {
           .json({ message: "Invalid email format" });
       }
 
-      const result = await this.loginUseCase.execute(email, password, role);
+      const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
+      const result = await this.loginUseCase.execute(email, password, role, ipAddress);
 
       res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
@@ -97,7 +100,6 @@ export class AuthController {
 
       return res.status(HttpStatus.OK).json({
         accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
         user: result.user,
       });
     } catch (error: unknown) {
@@ -177,8 +179,7 @@ export class AuthController {
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
-      // Ensure we don't leak user existence info in production, 
-      // but strictly following the use case which throws.
+
       return res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
@@ -203,6 +204,26 @@ export class AuthController {
       return res
         .status(HttpStatus.OK)
         .json({ message: "Password reset successfully" });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      return res.status(HttpStatus.BAD_REQUEST).json({ message });
+    }
+  }
+
+  async verifyResetOtp(req: Request, res: Response) {
+    try {
+      const { email, otp } = req.body;
+      if (!email || !otp) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ message: "Email and OTP are required" });
+      }
+
+      await this.verifyResetOtpUseCase.execute(email, otp);
+      return res
+        .status(HttpStatus.OK)
+        .json({ message: "OTP verified successfully" });
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
