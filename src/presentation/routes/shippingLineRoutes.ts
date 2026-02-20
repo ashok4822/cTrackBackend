@@ -16,7 +16,7 @@ export const createShippingLineRouter = () => {
     const updateUseCase = new UpdateShippingLine(repository, auditLogRepository);
     const controller = new ShippingLineController(createUseCase, getAllUseCase, updateUseCase);
 
-    router.get("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
+    router.get("/", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) =>
         controller.getAllShippingLines(req, res)
     );
 

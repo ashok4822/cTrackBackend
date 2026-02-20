@@ -1,0 +1,151 @@
+import { IGateOperationRepository } from "../../domain/repositories/IGateOperationRepository";
+import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
+import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
+import { GateOperation } from "../../domain/entities/GateOperation";
+import { ContainerHistory } from "../../domain/entities/ContainerHistory";
+import { Container } from "../../domain/entities/Container";
+
+export class CreateGateOperation {
+    constructor(
+        private gateOperationRepository: IGateOperationRepository,
+        private containerRepository: IContainerRepository,
+        private historyRepository: IContainerHistoryRepository
+    ) { }
+
+    async execute(data: {
+        type: "gate-in" | "gate-out";
+        containerNumber: string;
+        vehicleNumber: string;
+        driverName: string;
+        purpose: "port" | "factory" | "transfer";
+        remarks?: string;
+        approvedBy?: string;
+        // Additional container fields
+        size?: "20ft" | "40ft";
+        containerType?: "standard" | "reefer" | "tank" | "open-top";
+        shippingLine?: string;
+        weight?: number;
+        cargoWeight?: number;
+        sealNumber?: string;
+        empty?: boolean;
+        movementType?: "import" | "export" | "domestic";
+    }): Promise<void> {
+        // 1. Create Gate Operation Record
+        const operation = new GateOperation(
+            null,
+            data.type,
+            data.containerNumber,
+            data.vehicleNumber,
+            data.driverName,
+            data.purpose,
+            "completed", // Auto-complete for now
+            new Date(),
+            data.approvedBy,
+            data.remarks
+        );
+        await this.gateOperationRepository.save(operation);
+
+        // 2. Find and update Container
+        const containers = await this.containerRepository.findAll({ containerNumber: data.containerNumber });
+        let container: Container | null = containers.length > 0 ? containers[0] : null;
+
+        if (data.type === "gate-in") {
+            if (!container) {
+                // Create new container if it doesn't exist
+                container = new Container(
+                    null,
+                    data.containerNumber,
+                    data.size || "40ft",
+                    data.containerType || "standard",
+                    "gate-in",
+                    data.shippingLine || "Unknown",
+                    data.empty ?? true,
+                    data.movementType || "import",
+                    undefined,
+                    undefined,
+                    new Date(),
+                    undefined,
+                    undefined,
+                    data.weight,
+                    data.cargoWeight,
+                    data.sealNumber,
+                    false, // damaged
+                    undefined,
+                    false, // blacklisted
+                    new Date(),
+                    new Date()
+                );
+            } else {
+                // Update existing container status and other fields
+                const updatedContainer = new Container(
+                    container.id,
+                    container.containerNumber,
+                    data.size || container.size,
+                    data.containerType || container.type,
+                    "gate-in",
+                    data.shippingLine || container.shippingLine,
+                    data.empty ?? container.empty,
+                    data.movementType || container.movementType,
+                    container.customer,
+                    container.yardLocation,
+                    new Date(),
+                    container.gateOutTime,
+                    container.dwellTime,
+                    data.weight ?? container.weight,
+                    data.cargoWeight ?? container.cargoWeight,
+                    data.sealNumber ?? container.sealNumber,
+                    container.damaged,
+                    container.damageDetails,
+                    container.blacklisted,
+                    container.createdAt,
+                    new Date()
+                );
+                container = updatedContainer;
+            }
+        } else {
+            // gate-out
+            if (container) {
+                const updatedContainer = new Container(
+                    container.id,
+                    container.containerNumber,
+                    container.size,
+                    container.type,
+                    "gate-out",
+                    container.shippingLine,
+                    container.empty,
+                    container.movementType,
+                    container.customer,
+                    container.yardLocation,
+                    container.gateInTime,
+                    new Date(),
+                    container.dwellTime,
+                    container.weight,
+                    container.cargoWeight,
+                    container.sealNumber,
+                    container.damaged,
+                    container.damageDetails,
+                    container.blacklisted,
+                    container.createdAt,
+                    new Date()
+                );
+                container = updatedContainer;
+            }
+        }
+
+        if (container) {
+            const savedContainer = await this.containerRepository.save(container);
+
+            // 3. Record History
+            if (savedContainer.id) {
+                const history = new ContainerHistory(
+                    null,
+                    savedContainer.id,
+                    data.type === "gate-in" ? "Gate In" : "Gate Out",
+                    `Processed ${data.type} operation at gate. Vehicle: ${data.vehicleNumber}, Driver: ${data.driverName}`,
+                    "Operator"
+                );
+                await this.historyRepository.save(history);
+            }
+        }
+    }
+}
