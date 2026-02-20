@@ -6,7 +6,6 @@ export class GateOperationRepository implements IGateOperationRepository {
     async findAll(filters?: {
         type?: "gate-in" | "gate-out";
         containerNumber?: string;
-        status?: string;
     }): Promise<GateOperation[]> {
         const query: any = {};
 
@@ -15,9 +14,6 @@ export class GateOperationRepository implements IGateOperationRepository {
         }
         if (filters?.containerNumber) {
             query.containerNumber = { $regex: filters.containerNumber, $options: "i" };
-        }
-        if (filters?.status) {
-            query.status = filters.status;
         }
 
         const operations = await GateOperationModel.find(query).sort({ timestamp: -1 });
@@ -37,7 +33,6 @@ export class GateOperationRepository implements IGateOperationRepository {
             vehicleNumber: operation.vehicleNumber,
             driverName: operation.driverName,
             purpose: operation.purpose,
-            status: operation.status,
             timestamp: operation.timestamp,
             approvedBy: operation.approvedBy,
             remarks: operation.remarks,
@@ -61,7 +56,6 @@ export class GateOperationRepository implements IGateOperationRepository {
             o.vehicleNumber,
             o.driverName,
             o.purpose,
-            o.status,
             o.timestamp,
             o.approvedBy,
             o.remarks

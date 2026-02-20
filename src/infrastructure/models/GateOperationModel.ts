@@ -6,7 +6,6 @@ export interface IGateOperationDocument extends Document {
     vehicleNumber: string;
     driverName: string;
     purpose: "port" | "factory" | "transfer";
-    status: "pending" | "approved" | "completed" | "rejected";
     timestamp: Date;
     approvedBy?: string;
     remarks?: string;
@@ -19,11 +18,6 @@ const GateOperationSchema: Schema = new Schema(
         vehicleNumber: { type: String, required: true },
         driverName: { type: String, required: true },
         purpose: { type: String, enum: ["port", "factory", "transfer"], required: true },
-        status: {
-            type: String,
-            enum: ["pending", "approved", "completed", "rejected"],
-            default: "pending",
-        },
         timestamp: { type: Date, default: Date.now },
         approvedBy: { type: String },
         remarks: { type: String },

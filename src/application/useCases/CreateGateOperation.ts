@@ -38,7 +38,6 @@ export class CreateGateOperation {
             data.vehicleNumber,
             data.driverName,
             data.purpose,
-            "completed", // Auto-complete for now
             new Date(),
             data.approvedBy,
             data.remarks
