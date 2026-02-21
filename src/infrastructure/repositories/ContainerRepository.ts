@@ -13,7 +13,7 @@ export class ContainerRepository implements IContainerRepository {
         const query: any = {};
 
         if (filters?.containerNumber) {
-            query.containerNumber = { $regex: filters.containerNumber, $options: "i" };
+            query.containerNumber = { $regex: `^${filters.containerNumber}$`, $options: "i" };
         }
         if (filters?.size) {
             query.size = filters.size;
