@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IGateOperationDocument extends Document {
     type: "gate-in" | "gate-out";
-    containerNumber: string;
+    containerNumber?: string;
     vehicleNumber: string;
     driverName: string;
     purpose: "port" | "factory" | "transfer";
@@ -14,7 +14,7 @@ export interface IGateOperationDocument extends Document {
 const GateOperationSchema: Schema = new Schema(
     {
         type: { type: String, enum: ["gate-in", "gate-out"], required: true },
-        containerNumber: { type: String, required: true },
+        containerNumber: { type: String, required: false },
         vehicleNumber: { type: String, required: true },
         driverName: { type: String, required: true },
         purpose: { type: String, enum: ["port", "factory", "transfer"], required: true },

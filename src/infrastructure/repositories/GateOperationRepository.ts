@@ -6,6 +6,8 @@ export class GateOperationRepository implements IGateOperationRepository {
     async findAll(filters?: {
         type?: "gate-in" | "gate-out";
         containerNumber?: string;
+        vehicleNumber?: string;
+        limit?: number;
     }): Promise<GateOperation[]> {
         const query: any = {};
 
@@ -15,8 +17,21 @@ export class GateOperationRepository implements IGateOperationRepository {
         if (filters?.containerNumber) {
             query.containerNumber = { $regex: filters.containerNumber, $options: "i" };
         }
+        if (filters?.vehicleNumber) {
+            // For verification (limit=1), use exact match. Otherwise use regex.
+            if (filters.limit === 1) {
+                query.vehicleNumber = { $regex: `^${filters.vehicleNumber}$`, $options: "i" };
+            } else {
+                query.vehicleNumber = { $regex: filters.vehicleNumber, $options: "i" };
+            }
+        }
 
-        const operations = await GateOperationModel.find(query).sort({ timestamp: -1 });
+        let mQuery = GateOperationModel.find(query).sort({ timestamp: -1 });
+        if (filters?.limit) {
+            mQuery = mQuery.limit(filters.limit);
+        }
+
+        const operations = await mQuery;
         return operations.map(this.toEntity);
     }
 

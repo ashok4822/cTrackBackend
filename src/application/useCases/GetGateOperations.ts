@@ -7,6 +7,8 @@ export class GetGateOperations {
     async execute(filters?: {
         type?: "gate-in" | "gate-out";
         containerNumber?: string;
+        vehicleNumber?: string;
+        limit?: number;
         status?: string;
     }): Promise<GateOperation[]> {
         return await this.gateOperationRepository.findAll(filters);
