@@ -2,17 +2,30 @@ import { IContainerRepository } from "../../domain/repositories/IContainerReposi
 import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
 import { Container } from "../../domain/entities/Container";
 import { ContainerHistory } from "../../domain/entities/ContainerHistory";
+import { IEquipmentRepository } from "../../domain/repositories/IEquipmentRepository";
+import { IEquipmentHistoryRepository } from "../../domain/repositories/IEquipmentHistoryRepository";
+import { EquipmentHistory } from "../../domain/entities/EquipmentHistory";
 
 export class UpdateContainer {
     constructor(
         private containerRepository: IContainerRepository,
-        private historyRepository: IContainerHistoryRepository
+        private historyRepository: IContainerHistoryRepository,
+        private equipmentRepository: IEquipmentRepository,
+        private equipmentHistoryRepository: IEquipmentHistoryRepository
     ) { }
 
-    async execute(id: string, data: Partial<Container>): Promise<void> {
+    async execute(id: string, data: Partial<Container>, equipmentName?: string, performedBy: string = "System"): Promise<void> {
         const container = await this.containerRepository.findById(id);
         if (!container) {
             throw new Error("Container not found");
+        }
+
+        // Validate yard location update
+        if (data.yardLocation && data.yardLocation.block) {
+            const allowedStatuses = ["gate-in", "in-yard", "damaged"];
+            if (!allowedStatuses.includes(container.status)) {
+                throw new Error("Container must be inside terminal to be assigned to a yard block");
+            }
         }
 
         const updatedContainer = new Container(
@@ -48,7 +61,7 @@ export class UpdateContainer {
                 id,
                 "Status Changed",
                 `Status updated from ${container.status} to ${data.status}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -58,8 +71,23 @@ export class UpdateContainer {
                 id,
                 "Location Updated",
                 `Location updated from ${container.yardLocation?.block || "None"} to ${data.yardLocation.block}`,
-                "Admin"
+                performedBy
             ));
+
+            // Record Equipment History if equipment is provided
+            if (equipmentName) {
+                const equipmentList = await this.equipmentRepository.findAll({ name: equipmentName });
+                if (equipmentList.length > 0) {
+                    const equipment = equipmentList[0];
+                    await this.equipmentHistoryRepository.save(new EquipmentHistory(
+                        null,
+                        equipment.id,
+                        "Shift Operation",
+                        `Shifted container ${container.containerNumber} from ${container.yardLocation?.block || "Gate"} to ${data.yardLocation.block}`,
+                        performedBy
+                    ));
+                }
+            }
         }
 
         if (data.gateInTime && (!container.gateInTime || new Date(data.gateInTime).getTime() !== new Date(container.gateInTime).getTime())) {
@@ -68,7 +96,7 @@ export class UpdateContainer {
                 id,
                 "Gate In",
                 `Container gated in at ${new Date(data.gateInTime).toLocaleString()}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -78,7 +106,7 @@ export class UpdateContainer {
                 id,
                 "Gate Out",
                 `Container gated out at ${new Date(data.gateOutTime).toLocaleString()}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -88,7 +116,7 @@ export class UpdateContainer {
                 id,
                 "Damage Status Updated",
                 `Damage status changed to ${data.damaged ? "Damaged" : "Undamaged"}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -98,7 +126,7 @@ export class UpdateContainer {
                 id,
                 "Damage Details Updated",
                 `Damage details updated: ${data.damageDetails || "Cleared"}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -108,7 +136,7 @@ export class UpdateContainer {
                 id,
                 "Weight Updated",
                 `Weight updated from ${container.weight || "None"} to ${data.weight} kg`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -118,7 +146,7 @@ export class UpdateContainer {
                 id,
                 "Cargo Weight Updated",
                 `Cargo weight updated from ${container.cargoWeight || "None"} to ${data.cargoWeight} kg`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -128,7 +156,7 @@ export class UpdateContainer {
                 id,
                 "Seal Number Updated",
                 `Seal number changed from ${container.sealNumber || "None"} to ${data.sealNumber}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -138,7 +166,7 @@ export class UpdateContainer {
                 id,
                 "Shipping Line Updated",
                 `Shipping line changed from ${container.shippingLine} to ${data.shippingLine}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -148,7 +176,7 @@ export class UpdateContainer {
                 id,
                 "Customer Updated",
                 `Customer changed from ${container.customer || "None"} to ${data.customer}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -158,7 +186,7 @@ export class UpdateContainer {
                 id,
                 "Size Updated",
                 `Container size changed from ${container.size} to ${data.size}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -168,7 +196,7 @@ export class UpdateContainer {
                 id,
                 "Type Updated",
                 `Container type changed from ${container.type} to ${data.type}`,
-                "Admin"
+                performedBy
             ));
         }
 
@@ -178,7 +206,7 @@ export class UpdateContainer {
                 id,
                 "Movement Type Updated",
                 `Movement type changed from ${container.movementType || "None"} to ${data.movementType}`,
-                "Admin"
+                performedBy
             ));
         }
     }

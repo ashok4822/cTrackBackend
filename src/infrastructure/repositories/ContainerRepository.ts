@@ -25,7 +25,11 @@ export class ContainerRepository implements IContainerRepository {
             query["yardLocation.block"] = filters.block;
         }
         if (filters?.status) {
-            query.status = filters.status;
+            if (Array.isArray(filters.status)) {
+                query.status = { $in: filters.status };
+            } else {
+                query.status = filters.status;
+            }
         }
 
         const containers = await ContainerModel.find(query);
@@ -77,7 +81,7 @@ export class ContainerRepository implements IContainerRepository {
             const outTime = c.gateOutTime ? new Date(c.gateOutTime) : new Date();
             const inTime = new Date(c.gateInTime);
             const diffMs = outTime.getTime() - inTime.getTime();
-            dwellTime = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            dwellTime = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
         }
 
         return new Container(

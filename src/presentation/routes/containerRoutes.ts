@@ -9,17 +9,26 @@ import { UnblacklistContainer } from "../../application/useCases/UnblacklistCont
 import { GetContainerHistory } from "../../application/useCases/GetContainerHistory";
 import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
 import { ContainerHistoryRepository } from "../../infrastructure/repositories/ContainerHistoryRepository";
+import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
+import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createContainerRouter = () => {
     const router = Router();
     const repository = new ContainerRepository();
     const historyRepository = new ContainerHistoryRepository();
+    const equipmentRepository = new EquipmentRepository();
+    const equipmentHistoryRepository = new EquipmentHistoryRepository();
 
     const createUseCase = new CreateContainer(repository, historyRepository);
     const getAllUseCase = new GetAllContainers(repository);
     const getByIdUseCase = new GetContainerById(repository);
-    const updateUseCase = new UpdateContainer(repository, historyRepository);
+    const updateUseCase = new UpdateContainer(
+        repository,
+        historyRepository,
+        equipmentRepository,
+        equipmentHistoryRepository
+    );
     const blacklistUseCase = new BlacklistContainer(repository, historyRepository);
     const unblacklistUseCase = new UnblacklistContainer(repository, historyRepository);
     const getHistoryUseCase = new GetContainerHistory(historyRepository);

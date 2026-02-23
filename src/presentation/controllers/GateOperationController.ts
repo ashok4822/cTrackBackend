@@ -21,7 +21,8 @@ export class GateOperationController {
 
     async createGateOperation(req: Request, res: Response) {
         try {
-            await this.createGateOperationUseCase.execute(req.body);
+            const performedBy = req.user?.name || req.user?.email || "System";
+            await this.createGateOperationUseCase.execute(req.body, performedBy);
             return res.status(HttpStatus.CREATED).json({ message: "Gate operation recorded successfully" });
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });

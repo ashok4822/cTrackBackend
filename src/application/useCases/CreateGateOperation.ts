@@ -35,7 +35,7 @@ export class CreateGateOperation {
         sealNumber?: string;
         empty?: boolean;
         movementType?: "import" | "export" | "domestic";
-    }): Promise<void> {
+    }, performedBy: string = "Operator"): Promise<void> {
         // 1. Find Vehicle and Container first for validation
         const vehicles = await this.vehicleRepository.findAll({ vehicleNumber: data.vehicleNumber });
         let vehicle = vehicles.length > 0 ? vehicles[0] : null;
@@ -174,8 +174,8 @@ export class CreateGateOperation {
                         container.customer,
                         container.yardLocation,
                         new Date(),
-                        container.gateOutTime,
-                        container.dwellTime,
+                        undefined, // Clear old gate-out time
+                        undefined, // Clear old dwell time
                         data.weight ?? container.weight,
                         data.cargoWeight ?? container.cargoWeight,
                         data.sealNumber ?? container.sealNumber,
@@ -227,7 +227,7 @@ export class CreateGateOperation {
                         savedContainer.id,
                         data.type === "gate-in" ? "Gate In" : "Gate Out",
                         `Processed ${data.type} operation at gate. Vehicle: ${data.vehicleNumber}, Driver: ${data.driverName}`,
-                        "Operator"
+                        performedBy
                     );
                     await this.historyRepository.save(history);
                 }

@@ -4,7 +4,9 @@ import { CreateEquipment } from "../../application/useCases/CreateEquipment";
 import { UpdateEquipment } from "../../application/useCases/UpdateEquipment";
 import { DeleteEquipment } from "../../application/useCases/DeleteEquipment";
 import { GetAllEquipment } from "../../application/useCases/GetAllEquipment";
+import { GetEquipmentHistory } from "../../application/useCases/GetEquipmentHistory";
 import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
+import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
 import {
     authMiddleware,
     roleMiddleware,
@@ -14,16 +16,19 @@ export const createEquipmentRouter = () => {
     const router = Router();
     const repository = new EquipmentRepository();
 
-    const createUseCase = new CreateEquipment(repository);
-    const updateUseCase = new UpdateEquipment(repository);
+    const historyRepository = new EquipmentHistoryRepository();
+    const createUseCase = new CreateEquipment(repository, historyRepository);
+    const updateUseCase = new UpdateEquipment(repository, historyRepository);
     const deleteUseCase = new DeleteEquipment(repository);
     const getAllUseCase = new GetAllEquipment(repository);
+    const getHistoryUseCase = new GetEquipmentHistory(historyRepository);
 
     const controller = new EquipmentController(
         createUseCase,
         updateUseCase,
         deleteUseCase,
-        getAllUseCase
+        getAllUseCase,
+        getHistoryUseCase
     );
 
     router.get(
@@ -49,6 +54,9 @@ export const createEquipmentRouter = () => {
     );
     router.delete("/:id", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
         controller.delete(req, res)
+    );
+    router.get("/:id/history", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) =>
+        controller.fetchHistory(req, res)
     );
 
     return router;
