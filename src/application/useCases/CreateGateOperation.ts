@@ -36,8 +36,31 @@ export class CreateGateOperation {
         empty?: boolean;
         movementType?: "import" | "export" | "domestic";
     }): Promise<void> {
-        console.log(`Creating gate operation: ${data.type} for container ${data.containerNumber}, vehicle ${data.vehicleNumber}`);
-        // 1. Create Gate Operation Record
+        // 1. Find Vehicle and Container first for validation
+        const vehicles = await this.vehicleRepository.findAll({ vehicleNumber: data.vehicleNumber });
+        let vehicle = vehicles.length > 0 ? vehicles[0] : null;
+
+        let container: Container | null = null;
+        if (data.containerNumber) {
+            const containers = await this.containerRepository.findAll({ containerNumber: data.containerNumber });
+            container = containers.length > 0 ? containers[0] : null;
+        }
+
+        // 2. Validate Vehicle Status
+        if (data.type === "gate-in") {
+            if (vehicle && vehicle.status === "in-yard") {
+                throw new Error(`Vehicle ${data.vehicleNumber} is already in the yard`);
+            }
+        }
+
+        // 3. Validate Container Status
+        if (data.containerNumber && data.type === "gate-in") {
+            if (container && container.status !== "gate-out" && container.status !== "pending") {
+                throw new Error("Container is already inside terminal or in an invalid state");
+            }
+        }
+
+        // 4. Create and Save Gate Operation Record
         const operation = new GateOperation(
             null,
             data.type,
@@ -51,10 +74,7 @@ export class CreateGateOperation {
         );
         await this.gateOperationRepository.save(operation);
 
-        // 1b. Update Vehicle Status
-        const vehicles = await this.vehicleRepository.findAll({ vehicleNumber: data.vehicleNumber });
-        let vehicle = vehicles.length > 0 ? vehicles[0] : null;
-
+        // 5. Update Vehicle Status
         if (data.type === "gate-in") {
             const vehicleData = {
                 vehicleNumber: data.vehicleNumber,
@@ -114,13 +134,7 @@ export class CreateGateOperation {
         }
 
         if (data.containerNumber) {
-            const containers = await this.containerRepository.findAll({ containerNumber: data.containerNumber });
-            let container: Container | null = containers.length > 0 ? containers[0] : null;
-
             if (data.type === "gate-in") {
-                if (container && container.status !== "gate-out" && container.status !== "pending") {
-                    throw new Error("Container is already inside terminal or in an invalid state");
-                }
                 if (!container) {
                     // Create new container if it doesn't exist
                     container = new Container(
