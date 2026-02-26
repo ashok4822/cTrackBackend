@@ -54,9 +54,15 @@ export class CreateGateOperation {
         }
 
         // 3. Validate Container Status
-        if (data.containerNumber && data.type === "gate-in") {
-            if (container && container.status !== "gate-out" && container.status !== "pending") {
-                throw new Error("Container is already inside terminal or in an invalid state");
+        if (data.containerNumber) {
+            if (container && container.blacklisted) {
+                throw new Error(`Container ${data.containerNumber} is blacklisted and cannot perform gate operations`);
+            }
+
+            if (data.type === "gate-in") {
+                if (container && container.status !== "gate-out" && container.status !== "pending") {
+                    throw new Error("Container is already inside terminal or in an invalid state");
+                }
             }
         }
 
