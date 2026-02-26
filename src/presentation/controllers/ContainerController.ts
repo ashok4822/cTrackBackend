@@ -54,7 +54,9 @@ export class ContainerController {
     async updateContainer(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            await this.updateContainerUseCase.execute(id as string, req.body);
+            const { equipment: equipmentName, ...data } = req.body;
+            const performedBy = req.user?.name || req.user?.email || "System";
+            await this.updateContainerUseCase.execute(id as string, data, equipmentName, performedBy);
             return res.status(HttpStatus.OK).json({ message: "Container updated successfully" });
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });

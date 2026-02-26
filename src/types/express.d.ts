@@ -7,9 +7,10 @@ declare global {
         id: string;
         email: string;
         role: UserRole;
+        name?: string;
       };
     }
   }
 }
 
-export {};
+export { };

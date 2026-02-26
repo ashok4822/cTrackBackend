@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { GetAuditLogs } from "../../application/useCases/GetAuditLogs";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 import { AuditAction, EntityType } from "../../domain/entities/AuditLog";
+import { AuditLogFilters } from "../../domain/repositories/IAuditLogRepository";
 
 export class AuditLogController {
     constructor(private getAuditLogsUseCase: GetAuditLogs) { }
@@ -15,10 +16,10 @@ export class AuditLogController {
                 actionType,
                 entityType,
                 page,
-                limit
+                limit,
             } = req.query;
 
-            const filters: any = {};
+            const filters: AuditLogFilters = {};
 
             if (startDate) {
                 filters.startDate = new Date(startDate as string);

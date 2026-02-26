@@ -127,6 +127,7 @@ export class GoogleLogin {
         id: user.id,
         email: user.email,
         role: user.role,
+        name: user.name,
       },
       process.env.JWT_ACCESS_SECRET || "access_fallback",
       "15m",

@@ -15,15 +15,10 @@ export class GateOperationRepository implements IGateOperationRepository {
             query.type = filters.type;
         }
         if (filters?.containerNumber) {
-            query.containerNumber = { $regex: filters.containerNumber, $options: "i" };
+            query.containerNumber = filters.containerNumber;
         }
         if (filters?.vehicleNumber) {
-            // For verification (limit=1), use exact match. Otherwise use regex.
-            if (filters.limit === 1) {
-                query.vehicleNumber = { $regex: `^${filters.vehicleNumber}$`, $options: "i" };
-            } else {
-                query.vehicleNumber = { $regex: filters.vehicleNumber, $options: "i" };
-            }
+            query.vehicleNumber = { $regex: `^${filters.vehicleNumber}$`, $options: "i" };
         }
 
         let mQuery = GateOperationModel.find(query).sort({ timestamp: -1 });

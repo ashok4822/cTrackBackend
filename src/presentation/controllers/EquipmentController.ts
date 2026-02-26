@@ -3,6 +3,7 @@ import { CreateEquipment } from "../../application/useCases/CreateEquipment";
 import { UpdateEquipment } from "../../application/useCases/UpdateEquipment";
 import { DeleteEquipment } from "../../application/useCases/DeleteEquipment";
 import { GetAllEquipment } from "../../application/useCases/GetAllEquipment";
+import { GetEquipmentHistory } from "../../application/useCases/GetEquipmentHistory";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 
 export class EquipmentController {
@@ -10,7 +11,8 @@ export class EquipmentController {
         private createEquipment: CreateEquipment,
         private updateEquipment: UpdateEquipment,
         private deleteEquipment: DeleteEquipment,
-        private getAllEquipment: GetAllEquipment
+        private getAllEquipment: GetAllEquipment,
+        private getEquipmentHistory: GetEquipmentHistory
     ) { }
 
     async fetchAll(req: Request, res: Response) {
@@ -27,7 +29,8 @@ export class EquipmentController {
 
     async create(req: Request, res: Response) {
         try {
-            const equipment = await this.createEquipment.execute(req.body);
+            const performedBy = req.user?.name || req.user?.email || "System";
+            const equipment = await this.createEquipment.execute(req.body, performedBy);
             res.status(HttpStatus.CREATED).json(equipment);
         } catch (error: any) {
             res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
@@ -37,7 +40,8 @@ export class EquipmentController {
     async update(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            const equipment = await this.updateEquipment.execute(id as string, req.body);
+            const performedBy = req.user?.name || req.user?.email || "System";
+            const equipment = await this.updateEquipment.execute(id as string, req.body, performedBy);
             res.status(HttpStatus.OK).json(equipment);
         } catch (error: any) {
             res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
@@ -51,6 +55,16 @@ export class EquipmentController {
             res.status(HttpStatus.OK).json({ message: "Equipment deleted" });
         } catch (error: any) {
             res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async fetchHistory(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const history = await this.getEquipmentHistory.execute(id as string);
+            res.status(HttpStatus.OK).json(history);
+        } catch (error: any) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
         }
     }
 }

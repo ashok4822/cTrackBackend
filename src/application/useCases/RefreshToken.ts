@@ -5,7 +5,7 @@ export class RefreshToken {
   constructor(
     private userRepository: IUserRepository,
     private tokenService: ITokenService,
-  ) {}
+  ) { }
 
   async execute(refreshToken: string): Promise<{ accessToken: string }> {
     try {
@@ -20,7 +20,7 @@ export class RefreshToken {
       }
 
       const accessToken = this.tokenService.generate(
-        { id: user.id, email: user.email, role: user.role },
+        { id: user.id, email: user.email, role: user.role, name: user.name },
         process.env.JWT_ACCESS_SECRET || "access_fallback",
         "15m",
       );

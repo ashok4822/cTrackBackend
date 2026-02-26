@@ -1,6 +1,6 @@
 import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
 import { Container } from "../../domain/entities/Container";
-import { ContainerModel } from "../models/ContainerModel";
+import { ContainerModel, IContainerDocument } from "../models/ContainerModel";
 
 export class ContainerRepository implements IContainerRepository {
     async findAll(filters?: {
@@ -25,7 +25,11 @@ export class ContainerRepository implements IContainerRepository {
             query["yardLocation.block"] = filters.block;
         }
         if (filters?.status) {
-            query.status = filters.status;
+            if (Array.isArray(filters.status)) {
+                query.status = { $in: filters.status };
+            } else {
+                query.status = filters.status;
+            }
         }
 
         const containers = await ContainerModel.find(query);
@@ -62,6 +66,7 @@ export class ContainerRepository implements IContainerRepository {
 
         if (container.id && container.id.match(/^[0-9a-fA-F]{24}$/)) {
             const updated = await ContainerModel.findByIdAndUpdate(container.id, data, { new: true });
+            if (!updated) throw new Error("Container not found");
             return this.toEntity(updated);
         } else {
             const newContainer = new ContainerModel(data);
@@ -70,21 +75,29 @@ export class ContainerRepository implements IContainerRepository {
         }
     }
 
-    private toEntity(c: any): Container {
+    private toEntity(c: IContainerDocument): Container {
+        let dwellTime = c.dwellTime;
+        if (c.gateInTime) {
+            const outTime = c.gateOutTime ? new Date(c.gateOutTime) : new Date();
+            const inTime = new Date(c.gateInTime);
+            const diffMs = outTime.getTime() - inTime.getTime();
+            dwellTime = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        }
+
         return new Container(
-            c.id,
+            c._id.toString(),
             c.containerNumber,
-            c.size,
-            c.type,
-            c.status,
+            c.size as "20ft" | "40ft",
+            c.type as "standard" | "reefer" | "tank" | "open-top",
+            c.status as "pending" | "gate-in" | "in-yard" | "in-transit" | "at-port" | "at-factory" | "gate-out" | "damaged",
             c.shippingLine,
             c.empty,
-            c.movementType,
+            c.movementType as "import" | "export" | "domestic",
             c.customer,
             c.yardLocation,
             c.gateInTime,
             c.gateOutTime,
-            c.dwellTime,
+            dwellTime,
             c.weight,
             c.cargoWeight,
             c.sealNumber,
