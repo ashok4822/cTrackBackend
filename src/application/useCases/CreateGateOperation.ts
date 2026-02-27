@@ -32,9 +32,12 @@ export class CreateGateOperation {
         shippingLine?: string;
         weight?: number;
         cargoWeight?: number;
+        cargoDescription?: string;
+        hazardousClassification?: boolean;
         sealNumber?: string;
         empty?: boolean;
         movementType?: "import" | "export" | "domestic";
+        customer?: string;
     }, performedBy: string = "Operator"): Promise<void> {
         // 1. Find Vehicle and Container first for validation
         const vehicles = await this.vehicleRepository.findAll({ vehicleNumber: data.vehicleNumber });
@@ -152,13 +155,15 @@ export class CreateGateOperation {
                         data.shippingLine || "Unknown",
                         data.empty ?? true,
                         data.movementType || "import",
-                        undefined,
+                        data.customer,
                         undefined,
                         new Date(),
                         undefined,
                         undefined,
                         data.weight,
                         data.cargoWeight,
+                        data.cargoDescription,
+                        data.hazardousClassification,
                         data.sealNumber,
                         false, // damaged
                         undefined,
@@ -177,13 +182,15 @@ export class CreateGateOperation {
                         data.shippingLine || container.shippingLine,
                         data.empty ?? container.empty,
                         data.movementType || container.movementType,
-                        container.customer,
+                        data.customer || container.customer,
                         container.yardLocation,
                         new Date(),
                         undefined, // Clear old gate-out time
                         undefined, // Clear old dwell time
                         data.weight ?? container.weight,
                         data.cargoWeight ?? container.cargoWeight,
+                        data.cargoDescription ?? (container as any).cargoDescription,
+                        data.hazardousClassification ?? (container as any).hazardousClassification,
                         data.sealNumber ?? container.sealNumber,
                         container.damaged,
                         container.damageDetails,
@@ -212,6 +219,8 @@ export class CreateGateOperation {
                         container.dwellTime,
                         container.weight,
                         container.cargoWeight,
+                        (container as any).cargoDescription,
+                        (container as any).hazardousClassification,
                         container.sealNumber,
                         container.damaged,
                         container.damageDetails,

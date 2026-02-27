@@ -14,6 +14,8 @@ export interface IContainerDocument extends Document {
   dwellTime?: number;
   weight?: number;
   cargoWeight?: number;
+  cargoDescription?: string;
+  hazardousClassification?: boolean;
   sealNumber?: string;
   damaged?: boolean;
   damageDetails?: string;
@@ -58,6 +60,8 @@ const ContainerSchema: Schema = new Schema(
     dwellTime: { type: Number },
     weight: { type: Number },
     cargoWeight: { type: Number },
+    cargoDescription: { type: String },
+    hazardousClassification: { type: Boolean, default: false },
     sealNumber: { type: String },
     damaged: { type: Boolean, default: false },
     damageDetails: { type: String },

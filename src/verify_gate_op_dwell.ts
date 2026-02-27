@@ -27,7 +27,8 @@ class TestGateOp {
             // New container
             const c = new Container(
                 "1", containerNumber, "40ft", "standard", "gate-in", "LINE", true, "import",
-                undefined, undefined, new Date(), undefined, undefined
+                undefined, undefined, new Date(), undefined, undefined,
+                undefined, undefined, undefined, false, undefined
             );
             return await this.repo.save(c);
         } else {
@@ -48,6 +49,8 @@ class TestGateOp {
                 undefined, // SHOULD BE RESET
                 existingContainer.weight,
                 existingContainer.cargoWeight,
+                (existingContainer as any).cargoDescription,
+                (existingContainer as any).hazardousClassification,
                 existingContainer.sealNumber,
                 existingContainer.damaged,
                 existingContainer.damageDetails,
@@ -76,6 +79,8 @@ class TestGateOp {
             10, // Simulated dwell time
             container.weight,
             container.cargoWeight,
+            (container as any).cargoDescription,
+            (container as any).hazardousClassification,
             container.sealNumber,
             container.damaged,
             container.damageDetails,

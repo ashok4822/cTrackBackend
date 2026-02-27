@@ -44,6 +44,8 @@ export class UpdateContainer {
             data.dwellTime !== undefined ? data.dwellTime : container.dwellTime,
             data.weight !== undefined ? data.weight : container.weight,
             data.cargoWeight !== undefined ? data.cargoWeight : container.cargoWeight,
+            data.cargoDescription !== undefined ? data.cargoDescription : (container as any).cargoDescription,
+            data.hazardousClassification !== undefined ? data.hazardousClassification : (container as any).hazardousClassification,
             data.sealNumber !== undefined ? data.sealNumber : container.sealNumber,
             data.damaged !== undefined ? data.damaged : container.damaged,
             data.damageDetails !== undefined ? data.damageDetails : container.damageDetails,

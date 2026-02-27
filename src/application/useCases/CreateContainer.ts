@@ -36,6 +36,8 @@ export class CreateContainer {
             undefined, // dwellTime
             data.weight,
             undefined, // cargoWeight
+            undefined, // cargoDescription
+            undefined, // hazardousClassification
             data.sealNumber
         );
         const savedContainer = await this.containerRepository.save(container);

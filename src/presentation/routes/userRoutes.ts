@@ -75,7 +75,7 @@ userRouter.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
   userController.createUser(req, res),
 );
 
-userRouter.get("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
+userRouter.get("/", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) =>
   userController.getAllUsers(req, res)
 );
 
