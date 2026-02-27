@@ -7,6 +7,7 @@ import { UpdateContainer } from "../../application/useCases/UpdateContainer";
 import { BlacklistContainer } from "../../application/useCases/BlacklistContainer";
 import { UnblacklistContainer } from "../../application/useCases/UnblacklistContainer";
 import { GetContainerHistory } from "../../application/useCases/GetContainerHistory";
+import { GetCustomerContainers } from "../../application/useCases/GetCustomerContainers";
 import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
 import { ContainerHistoryRepository } from "../../infrastructure/repositories/ContainerHistoryRepository";
 import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
@@ -32,6 +33,7 @@ export const createContainerRouter = () => {
     const blacklistUseCase = new BlacklistContainer(repository, historyRepository);
     const unblacklistUseCase = new UnblacklistContainer(repository, historyRepository);
     const getHistoryUseCase = new GetContainerHistory(historyRepository);
+    const getCustomerContainersUseCase = new GetCustomerContainers(repository);
 
     const controller = new ContainerController(
         createUseCase,
@@ -40,11 +42,16 @@ export const createContainerRouter = () => {
         updateUseCase,
         blacklistUseCase,
         unblacklistUseCase,
-        getHistoryUseCase
+        getHistoryUseCase,
+        getCustomerContainersUseCase
     );
 
     router.get("/", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), (req, res) =>
         controller.getAllContainers(req, res)
+    );
+
+    router.get("/my-containers", authMiddleware, roleMiddleware(["customer"]), (req, res) =>
+        controller.getCustomerContainers(req, res)
     );
 
     router.get("/:id", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), (req, res) =>

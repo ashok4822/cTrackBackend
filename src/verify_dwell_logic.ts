@@ -31,7 +31,9 @@ class MockContainerRepository {
         return new Container(
             c.id, c.containerNumber, c.size, c.type, c.status, c.shippingLine,
             c.empty, c.movementType, c.customer, c.yardLocation,
-            c.gateInTime, c.gateOutTime, dwellTime
+            c.gateInTime, c.gateOutTime, dwellTime,
+            c.weight, c.cargoWeight, c.cargoDescription, !!c.hazardousClassification, c.sealNumber,
+            c.damaged, c.damageDetails, c.blacklisted, c.createdAt, c.updatedAt
         );
     }
 }
@@ -44,7 +46,9 @@ async function runTest() {
     console.log("\nTesting Reset on Gate-In:");
     const oldContainer = new Container(
         "1", "CONT1", "40ft", "standard", "gate-out", "LINE", true, "import",
-        undefined, undefined, new Date(Date.now() - 1000000), new Date(), 10
+        undefined, undefined, new Date(Date.now() - 1000000), new Date(), 10,
+        undefined, undefined, undefined, undefined, undefined,
+        false, undefined, false, new Date(), new Date()
     );
 
     // Simulate CreateGateOperation logic for gate-in
@@ -54,7 +58,9 @@ async function runTest() {
         oldContainer.customer, oldContainer.yardLocation,
         new Date(), // New Gate-In Time
         undefined,  // SHOULD BE RESET
-        undefined   // SHOULD BE RESET
+        undefined,  // SHOULD BE RESET
+        undefined, undefined, undefined, undefined, undefined,
+        false, undefined, false, new Date(), new Date()
     );
 
     const entityAfterReset = repo.toEntityWithDwell(newGateIn);

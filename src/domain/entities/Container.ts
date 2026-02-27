@@ -15,6 +15,8 @@ export class Container {
         public readonly dwellTime?: number,
         public readonly weight?: number,
         public readonly cargoWeight?: number,
+        public readonly cargoDescription?: string,
+        public readonly hazardousClassification?: boolean,
         public readonly sealNumber?: string,
         public readonly damaged?: boolean,
         public readonly damageDetails?: string,

@@ -31,6 +31,8 @@ export class UnblacklistContainer {
             container.dwellTime,
             container.weight,
             container.cargoWeight,
+            (container as any).cargoDescription,
+            (container as any).hazardousClassification,
             container.sealNumber,
             container.damaged,
             container.damageDetails,

@@ -6,6 +6,7 @@ import { UpdateContainer } from "../../application/useCases/UpdateContainer";
 import { BlacklistContainer } from "../../application/useCases/BlacklistContainer";
 import { UnblacklistContainer } from "../../application/useCases/UnblacklistContainer";
 import { GetContainerHistory } from "../../application/useCases/GetContainerHistory";
+import { GetCustomerContainers } from "../../application/useCases/GetCustomerContainers";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 
 export class ContainerController {
@@ -16,7 +17,8 @@ export class ContainerController {
         private updateContainerUseCase: UpdateContainer,
         private blacklistContainerUseCase: BlacklistContainer,
         private unblacklistContainerUseCase: UnblacklistContainer,
-        private getContainerHistoryUseCase: GetContainerHistory
+        private getContainerHistoryUseCase: GetContainerHistory,
+        private getCustomerContainersUseCase: GetCustomerContainers
     ) { }
 
     async createContainer(req: Request, res: Response) {
@@ -88,6 +90,19 @@ export class ContainerController {
             const { id } = req.params;
             const history = await this.getContainerHistoryUseCase.execute(id as string);
             return res.status(HttpStatus.OK).json(history);
+        } catch (error: any) {
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async getCustomerContainers(req: Request, res: Response) {
+        try {
+            const customerName = req.user?.name;
+            if (!customerName) {
+                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "Unauthorized" });
+            }
+            const containers = await this.getCustomerContainersUseCase.execute(customerName);
+            return res.status(HttpStatus.OK).json(containers);
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
         }
