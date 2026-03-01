@@ -1,49 +1,28 @@
 import { User, UserRole } from "../../domain/entities/User";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
-import { UserModel } from "../models/UserModel";
+import { UserModel, IUserDocument } from "../models/UserModel";
+import { BaseRepository } from "./base/BaseRepository";
 
-export class UserRepository implements IUserRepository {
-  async findByEmail(email: string): Promise<User | null> {
-    const userDoc = await UserModel.findOne({ email });
-
-    if (!userDoc) return null;
-
-    return new User(
-      userDoc._id.toString(),
-      userDoc.email,
-      userDoc.role as UserRole,
-      userDoc.password,
-      userDoc.name,
-      userDoc.phone,
-      userDoc.googleId,
-      userDoc.profileImage,
-      userDoc.companyName,
-      userDoc.isBlocked
-    );
+export class UserRepository extends BaseRepository<User, IUserDocument> implements IUserRepository {
+  constructor() {
+    super(UserModel);
   }
 
-  async findById(id: string): Promise<User | null> {
-    const userDoc = await UserModel.findById(id);
-    if (!userDoc) return null;
-
-    return new User(
-      userDoc._id.toString(),
-      userDoc.email,
-      userDoc.role as UserRole,
-      userDoc.password,
-      userDoc.name,
-      userDoc.phone,
-      userDoc.googleId,
-      userDoc.profileImage,
-      userDoc.companyName,
-      userDoc.isBlocked
-    );
+  async findByEmail(email: string): Promise<User | null> {
+    const userDoc = await this.model.findOne({ email }).exec();
+    return userDoc ? this.toEntity(userDoc) : null;
   }
 
   async findByGoogleId(googleId: string): Promise<User | null> {
-    const userDoc = await UserModel.findOne({ googleId });
-    if (!userDoc) return null;
+    const userDoc = await this.model.findOne({ googleId }).exec();
+    return userDoc ? this.toEntity(userDoc) : null;
+  }
 
+  async exists(email: string): Promise<boolean> {
+    return super.exists({ email });
+  }
+
+  protected toEntity(userDoc: IUserDocument): User {
     return new User(
       userDoc._id.toString(),
       userDoc.email,
@@ -54,12 +33,14 @@ export class UserRepository implements IUserRepository {
       userDoc.googleId,
       userDoc.profileImage,
       userDoc.companyName,
-      userDoc.isBlocked
+      userDoc.isBlocked,
+      userDoc.createdAt,
+      userDoc.updatedAt
     );
   }
 
-  async save(user: User): Promise<User> {
-    const userData = {
+  protected toModelData(user: User): any {
+    return {
       email: user.email,
       password: user.password,
       role: user.role,
@@ -70,53 +51,5 @@ export class UserRepository implements IUserRepository {
       companyName: user.companyName,
       isBlocked: user.isBlocked,
     };
-
-    let savedDoc;
-    if (user.id) {
-      savedDoc = await UserModel.findByIdAndUpdate(user.id, userData, { new: true, upsert: true });
-    } else {
-      savedDoc = await UserModel.create(userData);
-    }
-
-    return new User(
-      savedDoc!._id.toString(),
-      savedDoc!.email,
-      savedDoc!.role as UserRole,
-      savedDoc!.password,
-      savedDoc!.name,
-      savedDoc!.phone,
-      savedDoc!.googleId,
-      savedDoc!.profileImage,
-      savedDoc!.companyName,
-      savedDoc!.isBlocked,
-      savedDoc!.createdAt,
-      savedDoc!.updatedAt
-    );
-  }
-
-  async findAll(): Promise<User[]> {
-    const userDocs = await UserModel.find();
-    return userDocs.map(
-      (userDoc) =>
-        new User(
-          userDoc._id.toString(),
-          userDoc.email,
-          userDoc.role as UserRole,
-          userDoc.password,
-          userDoc.name,
-          userDoc.phone,
-          userDoc.googleId,
-          userDoc.profileImage,
-          userDoc.companyName,
-          userDoc.isBlocked,
-          userDoc.createdAt,
-          userDoc.updatedAt
-        )
-    );
-  }
-
-  async exists(email: string): Promise<boolean> {
-    const count = await UserModel.countDocuments({ email });
-    return count > 0;
   }
 }
