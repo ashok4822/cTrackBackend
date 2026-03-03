@@ -9,6 +9,8 @@ import { UpdateChargeRate } from "../../application/useCases/UpdateChargeRate";
 import { GetBills } from "../../application/useCases/GetBills";
 import { MarkBillPaid } from "../../application/useCases/MarkBillPaid";
 import { CreateBill } from "../../application/useCases/CreateBill";
+import { GetBillById } from "../../application/useCases/GetBillById";
+import { PayBillWithPDA } from "../../application/useCases/PayBillWithPDA";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 
 export class BillingController {
@@ -22,7 +24,9 @@ export class BillingController {
         private updateChargeRate: UpdateChargeRate,
         private getBillsUseCase?: GetBills,
         private markBillPaidUseCase?: MarkBillPaid,
-        private createBillUseCase?: CreateBill
+        private createBillUseCase?: CreateBill,
+        private payBillWithPDAUseCase?: PayBillWithPDA,
+        private getBillByIdUseCase?: GetBillById
     ) { }
 
     async getAllActivities(req: Request, res: Response) {
@@ -132,6 +136,40 @@ export class BillingController {
             }
             const bill = await this.createBillUseCase.execute(req.body);
             res.status(HttpStatus.CREATED).json(bill);
+        } catch (error: any) {
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async getBill(req: Request, res: Response) {
+        try {
+            if (!this.getBillByIdUseCase) {
+                return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: "Bill service not configured" });
+            }
+            const id = req.params.id as string;
+            const bill = await this.getBillByIdUseCase.execute(id);
+            if (!bill) {
+                return res.status(HttpStatus.NOT_FOUND).json({ message: "Bill not found" });
+            }
+            res.status(HttpStatus.OK).json(bill);
+        } catch (error: any) {
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async payBill(req: Request, res: Response) {
+        try {
+            if (!this.payBillWithPDAUseCase) {
+                return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: "Payment service not configured" });
+            }
+            const id = req.params.id as string;
+            const user = (req as any).user;
+            if (!user) {
+                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
+            }
+
+            const bill = await this.payBillWithPDAUseCase.execute(id as string, user.id);
+            res.status(HttpStatus.OK).json({ message: "Bill paid successfully", bill });
         } catch (error: any) {
             res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
         }

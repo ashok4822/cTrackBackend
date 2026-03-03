@@ -10,10 +10,13 @@ import { UpdateChargeRate } from "../../application/useCases/UpdateChargeRate";
 import { GetBills } from "../../application/useCases/GetBills";
 import { MarkBillPaid } from "../../application/useCases/MarkBillPaid";
 import { CreateBill } from "../../application/useCases/CreateBill";
+import { GetBillById } from "../../application/useCases/GetBillById";
+import { PayBillWithPDA } from "../../application/useCases/PayBillWithPDA";
 import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
 import { ChargeHistoryRepository } from "../../infrastructure/repositories/ChargeHistoryRepository";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
+import { PDARepository } from "../../infrastructure/repositories/PDARepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createBillingRouter = () => {
@@ -23,6 +26,7 @@ export const createBillingRouter = () => {
     const chargeRepo = new ChargeRepository();
     const historyRepo = new ChargeHistoryRepository();
     const billRepo = new BillRepository();
+    const pdaRepo = new PDARepository();
 
     const getActivities = new GetActivities(activityRepo);
     const createActivity = new CreateActivity(activityRepo);
@@ -34,6 +38,8 @@ export const createBillingRouter = () => {
     const getBills = new GetBills(billRepo);
     const markBillPaid = new MarkBillPaid(billRepo);
     const createBill = new CreateBill(billRepo);
+    const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo);
+    const getBillById = new GetBillById(billRepo);
 
     const controller = new BillingController(
         getActivities,
@@ -45,7 +51,9 @@ export const createBillingRouter = () => {
         updateChargeRate,
         getBills,
         markBillPaid,
-        createBill
+        createBill,
+        payBillWithPDA,
+        getBillById
     );
 
     // Apply auth middleware to all billing routes
@@ -63,7 +71,9 @@ export const createBillingRouter = () => {
     // Bills endpoints
     router.get("/bills", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBills(req, res));
     router.post("/bills", roleMiddleware(["admin", "operator"]), (req, res) => controller.addBill(req, res));
+    router.get("/bills/:id", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBill(req, res));
     router.patch("/bills/:id/paid", roleMiddleware(["admin", "operator"]), (req, res) => controller.markBillPaid(req, res));
+    router.post("/bills/:id/pay", roleMiddleware(["customer"]), (req, res) => controller.payBill(req, res));
 
     return router;
 };

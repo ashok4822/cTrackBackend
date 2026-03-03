@@ -12,8 +12,6 @@ import { ContainerRepository } from "../../infrastructure/repositories/Container
 import { ContainerHistoryRepository } from "../../infrastructure/repositories/ContainerHistoryRepository";
 import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
 import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
-import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
-import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
@@ -24,8 +22,6 @@ export const createContainerRouter = () => {
     const historyRepository = new ContainerHistoryRepository();
     const equipmentRepository = new EquipmentRepository();
     const equipmentHistoryRepository = new EquipmentHistoryRepository();
-    const activityRepository = new ActivityRepository();
-    const chargeRepository = new ChargeRepository();
     const billRepository = new BillRepository();
 
     const createUseCase = new CreateContainer(repository, historyRepository);
@@ -36,8 +32,6 @@ export const createContainerRouter = () => {
         historyRepository,
         equipmentRepository,
         equipmentHistoryRepository,
-        activityRepository,
-        chargeRepository,
         billRepository
     );
     const blacklistUseCase = new BlacklistContainer(repository, historyRepository);

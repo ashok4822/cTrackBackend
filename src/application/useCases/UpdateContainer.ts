@@ -16,8 +16,6 @@ export class UpdateContainer {
         private historyRepository: IContainerHistoryRepository,
         private equipmentRepository: IEquipmentRepository,
         private equipmentHistoryRepository: IEquipmentHistoryRepository,
-        private activityRepository?: IActivityRepository,
-        private chargeRepository?: IChargeRepository,
         private billRepository?: IBillRepository
     ) { }
 
@@ -125,13 +123,6 @@ export class UpdateContainer {
                         performedBy
                     ));
                 }
-            }
-
-            // Auto-generate bill for Container Lift (LIFT) charge
-            // Only on first-time block assignment; shifting between blocks does NOT generate a bill
-            const isFirstAssignment = !container.yardLocation?.block;
-            if (isFirstAssignment) {
-                await this.generateLiftBill(id, container, data.yardLocation.block);
             }
         }
 
@@ -253,69 +244,6 @@ export class UpdateContainer {
                 `Movement type changed from ${container.movementType || "None"} to ${data.movementType}`,
                 performedBy
             ));
-        }
-    }
-
-    private async generateLiftBill(containerId: string, container: Container, newBlock: string): Promise<void> {
-        if (!this.billRepository || !this.activityRepository || !this.chargeRepository) {
-            return;
-        }
-
-        try {
-            // Look up the LIFT activity
-            const activity = await this.activityRepository.findByCode("LIFT");
-            if (!activity || !activity.id) {
-                console.warn("LIFT activity not found; skipping bill generation.");
-                return;
-            }
-
-            // Find applicable charge - try exact match first, then fallback to "all"
-            let charge = await this.chargeRepository.findByCriteria(activity.id, container.size, container.type);
-            if (!charge) {
-                charge = await this.chargeRepository.findByCriteria(activity.id, "all", "all");
-            }
-            if (!charge) {
-                charge = await this.chargeRepository.findByCriteria(activity.id, container.size, "all");
-            }
-            if (!charge) {
-                charge = await this.chargeRepository.findByCriteria(activity.id, "all", container.type);
-            }
-
-            const unitPrice = charge ? charge.rate : 0;
-            const amount = unitPrice * 1;
-
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + 30);
-
-            const billNumber = `LIFT-${container.containerNumber}-${Date.now().toString().slice(-6)}`;
-
-            const bill = new Bill(
-                null,
-                billNumber,
-                container.containerNumber,
-                containerId,
-                container.shippingLine,
-                container.customer || null,
-                undefined, // customerName
-                [
-                    {
-                        activityCode: "LIFT",
-                        activityName: activity.name || "Container Lift",
-                        quantity: 1,
-                        unitPrice,
-                        amount,
-                    },
-                ],
-                amount,
-                "pending",
-                dueDate,
-                `Auto-generated on block assignment to ${newBlock}`
-            );
-
-            await this.billRepository.save(bill);
-        } catch (err) {
-            // Log but don't fail the main operation
-            console.error("Failed to auto-generate LIFT bill:", err);
         }
     }
 }

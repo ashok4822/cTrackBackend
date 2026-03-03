@@ -206,6 +206,25 @@ export class UpdateContainerRequest {
             console.warn(`Activity not found for codes: ${primaryCode}, ${altCode}`);
         }
 
+        // --- C. Container Lift (LIFT) ---
+        // Handling charge is now calculated here instead of yard allocation
+        const liftActivity = await this.activityRepository.findByCode("LIFT");
+        if (liftActivity && liftActivity.id) {
+            const liftCharge = await this.findApplicableCharge(liftActivity.id, container.size, container.type);
+            if (liftCharge) {
+                lineItems.push({
+                    activityCode: liftActivity.code,
+                    activityName: liftActivity.name,
+                    quantity: 1,
+                    unitPrice: liftCharge.rate,
+                    amount: liftCharge.rate
+                });
+                totalAmount += liftCharge.rate;
+            } else {
+                console.warn(`Charge rate not found for activity: LIFT, container: ${container.size}/${container.type}`);
+            }
+        }
+
         // 3. Create Bill if there are line items
         if (lineItems.length > 0 && container.id) {
             const billNumber = `BL-${primaryCode}-${Date.now().toString().slice(-6)}`;
