@@ -7,6 +7,7 @@ export class GetAllVehicles {
     async execute(filters?: {
         type?: string;
         vehicleNumber?: string;
+        status?: string;
     }): Promise<Vehicle[]> {
         return await this.vehicleRepository.findAll(filters);
     }

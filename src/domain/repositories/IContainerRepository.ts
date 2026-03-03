@@ -6,7 +6,8 @@ export interface IContainerRepository {
         size?: string;
         type?: string;
         block?: string;
-        status?: string;
+        status?: string | string[];
+        customer?: string;
     }): Promise<Container[]>;
     findById(id: string): Promise<Container | null>;
     save(container: Container): Promise<Container>;

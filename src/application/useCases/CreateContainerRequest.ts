@@ -21,6 +21,18 @@ export class CreateContainerRequest {
         containerNumber?: string;
         remarks?: string;
     }): Promise<ContainerRequest> {
+        // Validation: Prevent duplicate destuffing requests for the same container
+        if (requestData.type === "destuffing" && requestData.containerId) {
+            const activeRequests = await this.containerRequestRepository.findActiveRequestsByCustomerId(requestData.customerId);
+            const hasExistingRequest = activeRequests.some(
+                r => r.type === "destuffing" && r.containerId === requestData.containerId
+            );
+
+            if (hasExistingRequest) {
+                throw new Error("An active destuffing request already exists for this container.");
+            }
+        }
+
         const request = new ContainerRequest(
             null,
             requestData.customerId,
@@ -39,6 +51,7 @@ export class CreateContainerRequest {
             requestData.containerId,
             requestData.containerNumber,
             requestData.remarks,
+            undefined, // checkpoints
             new Date(),
             new Date()
         );

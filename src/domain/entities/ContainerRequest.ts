@@ -3,7 +3,7 @@ export class ContainerRequest {
         public readonly id: string | null,
         public readonly customerId: string,
         public readonly type: "stuffing" | "destuffing",
-        public readonly status: "pending" | "approved" | "rejected" | "completed",
+        public readonly status: "pending" | "approved" | "rejected" | "completed" | "ready-for-dispatch" | "in-transit" | "at-factory" | "operation-completed" | "cancelled",
 
         // Stuffing specific fields
         public readonly containerSize?: string,
@@ -23,6 +23,7 @@ export class ContainerRequest {
         public readonly containerId?: string,
         public readonly containerNumber?: string,
         public readonly remarks?: string,
+        public readonly checkpoints?: Array<{ location: string, timestamp: Date, status: string, remarks?: string }>,
 
         public readonly createdAt?: Date,
         public readonly updatedAt?: Date

@@ -23,6 +23,7 @@ export interface IContainerRequestDocument extends Document {
     containerId?: Schema.Types.ObjectId;
     containerNumber?: string;
     remarks?: string;
+    checkpoints?: Array<{ location: string, timestamp: Date, status: string, remarks?: string }>;
 
     createdAt: Date;
     updatedAt: Date;
@@ -34,7 +35,7 @@ const ContainerRequestSchema: Schema = new Schema(
         type: { type: String, enum: ["stuffing", "destuffing"], required: true },
         status: {
             type: String,
-            enum: ["pending", "approved", "rejected", "completed"],
+            enum: ["pending", "approved", "rejected", "completed", "ready-for-dispatch", "in-transit", "at-factory", "operation-completed", "cancelled"],
             default: "pending"
         },
 
@@ -56,6 +57,12 @@ const ContainerRequestSchema: Schema = new Schema(
         containerId: { type: Schema.Types.ObjectId, ref: "Container" },
         containerNumber: { type: String },
         remarks: { type: String },
+        checkpoints: [{
+            location: { type: String },
+            timestamp: { type: Date, default: Date.now },
+            status: { type: String },
+            remarks: { type: String }
+        }]
     },
     {
         timestamps: true,

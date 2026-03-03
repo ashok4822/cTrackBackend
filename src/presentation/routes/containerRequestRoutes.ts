@@ -5,6 +5,9 @@ import { GetCustomerRequests } from "../../application/useCases/GetCustomerReque
 import { GetContainerById } from "../../application/useCases/GetContainerById";
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
 import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
+import { BillRepository } from "../../infrastructure/repositories/BillRepository";
+import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
+import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 import { GetAllContainerRequests } from "../../application/useCases/GetAllContainerRequests";
 import { UpdateContainerRequest } from "../../application/useCases/UpdateContainerRequest";
@@ -13,12 +16,21 @@ const router = Router();
 
 const containerRequestRepository = new ContainerRequestRepository();
 const containerRepository = new ContainerRepository();
+const billRepository = new BillRepository();
+const activityRepository = new ActivityRepository();
+const chargeRepository = new ChargeRepository();
 
 const createContainerRequest = new CreateContainerRequest(containerRequestRepository);
 const getCustomerRequests = new GetCustomerRequests(containerRequestRepository);
 const getContainerById = new GetContainerById(containerRepository);
 const getAllContainerRequests = new GetAllContainerRequests(containerRequestRepository);
-const updateContainerRequest = new UpdateContainerRequest(containerRequestRepository);
+const updateContainerRequest = new UpdateContainerRequest(
+    containerRequestRepository,
+    containerRepository,
+    billRepository,
+    activityRepository,
+    chargeRepository
+);
 
 const controller = new ContainerRequestController(
     createContainerRequest,

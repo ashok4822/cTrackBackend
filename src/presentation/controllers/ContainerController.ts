@@ -98,10 +98,11 @@ export class ContainerController {
     async getCustomerContainers(req: Request, res: Response) {
         try {
             const customerName = req.user?.name;
-            if (!customerName) {
+            const customerId = req.user?.id;
+            if (!customerName || !customerId) {
                 return res.status(HttpStatus.UNAUTHORIZED).json({ message: "Unauthorized" });
             }
-            const containers = await this.getCustomerContainersUseCase.execute(customerName);
+            const containers = await this.getCustomerContainersUseCase.execute(customerName, customerId);
             return res.status(HttpStatus.OK).json(containers);
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });

@@ -5,13 +5,20 @@ import { ContainerHistory } from "../../domain/entities/ContainerHistory";
 import { IEquipmentRepository } from "../../domain/repositories/IEquipmentRepository";
 import { IEquipmentHistoryRepository } from "../../domain/repositories/IEquipmentHistoryRepository";
 import { EquipmentHistory } from "../../domain/entities/EquipmentHistory";
+import { IActivityRepository } from "../../domain/repositories/IActivityRepository";
+import { IChargeRepository } from "../../domain/repositories/IChargeRepository";
+import { IBillRepository } from "../../domain/repositories/IBillRepository";
+import { Bill } from "../../domain/entities/Bill";
 
 export class UpdateContainer {
     constructor(
         private containerRepository: IContainerRepository,
         private historyRepository: IContainerHistoryRepository,
         private equipmentRepository: IEquipmentRepository,
-        private equipmentHistoryRepository: IEquipmentHistoryRepository
+        private equipmentHistoryRepository: IEquipmentHistoryRepository,
+        private activityRepository?: IActivityRepository,
+        private chargeRepository?: IChargeRepository,
+        private billRepository?: IBillRepository
     ) { }
 
     async execute(id: string, data: Partial<Container>, equipmentName?: string, performedBy: string = "System"): Promise<void> {
@@ -56,6 +63,35 @@ export class UpdateContainer {
 
         await this.containerRepository.save(updatedContainer);
 
+        // If customer changed, transfer pending bills to the new customer
+        if (data.customer !== undefined && data.customer !== container.customer && this.billRepository) {
+            try {
+                const bills = await this.billRepository.findByContainerId(id);
+                const pendingBills = bills.filter(b => b.status === "pending");
+                for (const bill of pendingBills) {
+                    const updatedBill = new Bill(
+                        bill.id,
+                        bill.billNumber,
+                        bill.containerNumber,
+                        bill.containerId,
+                        bill.shippingLine,
+                        data.customer || null,
+                        bill.customerName,
+                        bill.lineItems,
+                        bill.totalAmount,
+                        bill.status,
+                        bill.dueDate,
+                        bill.remarks,
+                        bill.createdAt,
+                        bill.updatedAt
+                    );
+                    await this.billRepository.save(updatedBill);
+                }
+            } catch (error) {
+                console.error("Failed to transfer pending bills to new customer:", error);
+            }
+        }
+
         // Log history for important changes
         if (data.status && data.status !== container.status) {
             await this.historyRepository.save(new ContainerHistory(
@@ -89,6 +125,13 @@ export class UpdateContainer {
                         performedBy
                     ));
                 }
+            }
+
+            // Auto-generate bill for Container Lift (LIFT) charge
+            // Only on first-time block assignment; shifting between blocks does NOT generate a bill
+            const isFirstAssignment = !container.yardLocation?.block;
+            if (isFirstAssignment) {
+                await this.generateLiftBill(id, container, data.yardLocation.block);
             }
         }
 
@@ -210,6 +253,69 @@ export class UpdateContainer {
                 `Movement type changed from ${container.movementType || "None"} to ${data.movementType}`,
                 performedBy
             ));
+        }
+    }
+
+    private async generateLiftBill(containerId: string, container: Container, newBlock: string): Promise<void> {
+        if (!this.billRepository || !this.activityRepository || !this.chargeRepository) {
+            return;
+        }
+
+        try {
+            // Look up the LIFT activity
+            const activity = await this.activityRepository.findByCode("LIFT");
+            if (!activity || !activity.id) {
+                console.warn("LIFT activity not found; skipping bill generation.");
+                return;
+            }
+
+            // Find applicable charge - try exact match first, then fallback to "all"
+            let charge = await this.chargeRepository.findByCriteria(activity.id, container.size, container.type);
+            if (!charge) {
+                charge = await this.chargeRepository.findByCriteria(activity.id, "all", "all");
+            }
+            if (!charge) {
+                charge = await this.chargeRepository.findByCriteria(activity.id, container.size, "all");
+            }
+            if (!charge) {
+                charge = await this.chargeRepository.findByCriteria(activity.id, "all", container.type);
+            }
+
+            const unitPrice = charge ? charge.rate : 0;
+            const amount = unitPrice * 1;
+
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 30);
+
+            const billNumber = `LIFT-${container.containerNumber}-${Date.now().toString().slice(-6)}`;
+
+            const bill = new Bill(
+                null,
+                billNumber,
+                container.containerNumber,
+                containerId,
+                container.shippingLine,
+                container.customer || null,
+                undefined, // customerName
+                [
+                    {
+                        activityCode: "LIFT",
+                        activityName: activity.name || "Container Lift",
+                        quantity: 1,
+                        unitPrice,
+                        amount,
+                    },
+                ],
+                amount,
+                "pending",
+                dueDate,
+                `Auto-generated on block assignment to ${newBlock}`
+            );
+
+            await this.billRepository.save(bill);
+        } catch (err) {
+            // Log but don't fail the main operation
+            console.error("Failed to auto-generate LIFT bill:", err);
         }
     }
 }

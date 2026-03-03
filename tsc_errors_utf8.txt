@@ -1,0 +1,1 @@
+﻿src/infrastructure/repositories/base/BaseRepository.ts(1,27): error TS2614: Module '"mongoose"' has no exported member 'FilterQuery'. Did you mean to use 'import FilterQuery from "mongoose"' instead?
