@@ -6,9 +6,11 @@ export class VehicleRepository implements IVehicleRepository {
     async findAll(filters?: {
         type?: string;
         vehicleNumber?: string;
+        status?: string;
     }): Promise<Vehicle[]> {
         const query: Record<string, string | { $regex: string; $options: string }> = {};
         if (filters?.type) query.type = filters.type;
+        if (filters?.status) query.status = filters.status;
         if (filters?.vehicleNumber) {
             query.vehicleNumber = { $regex: `^${filters.vehicleNumber}$`, $options: "i" };
         }

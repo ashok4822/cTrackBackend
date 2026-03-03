@@ -13,7 +13,8 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
         size?: string;
         type?: string;
         block?: string;
-        status?: string;
+        status?: string | string[];
+        customer?: string;
     }): Promise<Container[]> {
         const query: any = {};
 
@@ -35,6 +36,9 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             } else {
                 query.status = filters.status;
             }
+        }
+        if (filters?.customer) {
+            query.customer = filters.customer;
         }
 
         const containers = await this.model.find(query).exec();

@@ -23,6 +23,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             doc.containerId?.toString(),
             doc.containerNumber,
             doc.remarks,
+            doc.checkpoints,
             doc.createdAt,
             doc.updatedAt
         );
@@ -46,6 +47,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             containerId: request.containerId ? new mongoose.Types.ObjectId(request.containerId) as any : undefined,
             containerNumber: request.containerNumber,
             remarks: request.remarks,
+            checkpoints: request.checkpoints,
         });
         return this.mapToEntity(created);
     }
@@ -95,6 +97,11 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
                 }
             },
             {
+                $addFields: {
+                    id: "$_id"
+                }
+            },
+            {
                 $project: { containerDetails: 0 }
             },
             { $sort: { createdAt: -1 as const } }
@@ -113,7 +120,14 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             // --- Join user (customer) details ---
             {
                 $addFields: {
-                    customerIdObjectId: { $toObjectId: "$customerId" }
+                    customerIdObjectId: {
+                        $convert: {
+                            input: "$customerId",
+                            to: "objectId",
+                            onError: null,
+                            onNull: null
+                        }
+                    }
                 }
             },
             {
@@ -162,6 +176,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
                             }
                         ]
                     },
+                    id: "$_id",
                     // For destuffing: use cargo details from the linked container
                     // if the request itself doesn't have them
                     cargoDescription: {
@@ -225,5 +240,22 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             { new: true }
         );
         return updated ? this.mapToEntity(updated) : null;
+    }
+
+    async findByContainerNumber(containerNumber: string): Promise<ContainerRequest | null> {
+        const doc = await ContainerRequestModel.findOne({
+            containerNumber,
+            status: { $in: ["ready-for-dispatch", "approved"] }
+        }).sort({ createdAt: -1 });
+        return doc ? this.mapToEntity(doc) : null;
+    }
+
+    async findActiveRequestsByCustomerId(customerId: string): Promise<ContainerRequest[]> {
+        const activeStatuses = ["pending", "approved", "ready-for-dispatch", "in-transit", "at-factory", "operation-completed"];
+        const docs = await ContainerRequestModel.find({
+            customerId,
+            status: { $in: activeStatuses }
+        });
+        return docs.map(doc => this.mapToEntity(doc));
     }
 }

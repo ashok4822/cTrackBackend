@@ -2,6 +2,8 @@ import { IGateOperationRepository } from "../../domain/repositories/IGateOperati
 import { IVehicleRepository } from "../../domain/repositories/IVehicleRepository";
 import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
 import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
+import { IContainerRequestRepository } from "../../domain/repositories/IContainerRequestRepository";
+import { IBillRepository } from "../../domain/repositories/IBillRepository";
 import { GateOperation } from "../../domain/entities/GateOperation";
 import { ContainerHistory } from "../../domain/entities/ContainerHistory";
 import { Container } from "../../domain/entities/Container";
@@ -12,7 +14,9 @@ export class CreateGateOperation {
         private gateOperationRepository: IGateOperationRepository,
         private vehicleRepository: IVehicleRepository,
         private containerRepository: IContainerRepository,
-        private historyRepository: IContainerHistoryRepository
+        private historyRepository: IContainerHistoryRepository,
+        private containerRequestRepository: IContainerRequestRepository,
+        private billRepository?: IBillRepository
     ) { }
 
     async execute(data: {
@@ -65,6 +69,16 @@ export class CreateGateOperation {
             if (data.type === "gate-in") {
                 if (container && container.status !== "gate-out" && container.status !== "pending") {
                     throw new Error("Container is already inside terminal or in an invalid state");
+                }
+            } else if (data.type === "gate-out") {
+                // Check for pending bills before allowing gate-out
+                if (container && container.id && this.billRepository) {
+                    const bills = await this.billRepository.findByContainerId(container.id);
+                    const hasPendingBills = bills.some(bill => bill.status === "pending" || bill.status === "overdue");
+
+                    if (hasPendingBills) {
+                        throw new Error(`Cannot gate-out container ${data.containerNumber} because it has pending/overdue bills.`);
+                    }
                 }
             }
         }
@@ -204,6 +218,7 @@ export class CreateGateOperation {
                 // gate-out
                 if (container) {
                     const updatedContainer = new Container(
+                        // ... (same as before)
                         container.id,
                         container.containerNumber,
                         container.size,
@@ -213,7 +228,7 @@ export class CreateGateOperation {
                         container.empty,
                         container.movementType,
                         container.customer,
-                        container.yardLocation,
+                        undefined, // yardLocation cleared on gate-out
                         container.gateInTime,
                         new Date(),
                         container.dwellTime,
@@ -229,6 +244,24 @@ export class CreateGateOperation {
                         new Date()
                     );
                     container = updatedContainer;
+
+                    // Update corresponding ContainerRequest if active
+                    const activeRequest = await this.containerRequestRepository.findByContainerNumber(container.containerNumber);
+                    if (activeRequest && activeRequest.id && (activeRequest.status === "ready-for-dispatch" || activeRequest.status === "approved")) {
+                        const existingCheckpoints = activeRequest.checkpoints || [];
+                        await this.containerRequestRepository.update(activeRequest.id, {
+                            status: "in-transit",
+                            checkpoints: [
+                                ...existingCheckpoints,
+                                {
+                                    location: "Terminal Gate",
+                                    status: "gate-out",
+                                    timestamp: new Date(),
+                                    remarks: "Container gated out from terminal."
+                                }
+                            ]
+                        });
+                    }
                 }
             }
 

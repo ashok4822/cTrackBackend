@@ -12,6 +12,7 @@ import { createContainerRouter } from "./src/presentation/routes/containerRoutes
 import { createGateOperationRouter } from "./src/presentation/routes/gateOperationRoutes";
 import { createVehicleRouter } from "./src/presentation/routes/vehicleRoutes";
 import { createEquipmentRouter } from "./src/presentation/routes/equipmentRoutes";
+import { createBillingRouter } from "./src/presentation/routes/billingRoutes";
 import containerRequestRouter from "./src/presentation/routes/containerRequestRoutes";
 import { HttpStatus } from "./src/domain/constants/HttpStatus";
 import {
@@ -73,6 +74,7 @@ app.use("/api/containers", createContainerRouter());
 app.use("/api/gate-operations", createGateOperationRouter());
 app.use("/api/vehicles", createVehicleRouter());
 app.use("/api/equipment", createEquipmentRouter());
+app.use("/api/billing", createBillingRouter());
 app.use("/api/container-requests", containerRequestRouter);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

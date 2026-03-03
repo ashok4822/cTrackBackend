@@ -6,6 +6,8 @@ import { GateOperationRepository } from "../../infrastructure/repositories/GateO
 import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
 import { VehicleRepository } from "../../infrastructure/repositories/VehicleRepository";
 import { ContainerHistoryRepository } from "../../infrastructure/repositories/ContainerHistoryRepository";
+import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
+import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createGateOperationRouter = () => {
@@ -14,9 +16,18 @@ export const createGateOperationRouter = () => {
     const containerRepository = new ContainerRepository();
     const vehicleRepository = new VehicleRepository();
     const historyRepository = new ContainerHistoryRepository();
+    const containerRequestRepository = new ContainerRequestRepository();
+    const billRepository = new BillRepository();
 
     const getUseCase = new GetGateOperations(repository);
-    const createUseCase = new CreateGateOperation(repository, vehicleRepository, containerRepository, historyRepository);
+    const createUseCase = new CreateGateOperation(
+        repository,
+        vehicleRepository,
+        containerRepository,
+        historyRepository,
+        containerRequestRepository,
+        billRepository
+    );
 
     const controller = new GateOperationController(getUseCase, createUseCase);
 

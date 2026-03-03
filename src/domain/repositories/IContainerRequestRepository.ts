@@ -7,4 +7,6 @@ export interface IContainerRequestRepository {
     findAll(): Promise<any[]>;
     update(id: string, data: Partial<ContainerRequest>): Promise<ContainerRequest | null>;
     updateStatus(id: string, status: string): Promise<ContainerRequest | null>;
+    findByContainerNumber(containerNumber: string): Promise<ContainerRequest | null>;
+    findActiveRequestsByCustomerId(customerId: string): Promise<ContainerRequest[]>;
 }
