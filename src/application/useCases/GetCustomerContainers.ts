@@ -9,10 +9,11 @@ export class GetCustomerContainers {
     ) { }
 
     async execute(customerName: string, customerId: string): Promise<Container[]> {
-        // Efficiently fetch only this customer's containers
+        // Fetch all active containers for this customer (used by both 'My Containers' page
+        // and as the pool from which the destuffing dropdown filters client-side)
         const containers = await this.containerRepository.findAll({
-            customer: customerName,
-            status: ["pending", "gate-in", "in-yard", "in-transit", "at-port", "at-factory", "damaged"]
+            customer: customerId,
+            status: ["gate-in", "in-yard", "in-transit", "at-port", "at-factory", "damaged"]
         });
 
         // Fetch active requests for this customer

@@ -8,6 +8,7 @@ import { VehicleRepository } from "../../infrastructure/repositories/VehicleRepo
 import { ContainerHistoryRepository } from "../../infrastructure/repositories/ContainerHistoryRepository";
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
+import { UserRepository } from "../../infrastructure/repositories/UserRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createGateOperationRouter = () => {
@@ -18,6 +19,7 @@ export const createGateOperationRouter = () => {
     const historyRepository = new ContainerHistoryRepository();
     const containerRequestRepository = new ContainerRequestRepository();
     const billRepository = new BillRepository();
+    const userRepository = new UserRepository();
 
     const getUseCase = new GetGateOperations(repository);
     const createUseCase = new CreateGateOperation(
@@ -26,6 +28,7 @@ export const createGateOperationRouter = () => {
         containerRepository,
         historyRepository,
         containerRequestRepository,
+        userRepository,
         billRepository
     );
 

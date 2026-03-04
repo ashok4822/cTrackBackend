@@ -3,6 +3,7 @@ import { IVehicleRepository } from "../../domain/repositories/IVehicleRepository
 import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
 import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
 import { IContainerRequestRepository } from "../../domain/repositories/IContainerRequestRepository";
+import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { IBillRepository } from "../../domain/repositories/IBillRepository";
 import { GateOperation } from "../../domain/entities/GateOperation";
 import { ContainerHistory } from "../../domain/entities/ContainerHistory";
@@ -16,6 +17,7 @@ export class CreateGateOperation {
         private containerRepository: IContainerRepository,
         private historyRepository: IContainerHistoryRepository,
         private containerRequestRepository: IContainerRequestRepository,
+        private userRepository: IUserRepository,
         private billRepository?: IBillRepository
     ) { }
 
@@ -158,6 +160,14 @@ export class CreateGateOperation {
 
         if (data.containerNumber) {
             if (data.type === "gate-in") {
+                let customerName = data.customer; // Default to ID if not found
+                if (data.customer) {
+                    const customerUser = await this.userRepository.findById(data.customer);
+                    if (customerUser) {
+                        customerName = customerUser.companyName || customerUser.name;
+                    }
+                }
+
                 if (!container) {
                     // Create new container if it doesn't exist
                     container = new Container(
@@ -170,7 +180,8 @@ export class CreateGateOperation {
                         data.empty ?? true,
                         data.movementType || "import",
                         data.customer,
-                        undefined,
+                        customerName,
+                        undefined, // yardLocation
                         new Date(),
                         undefined,
                         undefined,
@@ -197,6 +208,7 @@ export class CreateGateOperation {
                         data.empty ?? container.empty,
                         data.movementType || container.movementType,
                         data.customer || container.customer,
+                        customerName || container.customerName,
                         container.yardLocation,
                         new Date(),
                         undefined, // Clear old gate-out time
@@ -218,7 +230,6 @@ export class CreateGateOperation {
                 // gate-out
                 if (container) {
                     const updatedContainer = new Container(
-                        // ... (same as before)
                         container.id,
                         container.containerNumber,
                         container.size,
@@ -228,6 +239,7 @@ export class CreateGateOperation {
                         container.empty,
                         container.movementType,
                         container.customer,
+                        container.customerName,
                         undefined, // yardLocation cleared on gate-out
                         container.gateInTime,
                         new Date(),
@@ -268,7 +280,7 @@ export class CreateGateOperation {
             if (container) {
                 const savedContainer = await this.containerRepository.save(container);
 
-                // 3. Record History
+                // 6. Record History
                 if (savedContainer.id) {
                     const history = new ContainerHistory(
                         null,

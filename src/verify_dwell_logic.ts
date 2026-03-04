@@ -30,7 +30,7 @@ class MockContainerRepository {
 
         return new Container(
             c.id, c.containerNumber, c.size, c.type, c.status, c.shippingLine,
-            c.empty, c.movementType, c.customer, c.yardLocation,
+            c.empty, c.movementType, c.customer, undefined, c.yardLocation,
             c.gateInTime, c.gateOutTime, dwellTime,
             c.weight, c.cargoWeight, c.cargoDescription, !!c.hazardousClassification, c.sealNumber,
             c.damaged, c.damageDetails, c.blacklisted, c.createdAt, c.updatedAt
@@ -46,7 +46,7 @@ async function runTest() {
     console.log("\nTesting Reset on Gate-In:");
     const oldContainer = new Container(
         "1", "CONT1", "40ft", "standard", "gate-out", "LINE", true, "import",
-        undefined, undefined, new Date(Date.now() - 1000000), new Date(), 10,
+        undefined, undefined, undefined, new Date(Date.now() - 1000000), new Date(), 10,
         undefined, undefined, undefined, undefined, undefined,
         false, undefined, false, new Date(), new Date()
     );
@@ -55,7 +55,7 @@ async function runTest() {
     const newGateIn = new Container(
         oldContainer.id, oldContainer.containerNumber, oldContainer.size, oldContainer.type,
         "gate-in", oldContainer.shippingLine, oldContainer.empty, oldContainer.movementType,
-        oldContainer.customer, oldContainer.yardLocation,
+        oldContainer.customer, oldContainer.customerName, oldContainer.yardLocation,
         new Date(), // New Gate-In Time
         undefined,  // SHOULD BE RESET
         undefined,  // SHOULD BE RESET

@@ -1,12 +1,12 @@
 import { Model, Document } from "mongoose";
 
-/**
+/*
   Abstract Base Repository to provide common database operations.
    TEntity - The Domain Entity type
    TModel - The Mongoose Document type
 */
 export abstract class BaseRepository<TEntity, TModel extends Document> {
-  constructor(protected readonly model: Model<TModel>) {}
+  constructor(protected readonly model: Model<TModel>) { }
 
   // Find a single entity by its ID.
   async findById(id: string): Promise<TEntity | null> {

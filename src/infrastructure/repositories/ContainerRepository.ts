@@ -2,10 +2,19 @@ import { IContainerRepository } from "../../domain/repositories/IContainerReposi
 import { Container } from "../../domain/entities/Container";
 import { ContainerModel, IContainerDocument } from "../models/ContainerModel";
 import { BaseRepository } from "./base/BaseRepository";
+import { UserModel } from "../models/UserModel";
+import mongoose from "mongoose";
 
 export class ContainerRepository extends BaseRepository<Container, IContainerDocument> implements IContainerRepository {
     constructor() {
         super(ContainerModel);
+    }
+
+    async findById(id: string): Promise<Container | null> {
+        const doc = await this.model.findById(id).exec();
+        if (!doc) return null;
+        const [container] = await this.mapWithCustomers([doc]);
+        return container;
     }
 
     async findAll(filters?: {
@@ -15,6 +24,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
         block?: string;
         status?: string | string[];
         customer?: string;
+        empty?: boolean;
     }): Promise<Container[]> {
         const query: any = {};
 
@@ -40,12 +50,36 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
         if (filters?.customer) {
             query.customer = filters.customer;
         }
+        if (filters?.empty !== undefined) {
+            query.empty = filters.empty;
+        }
 
         const containers = await this.model.find(query).exec();
-        return containers.map(c => this.toEntity(c));
+        return this.mapWithCustomers(containers);
     }
 
-    protected toEntity(c: IContainerDocument): Container {
+    protected async mapWithCustomers(docs: IContainerDocument[]): Promise<Container[]> {
+        if (docs.length === 0) return [];
+
+        const customerIds = [...new Set(docs.map(d => d.customer).filter(Boolean))];
+        let userMap: Record<string, string> = {};
+
+        if (customerIds.length > 0) {
+            const validObjectIds = customerIds.filter(id => mongoose.Types.ObjectId.isValid(id as string)) as string[];
+
+            if (validObjectIds.length > 0) {
+                const users = await UserModel.find({ _id: { $in: validObjectIds } }).select('_id companyName name').lean();
+                userMap = users.reduce((acc, u) => {
+                    acc[u._id.toString()] = u.companyName || u.name || "Unknown Customer";
+                    return acc;
+                }, {} as Record<string, string>);
+            }
+        }
+
+        return docs.map(doc => this.toEntity(doc, userMap[doc.customer || ""]));
+    }
+
+    protected toEntity(c: IContainerDocument, customerName?: string): Container {
         let dwellTime = c.dwellTime;
         if (c.gateInTime) {
             const outTime = c.gateOutTime ? new Date(c.gateOutTime) : new Date();
@@ -64,6 +98,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             c.empty,
             c.movementType as "import" | "export" | "domestic",
             c.customer,
+            customerName || c.customer, // Use ID as fallback if name not found
             c.yardLocation,
             c.gateInTime,
             c.gateOutTime,

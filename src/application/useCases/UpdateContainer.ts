@@ -43,6 +43,7 @@ export class UpdateContainer {
             data.empty !== undefined ? data.empty : container.empty,
             data.movementType !== undefined ? (data.movementType as any) : container.movementType,
             data.customer !== undefined ? data.customer : container.customer,
+            container.customerName,
             data.yardLocation !== undefined ? data.yardLocation : container.yardLocation,
             data.gateInTime !== undefined ? data.gateInTime : container.gateInTime,
             data.gateOutTime !== undefined ? data.gateOutTime : container.gateOutTime,

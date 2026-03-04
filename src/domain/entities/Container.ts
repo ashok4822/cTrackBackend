@@ -9,6 +9,7 @@ export class Container {
         public readonly empty?: boolean,
         public readonly movementType?: "import" | "export" | "domestic",
         public readonly customer?: string,
+        public readonly customerName?: string,
         public readonly yardLocation?: { block: string },
         public readonly gateInTime?: Date,
         public readonly gateOutTime?: Date,

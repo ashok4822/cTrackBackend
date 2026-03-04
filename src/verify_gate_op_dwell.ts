@@ -27,8 +27,9 @@ class TestGateOp {
             // New container
             const c = new Container(
                 "1", containerNumber, "40ft", "standard", "gate-in", "LINE", true, "import",
-                undefined, undefined, new Date(), undefined, undefined,
-                undefined, undefined, undefined, false, undefined
+                undefined, undefined, undefined, new Date(), undefined, undefined,
+                undefined, undefined, undefined, false, undefined,
+                false, undefined, false, new Date(), new Date()
             );
             return await this.repo.save(c);
         } else {
@@ -43,6 +44,7 @@ class TestGateOp {
                 existingContainer.empty,
                 existingContainer.movementType,
                 existingContainer.customer,
+                existingContainer.customerName,
                 existingContainer.yardLocation,
                 new Date(),
                 undefined, // SHOULD BE RESET
@@ -73,6 +75,7 @@ class TestGateOp {
             container.empty,
             container.movementType,
             container.customer,
+            container.customerName,
             container.yardLocation,
             container.gateInTime,
             new Date(),
