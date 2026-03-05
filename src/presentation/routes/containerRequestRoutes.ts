@@ -8,6 +8,7 @@ import { ContainerRepository } from "../../infrastructure/repositories/Container
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
+import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 import { GetAllContainerRequests } from "../../application/useCases/GetAllContainerRequests";
 import { UpdateContainerRequest } from "../../application/useCases/UpdateContainerRequest";
@@ -19,6 +20,7 @@ const containerRepository = new ContainerRepository();
 const billRepository = new BillRepository();
 const activityRepository = new ActivityRepository();
 const chargeRepository = new ChargeRepository();
+const equipmentHistoryRepository = new EquipmentHistoryRepository();
 
 const createContainerRequest = new CreateContainerRequest(containerRequestRepository);
 const getCustomerRequests = new GetCustomerRequests(containerRequestRepository);
@@ -29,7 +31,8 @@ const updateContainerRequest = new UpdateContainerRequest(
     containerRepository,
     billRepository,
     activityRepository,
-    chargeRepository
+    chargeRepository,
+    equipmentHistoryRepository
 );
 
 const controller = new ContainerRequestController(

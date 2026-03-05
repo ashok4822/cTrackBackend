@@ -34,7 +34,7 @@ const BillSchema: Schema = new Schema(
     {
         billNumber: { type: String, required: true, unique: true },
         containerNumber: { type: String, required: true },
-        containerId: { type: Schema.Types.ObjectId, ref: "Container", required: true },
+        containerId: { type: Schema.Types.ObjectId, ref: "Container" },
         shippingLine: { type: String, required: true },
         customer: { type: String },
         lineItems: [LineItemSchema],

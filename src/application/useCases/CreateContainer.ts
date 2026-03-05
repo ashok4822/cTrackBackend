@@ -30,6 +30,7 @@ export class CreateContainer {
             undefined, // empty
             data.movementType,
             data.customer,
+            undefined, // customerName
             undefined, // yardLocation
             undefined, // gateInTime
             undefined, // gateOutTime
@@ -38,7 +39,12 @@ export class CreateContainer {
             undefined, // cargoWeight
             undefined, // cargoDescription
             undefined, // hazardousClassification
-            data.sealNumber
+            data.sealNumber,
+            undefined, // damaged
+            undefined, // damageDetails
+            undefined, // blacklisted
+            undefined, // createdAt
+            undefined  // updatedAt
         );
         const savedContainer = await this.containerRepository.save(container);
 

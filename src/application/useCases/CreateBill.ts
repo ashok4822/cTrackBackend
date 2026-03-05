@@ -19,8 +19,8 @@ export class CreateBill {
             null,
             billNumber,
             data.containerNumber,
-            data.containerId || "",
             data.shippingLine || "N/A",
+            data.containerId,
             data.customer,
             undefined,
             data.lineItems.map(item => ({

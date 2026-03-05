@@ -14,6 +14,7 @@ import { createVehicleRouter } from "./src/presentation/routes/vehicleRoutes";
 import { createEquipmentRouter } from "./src/presentation/routes/equipmentRoutes";
 import { createBillingRouter } from "./src/presentation/routes/billingRoutes";
 import containerRequestRouter from "./src/presentation/routes/containerRequestRoutes";
+import { createPDARouter } from "./src/presentation/routes/pdaRoutes";
 import { HttpStatus } from "./src/domain/constants/HttpStatus";
 import {
   globalLimiter,
@@ -76,6 +77,7 @@ app.use("/api/vehicles", createVehicleRouter());
 app.use("/api/equipment", createEquipmentRouter());
 app.use("/api/billing", createBillingRouter());
 app.use("/api/container-requests", containerRequestRouter);
+app.use("/api/pda", createPDARouter());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 

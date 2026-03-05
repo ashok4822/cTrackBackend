@@ -25,6 +25,7 @@ export class BlacklistContainer {
             container.empty,
             container.movementType,
             container.customer,
+            container.customerName,
             container.yardLocation,
             container.gateInTime,
             container.gateOutTime,
