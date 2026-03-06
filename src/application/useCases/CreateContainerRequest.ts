@@ -51,7 +51,14 @@ export class CreateContainerRequest {
             requestData.containerId,
             requestData.containerNumber,
             requestData.remarks,
-            undefined, // checkpoints
+            [
+                {
+                    location: "Customer Portal",
+                    timestamp: new Date(),
+                    status: "pending",
+                    remarks: `Initial ${requestData.type} request submitted`
+                }
+            ], // checkpoints
             new Date(),
             new Date()
         );
