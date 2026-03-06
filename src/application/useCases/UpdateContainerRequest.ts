@@ -20,6 +20,52 @@ export class UpdateContainerRequest {
 
     async execute(id: string, data: Partial<ContainerRequest>): Promise<ContainerRequest | null> {
         const existingRequest = await this.repository.findById(id);
+        if (!existingRequest) return null;
+
+        // Automatically log checkpoints for status changes and container allotment
+        let currentCheckpoints = data.checkpoints ? [...data.checkpoints] : [...(existingRequest.checkpoints || [])];
+        let changed = false;
+
+        if (data.status && data.status !== existingRequest.status) {
+            // Check if status change is already recorded in the provided checkpoints (within last 10s)
+            const alreadyLogged = currentCheckpoints.some(cp =>
+                cp.status === data.status &&
+                Math.abs(new Date(cp.timestamp).getTime() - new Date().getTime()) < 10000
+            );
+
+            if (!alreadyLogged) {
+                currentCheckpoints.push({
+                    location: "Terminal Office",
+                    timestamp: new Date(),
+                    status: data.status,
+                    remarks: `Request status updated to ${data.status.replace(/-/g, " ")}`
+                });
+                changed = true;
+            }
+        }
+
+        if (data.containerNumber && data.containerNumber !== existingRequest.containerNumber) {
+            // Check if container allotment is already recorded
+            const alreadyLogged = currentCheckpoints.some(cp =>
+                cp.remarks?.includes(data.containerNumber!) &&
+                Math.abs(new Date(cp.timestamp).getTime() - new Date().getTime()) < 10000
+            );
+
+            if (!alreadyLogged) {
+                currentCheckpoints.push({
+                    location: "Yard Allocation",
+                    timestamp: new Date(),
+                    status: data.status || existingRequest.status,
+                    remarks: `Container ${data.containerNumber} allotted to request`
+                });
+                changed = true;
+            }
+        }
+
+        if (changed || data.checkpoints) {
+            (data as any).checkpoints = currentCheckpoints;
+        }
+
         const updatedRequest = await this.repository.update(id, data);
 
         // If a stuffing request is approved and a container is allocated, assign container ownership and transfer bills to customer
