@@ -215,11 +215,9 @@ export class UpdateContainerRequest {
         let totalAmount = 0;
 
         // --- A. Yard Storage (STOR) ---
-        // Yard storage is usually billed on gate-out, but if requested we can add partial storage here.
-        // For stuffing/destuffing requests, we typically bill the specific operation + any storage accrued.
         const storActivity = await this.activityRepository.findByCode("STOR");
         if (storActivity && storActivity.id) {
-            const storCharge = await this.findApplicableCharge(storActivity.id, container.size, container.type);
+            const storCharge = await this.findApplicableCharge(storActivity.id, container.size, container.type, request.cargoCategoryId);
             if (storCharge) {
                 let days = 1;
                 if (container.gateInTime) {
@@ -251,7 +249,7 @@ export class UpdateContainerRequest {
         }
 
         if (opActivity && opActivity.id) {
-            const opCharge = await this.findApplicableCharge(opActivity.id, container.size, container.type);
+            const opCharge = await this.findApplicableCharge(opActivity.id, container.size, container.type, request.cargoCategoryId);
             if (opCharge) {
                 lineItems.push({
                     activityCode: opActivity.code,
@@ -262,17 +260,26 @@ export class UpdateContainerRequest {
                 });
                 totalAmount += opCharge.rate;
             } else {
-                console.warn(`Charge rate not found for activity: ${opActivity.code}, container: ${container.size}/${container.type}`);
+                console.warn(`Charge rate not found for activity: ${opActivity.code}, container: ${container.size}/${container.type}, category: ${request.cargoCategoryId}`);
             }
-        } else {
-            console.warn(`Activity not found for codes: ${primaryCode}, ${altCode}`);
         }
 
-        // --- C. Container Lift (LIFT) ---
-        // Handling charge is now calculated here instead of yard allocation
+        // --- C. Cargo Specific Charge (if any) ---
+        if (request.cargoCharge && request.cargoCharge > 0) {
+            lineItems.push({
+                activityCode: "CARGO",
+                activityName: `Cargo Charge (${request.cargoCategoryName || "Specialized"})`,
+                quantity: 1,
+                unitPrice: request.cargoCharge,
+                amount: request.cargoCharge
+            });
+            totalAmount += request.cargoCharge;
+        }
+
+        // --- D. Container Lift (LIFT) ---
         const liftActivity = await this.activityRepository.findByCode("LIFT");
         if (liftActivity && liftActivity.id) {
-            const liftCharge = await this.findApplicableCharge(liftActivity.id, container.size, container.type);
+            const liftCharge = await this.findApplicableCharge(liftActivity.id, container.size, container.type, request.cargoCategoryId);
             if (liftCharge) {
                 lineItems.push({
                     activityCode: liftActivity.code,
@@ -282,8 +289,6 @@ export class UpdateContainerRequest {
                     amount: liftCharge.rate
                 });
                 totalAmount += liftCharge.rate;
-            } else {
-                console.warn(`Charge rate not found for activity: LIFT, container: ${container.size}/${container.type}`);
             }
         }
 
@@ -354,9 +359,22 @@ export class UpdateContainerRequest {
         }
     }
 
-    private async findApplicableCharge(activityId: string, size: string, type: string) {
+    private async findApplicableCharge(activityId: string, size: string, type: string, cargoCategoryId?: string) {
         if (!this.chargeRepository) return null;
 
+        // Try with Cargo Category first
+        if (cargoCategoryId) {
+            let charge = await this.chargeRepository.findByCriteria(activityId, size, type, cargoCategoryId);
+            if (charge) return charge;
+
+            charge = await this.chargeRepository.findByCriteria(activityId, size, "all", cargoCategoryId);
+            if (charge) return charge;
+
+            charge = await this.chargeRepository.findByCriteria(activityId, "all", "all", cargoCategoryId);
+            if (charge) return charge;
+        }
+
+        // Fallback to generic charges if no category specific charge found or provided
         let charge = await this.chargeRepository.findByCriteria(activityId, size, type);
         if (!charge) {
             charge = await this.chargeRepository.findByCriteria(activityId, size, "all");

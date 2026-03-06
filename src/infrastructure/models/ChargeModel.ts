@@ -6,6 +6,7 @@ export interface IChargeDocument extends Charge, Document { }
 const ChargeSchema: Schema = new Schema(
     {
         activityId: { type: Schema.Types.ObjectId, ref: "Activity", required: true },
+        cargoCategoryId: { type: Schema.Types.ObjectId, ref: "CargoCategory" },
         containerSize: { type: String, enum: ["20ft", "40ft", "all"], required: true },
         containerType: {
             type: String,

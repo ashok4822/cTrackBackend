@@ -4,6 +4,7 @@ export interface IContainerRequestDocument extends Document {
     customerId: string;
     type: "stuffing" | "destuffing";
     status: string;
+    cargoCategoryId?: string;
 
     // Stuffing specific fields
     containerSize?: string;
@@ -24,6 +25,7 @@ export interface IContainerRequestDocument extends Document {
     containerNumber?: string;
     remarks?: string;
     checkpoints?: Array<{ location: string, timestamp: Date, status: string, remarks?: string }>;
+    cargoCharge?: number;
 
     createdAt: Date;
     updatedAt: Date;
@@ -38,6 +40,7 @@ const ContainerRequestSchema: Schema = new Schema(
             enum: ["pending", "approved", "rejected", "completed", "ready-for-dispatch", "in-transit", "at-factory", "operation-completed", "cancelled"],
             default: "pending"
         },
+        cargoCategoryId: { type: Schema.Types.ObjectId, ref: "CargoCategory" },
 
         // Stuffing specific fields
         containerSize: { type: String },
@@ -62,7 +65,8 @@ const ContainerRequestSchema: Schema = new Schema(
             timestamp: { type: Date, default: Date.now },
             status: { type: String },
             remarks: { type: String }
-        }]
+        }],
+        cargoCharge: { type: Number, default: 0 }
     },
     {
         timestamps: true,

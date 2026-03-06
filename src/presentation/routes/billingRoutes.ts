@@ -12,11 +12,15 @@ import { MarkBillPaid } from "../../application/useCases/MarkBillPaid";
 import { CreateBill } from "../../application/useCases/CreateBill";
 import { GetBillById } from "../../application/useCases/GetBillById";
 import { PayBillWithPDA } from "../../application/useCases/PayBillWithPDA";
+import { GetCargoCategories } from "../../application/useCases/GetCargoCategories";
+import { CreateCargoCategory } from "../../application/useCases/CreateCargoCategory";
+import { UpdateCargoCategory } from "../../application/useCases/UpdateCargoCategory";
 import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
 import { ChargeHistoryRepository } from "../../infrastructure/repositories/ChargeHistoryRepository";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { PDARepository } from "../../infrastructure/repositories/PDARepository";
+import { CargoCategoryRepository } from "../../infrastructure/repositories/CargoCategoryRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createBillingRouter = () => {
@@ -27,6 +31,7 @@ export const createBillingRouter = () => {
     const historyRepo = new ChargeHistoryRepository();
     const billRepo = new BillRepository();
     const pdaRepo = new PDARepository();
+    const cargoCategoryRepo = new CargoCategoryRepository();
 
     const getActivities = new GetActivities(activityRepo);
     const createActivity = new CreateActivity(activityRepo);
@@ -40,6 +45,9 @@ export const createBillingRouter = () => {
     const createBill = new CreateBill(billRepo);
     const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo);
     const getBillById = new GetBillById(billRepo);
+    const getCargoCategories = new GetCargoCategories(cargoCategoryRepo);
+    const createCargoCategory = new CreateCargoCategory(cargoCategoryRepo);
+    const updateCargoCategory = new UpdateCargoCategory(cargoCategoryRepo);
 
     const controller = new BillingController(
         getActivities,
@@ -49,6 +57,9 @@ export const createBillingRouter = () => {
         createCharge,
         getChargeHistory,
         updateChargeRate,
+        getCargoCategories,
+        createCargoCategory,
+        updateCargoCategory,
         getBills,
         markBillPaid,
         createBill,
@@ -74,6 +85,11 @@ export const createBillingRouter = () => {
     router.get("/bills/:id", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBill(req, res));
     router.patch("/bills/:id/paid", roleMiddleware(["admin", "operator"]), (req, res) => controller.markBillPaid(req, res));
     router.post("/bills/:id/pay", roleMiddleware(["customer"]), (req, res) => controller.payBill(req, res));
+
+    // Cargo Categories
+    router.get("/cargo-categories", (req, res) => controller.getAllCargoCategories(req, res));
+    router.post("/cargo-categories", roleMiddleware(["admin"]), (req, res) => controller.addCargoCategory(req, res));
+    router.patch("/cargo-categories/:id", roleMiddleware(["admin"]), (req, res) => controller.patchCargoCategory(req, res));
 
     return router;
 };

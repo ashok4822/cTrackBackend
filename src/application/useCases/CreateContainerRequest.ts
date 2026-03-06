@@ -7,6 +7,7 @@ export class CreateContainerRequest {
     async execute(requestData: {
         customerId: string;
         type: "stuffing" | "destuffing";
+        cargoCategoryId?: string;
         containerSize?: string;
         containerType?: string;
         cargoDescription?: string;
@@ -38,6 +39,8 @@ export class CreateContainerRequest {
             requestData.customerId,
             requestData.type,
             "pending",
+            requestData.cargoCategoryId,
+            undefined, // cargoCategoryName (optional, usually set on fetch)
             requestData.containerSize,
             requestData.containerType,
             requestData.cargoDescription,
@@ -59,6 +62,7 @@ export class CreateContainerRequest {
                     remarks: `Initial ${requestData.type} request submitted`
                 }
             ], // checkpoints
+            undefined, // cargoCharge (calculated during allocation)
             new Date(),
             new Date()
         );
