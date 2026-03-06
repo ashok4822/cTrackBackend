@@ -11,6 +11,9 @@ import { MarkBillPaid } from "../../application/useCases/MarkBillPaid";
 import { CreateBill } from "../../application/useCases/CreateBill";
 import { GetBillById } from "../../application/useCases/GetBillById";
 import { PayBillWithPDA } from "../../application/useCases/PayBillWithPDA";
+import { GetCargoCategories } from "../../application/useCases/GetCargoCategories";
+import { CreateCargoCategory } from "../../application/useCases/CreateCargoCategory";
+import { UpdateCargoCategory } from "../../application/useCases/UpdateCargoCategory";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 
 export class BillingController {
@@ -22,6 +25,9 @@ export class BillingController {
         private createCharge: CreateCharge,
         private getChargeHistory: GetChargeHistory,
         private updateChargeRate: UpdateChargeRate,
+        private getCargoCategories: GetCargoCategories,
+        private createCargoCategory: CreateCargoCategory,
+        private updateCargoCategory: UpdateCargoCategory,
         private getBillsUseCase?: GetBills,
         private markBillPaidUseCase?: MarkBillPaid,
         private createBillUseCase?: CreateBill,
@@ -171,6 +177,39 @@ export class BillingController {
             const bill = await this.payBillWithPDAUseCase.execute(id as string, user.id);
             res.status(HttpStatus.OK).json({ message: "Bill paid successfully", bill });
         } catch (error: any) {
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async getAllCargoCategories(req: Request, res: Response) {
+        try {
+            const categories = await this.getCargoCategories.execute();
+            res.status(HttpStatus.OK).json(categories);
+        } catch (error: any) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+        }
+    }
+
+    async addCargoCategory(req: Request, res: Response) {
+        try {
+            const category = await this.createCargoCategory.execute(req.body);
+            res.status(HttpStatus.CREATED).json(category);
+        } catch (error: any) {
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async patchCargoCategory(req: Request, res: Response) {
+        console.log(`PATCH /cargo-categories/${req.params.id}`, req.body);
+        try {
+            const category = await this.updateCargoCategory.execute(req.params.id as string, req.body);
+            if (!category) {
+                console.log(`Cargo category not found for ID: ${req.params.id}`);
+                return res.status(HttpStatus.NOT_FOUND).json({ message: "Cargo category not found" });
+            }
+            res.status(HttpStatus.OK).json(category);
+        } catch (error: any) {
+            console.error(`Error patching cargo category: ${error.message}`);
             res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
         }
     }

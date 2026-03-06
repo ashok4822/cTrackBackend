@@ -4,6 +4,8 @@ export class ContainerRequest {
         public readonly customerId: string,
         public readonly type: "stuffing" | "destuffing",
         public readonly status: "pending" | "approved" | "rejected" | "completed" | "ready-for-dispatch" | "in-transit" | "at-factory" | "operation-completed" | "cancelled",
+        public readonly cargoCategoryId?: string,
+        public readonly cargoCategoryName?: string,
 
         // Stuffing specific fields
         public readonly containerSize?: string,
@@ -24,6 +26,7 @@ export class ContainerRequest {
         public readonly containerNumber?: string,
         public readonly remarks?: string,
         public readonly checkpoints?: Array<{ location: string, timestamp: Date, status: string, remarks?: string }>,
+        public readonly cargoCharge?: number,
 
         public readonly createdAt?: Date,
         public readonly updatedAt?: Date

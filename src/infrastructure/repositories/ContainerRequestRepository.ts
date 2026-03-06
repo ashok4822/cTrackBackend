@@ -9,7 +9,9 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             doc._id.toString(),
             doc.customerId,
             doc.type,
-            doc.status,
+            doc.status as any,
+            doc.cargoCategoryId?.toString(),
+            doc.cargoCategoryName,
             doc.containerSize,
             doc.containerType,
             doc.cargoDescription,
@@ -24,6 +26,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             doc.containerNumber,
             doc.remarks,
             doc.checkpoints,
+            doc.cargoCharge,
             doc.createdAt,
             doc.updatedAt
         );
@@ -34,6 +37,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             customerId: request.customerId,
             type: request.type,
             status: request.status,
+            cargoCategoryId: request.cargoCategoryId ? new mongoose.Types.ObjectId(request.cargoCategoryId) as any : undefined,
             containerSize: request.containerSize,
             containerType: request.containerType,
             cargoDescription: request.cargoDescription,
@@ -48,6 +52,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             containerNumber: request.containerNumber,
             remarks: request.remarks,
             checkpoints: request.checkpoints,
+            cargoCharge: request.cargoCharge,
         });
         return this.mapToEntity(created);
     }
@@ -93,7 +98,8 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
                             "$isHazardous",
                             { $ifNull: ["$containerDetails.hazardousClassification", false] }
                         ]
-                    }
+                    },
+                    cargoCharge: { $ifNull: ["$cargoCharge", 0] }
                 }
             },
             {
@@ -102,7 +108,26 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
                 }
             },
             {
-                $project: { containerDetails: 0 }
+                $lookup: {
+                    from: "cargocategories",
+                    localField: "cargoCategoryId",
+                    foreignField: "_id",
+                    as: "categoryDetails"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$categoryDetails",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $addFields: {
+                    cargoCategoryName: "$categoryDetails.name"
+                }
+            },
+            {
+                $project: { containerDetails: 0, categoryDetails: 0 }
             },
             { $sort: { createdAt: -1 as const } }
         ];
@@ -199,14 +224,36 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
                             "$isHazardous",
                             { $ifNull: ["$containerDetails.hazardousClassification", false] }
                         ]
-                    }
+                    },
+                    cargoCharge: { $ifNull: ["$cargoCharge", 0] }
+                }
+            },
+            // --- Join cargo category ---
+            {
+                $lookup: {
+                    from: "cargocategories",
+                    localField: "cargoCategoryId",
+                    foreignField: "_id",
+                    as: "categoryDetails"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$categoryDetails",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $addFields: {
+                    cargoCategoryName: "$categoryDetails.name"
                 }
             },
             {
                 $project: {
                     customerDetails: 0,
                     customerIdObjectId: 0,
-                    containerDetails: 0
+                    containerDetails: 0,
+                    categoryDetails: 0
                 }
             },
             {
