@@ -26,7 +26,10 @@ export class GetDashboardKPIs {
             recentActivitiesRaw,
             pendingRequestsCount,
             damagedContainers,
-            equipmentIssues
+            equipmentIssues,
+            liveQueueRaw,
+            activeTasksRaw,
+            allEquipment
         ] = await Promise.all([
             ContainerModel.countDocuments({ status: { $in: ["gate-in", "in-yard", "damaged"] } }),
             ContainerModel.countDocuments({ status: "in-transit" }),
@@ -60,8 +63,41 @@ export class GetDashboardKPIs {
                 .populate('containerId', 'containerNumber'),
             ContainerRequestModel.countDocuments({ status: "pending" }),
             ContainerModel.find({ damaged: true }).limit(5),
-            EquipmentModel.find({ status: { $in: ["down", "maintenance"] } })
+            EquipmentModel.find({ status: { $in: ["down", "maintenance"] } }),
+            ContainerModel.find({ status: { $in: ["gate-in", "gate-out", "in-transit"] } })
+                .sort({ updatedAt: -1 })
+                .limit(10),
+            ContainerRequestModel.find({ status: { $in: ["pending", "approved", "ready-for-dispatch"] } })
+                .sort({ createdAt: -1 })
+                .limit(10),
+            EquipmentModel.find({})
         ]);
+
+        // ... intermediate logic ...
+
+        // 6. Operator Specific Data
+        const liveQueue = liveQueueRaw.map(c => ({
+            id: c._id.toString(),
+            containerNumber: c.containerNumber,
+            status: c.status,
+            type: c.type,
+            updatedAt: c.updatedAt
+        }));
+
+        const activeTasks = activeTasksRaw.map(t => ({
+            id: t._id.toString(),
+            type: t.type,
+            status: t.status,
+            containerNumber: (t as any).containerNumber || 'Auto-assign',
+            createdAt: t.createdAt
+        }));
+
+        const equipmentStatusSummary = allEquipment.map(e => ({
+            id: e._id.toString(),
+            name: e.name,
+            type: e.type,
+            status: e.status
+        }));
 
         // 1. Yard Utilization
         const totalCapacity = blocks.reduce((sum, block) => sum + block.capacity, 0);
@@ -174,7 +210,10 @@ export class GetDashboardKPIs {
             gateMovements,
             dwellTimeDistribution,
             recentActivities,
-            recentAlerts
+            recentAlerts,
+            liveQueue,
+            activeTasks,
+            equipmentStatusSummary
         };
     }
 }
