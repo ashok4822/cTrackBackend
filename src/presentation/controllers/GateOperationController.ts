@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { GetGateOperations } from "../../application/useCases/GetGateOperations";
 import { CreateGateOperation } from "../../application/useCases/CreateGateOperation";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
+import { socketService } from "../../infrastructure/services/socketService";
 
 export class GateOperationController {
     constructor(
@@ -23,6 +24,16 @@ export class GateOperationController {
         try {
             const performedBy = req.user?.name || req.user?.email || "System";
             await this.createGateOperationUseCase.execute(req.body, performedBy);
+
+            // Real-time update
+            socketService.emitKPIUpdate({ type: 'GATE_OPERATION', data: req.body });
+            socketService.emitActivity({
+                type: 'GATE_OPERATION',
+                title: 'New Gate Movement',
+                description: `${req.body.containerNumber} - ${req.body.operationType}`,
+                timestamp: new Date()
+            });
+
             return res.status(HttpStatus.CREATED).json({ message: "Gate operation recorded successfully" });
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });

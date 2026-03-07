@@ -8,6 +8,7 @@ import { UnblacklistContainer } from "../../application/useCases/UnblacklistCont
 import { GetContainerHistory } from "../../application/useCases/GetContainerHistory";
 import { GetCustomerContainers } from "../../application/useCases/GetCustomerContainers";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
+import { socketService } from "../../infrastructure/services/socketService";
 
 export class ContainerController {
     constructor(
@@ -24,6 +25,16 @@ export class ContainerController {
     async createContainer(req: Request, res: Response) {
         try {
             await this.createContainerUseCase.execute(req.body);
+
+            // Real-time update
+            socketService.emitKPIUpdate({ type: 'CONTAINER_CREATED', data: req.body });
+            socketService.emitActivity({
+                type: 'CONTAINER',
+                title: 'New Container Added',
+                description: `${req.body.containerNumber} added to yard`,
+                timestamp: new Date()
+            });
+
             return res.status(HttpStatus.CREATED).json({ message: "Container created successfully" });
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
@@ -59,6 +70,10 @@ export class ContainerController {
             const { equipment: equipmentName, ...data } = req.body;
             const performedBy = req.user?.name || req.user?.email || "System";
             await this.updateContainerUseCase.execute(id as string, data, equipmentName, performedBy);
+
+            // Real-time update
+            socketService.emitKPIUpdate({ type: 'CONTAINER_UPDATED', id, data });
+
             return res.status(HttpStatus.OK).json({ message: "Container updated successfully" });
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
@@ -69,6 +84,15 @@ export class ContainerController {
         try {
             const { id } = req.params;
             await this.blacklistContainerUseCase.execute(id as string);
+
+            // Real-time update
+            socketService.emitAlert({
+                type: 'warning',
+                title: 'Container Blacklisted',
+                message: `Container ${id} has been moved to blacklist`,
+                id: `bl-${Date.now()}`
+            });
+
             return res.status(HttpStatus.OK).json({ message: "Container blacklisted successfully" });
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
