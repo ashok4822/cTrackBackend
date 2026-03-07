@@ -11,11 +11,19 @@ import mongoose from "mongoose";
 export class GetDashboardKPIs {
     async execute(role?: string, customerName?: string, userId?: string) {
         const isCustomer = role === 'customer';
-        const containerFilter: any = isCustomer ? { customer: customerName } : {};
-        const requestFilter: any = isCustomer ? { customerId: customerName } : {}; // Assuming customerId in request corresponds to companyName/name
+        // ContainerModel.customer stores user._id as string (ObjectId), not company name
+        // ContainerRepository.mapWithCustomers resolves it to display name via User lookup
+        const containerFilter: any = isCustomer && userId ? { customer: userId } : {};
+        // ContainerRequestModel.customerId stores user.id (MongoDB ObjectId as string)
+        const requestFilter: any = isCustomer && userId ? { customerId: userId } : {};
 
-        // Adjust for UID if needed (some models might use ID)
-        const pdaFilter = isCustomer && userId ? { userId: new mongoose.Types.ObjectId(userId) } : null;
+        // Resilient PDA lookup: try userId first, fallback to customer name
+        const pdaFilter = isCustomer ? {
+            $or: [
+                ...(userId && mongoose.Types.ObjectId.isValid(userId) ? [{ userId: new mongoose.Types.ObjectId(userId) }] : []),
+                { customer: customerName }
+            ]
+        } : null;
 
         const now = new Date();
         const startOfDay = new Date(now);
@@ -99,7 +107,15 @@ export class GetDashboardKPIs {
             // 34. Customer specific financial data
             isCustomer && pdaFilter ? PDAModel.findOne(pdaFilter) : Promise.resolve(null),
             isCustomer ? BillModel.aggregate([
-                { $match: { customer: customerName, status: { $ne: "paid" } } },
+                {
+                    $match: {
+                        $or: [
+                            ...(userId ? [{ customer: userId }] : []),
+                            ...(customerName ? [{ customer: customerName }] : [])
+                        ],
+                        status: { $ne: "paid" }
+                    }
+                },
                 { $group: { _id: null, total: { $sum: "$totalAmount" } } }
             ]) : Promise.resolve([])
         ]);

@@ -1,0 +1,1 @@
+Error: Error: querySrv ECONNREFUSED _mongodb._tcp.cluster0.7ftizrv.mongodb.net

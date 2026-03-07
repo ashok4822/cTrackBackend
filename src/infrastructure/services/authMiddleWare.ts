@@ -10,6 +10,7 @@ interface TokenPayload {
   email: string;
   role: UserRole;
   name?: string;
+  companyName?: string;
 }
 
 export const authMiddleware = (
