@@ -40,7 +40,8 @@ export class VerifyRazorpayPayment {
                 transactionId: razorpay_payment_id,
                 orderId: razorpay_order_id,
                 paidAt: new Date()
-            }
+            },
+            paidAt: new Date()
         } as any);
 
         if (!updatedBill) {

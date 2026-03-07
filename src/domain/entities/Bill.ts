@@ -20,6 +20,7 @@ export class Bill {
         public readonly status: "pending" | "paid" | "overdue" = "pending",
         public readonly dueDate: Date = new Date(),
         public readonly remarks?: string,
+        public readonly paidAt?: Date,
         public readonly createdAt?: Date,
         public readonly updatedAt?: Date
     ) { }

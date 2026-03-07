@@ -47,7 +47,10 @@ export class PayBillWithPDA {
         });
 
         // Update bill status
-        const updatedBill = await this.billRepository.update(billId, { status: "paid" });
+        const updatedBill = await this.billRepository.update(billId, {
+            status: "paid",
+            paidAt: new Date()
+        });
         if (!updatedBill) {
             throw new Error("Failed to update bill status");
         }
