@@ -18,6 +18,7 @@ export interface IBillDocument extends Document {
     status: "pending" | "paid" | "overdue";
     dueDate: Date;
     remarks?: string;
+    paidAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -42,6 +43,7 @@ const BillSchema: Schema = new Schema(
         status: { type: String, enum: ["pending", "paid", "overdue"], default: "pending" },
         dueDate: { type: Date, required: true },
         remarks: { type: String },
+        paidAt: { type: Date },
     },
     {
         timestamps: true,

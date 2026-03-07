@@ -15,6 +15,8 @@ import { PayBillWithPDA } from "../../application/useCases/PayBillWithPDA";
 import { GetCargoCategories } from "../../application/useCases/GetCargoCategories";
 import { CreateCargoCategory } from "../../application/useCases/CreateCargoCategory";
 import { UpdateCargoCategory } from "../../application/useCases/UpdateCargoCategory";
+import { CreateRazorpayOrder } from "../../application/useCases/CreateRazorpayOrder";
+import { VerifyRazorpayPayment } from "../../application/useCases/VerifyRazorpayPayment";
 import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
 import { ChargeHistoryRepository } from "../../infrastructure/repositories/ChargeHistoryRepository";
@@ -48,6 +50,8 @@ export const createBillingRouter = () => {
     const getCargoCategories = new GetCargoCategories(cargoCategoryRepo);
     const createCargoCategory = new CreateCargoCategory(cargoCategoryRepo);
     const updateCargoCategory = new UpdateCargoCategory(cargoCategoryRepo);
+    const createRazorpayOrder = new CreateRazorpayOrder(billRepo);
+    const verifyRazorpayPayment = new VerifyRazorpayPayment(billRepo);
 
     const controller = new BillingController(
         getActivities,
@@ -64,7 +68,9 @@ export const createBillingRouter = () => {
         markBillPaid,
         createBill,
         payBillWithPDA,
-        getBillById
+        getBillById,
+        createRazorpayOrder,
+        verifyRazorpayPayment
     );
 
     // Apply auth middleware to all billing routes
@@ -85,6 +91,8 @@ export const createBillingRouter = () => {
     router.get("/bills/:id", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBill(req, res));
     router.patch("/bills/:id/paid", roleMiddleware(["admin", "operator"]), (req, res) => controller.markBillPaid(req, res));
     router.post("/bills/:id/pay", roleMiddleware(["customer"]), (req, res) => controller.payBill(req, res));
+    router.post("/bills/:id/razorpay/order", roleMiddleware(["customer"]), (req, res) => controller.createRazorpayOrder(req, res));
+    router.post("/bills/:id/razorpay/verify", roleMiddleware(["customer"]), (req, res) => controller.verifyRazorpayPayment(req, res));
 
     // Cargo Categories
     router.get("/cargo-categories", (req, res) => controller.getAllCargoCategories(req, res));

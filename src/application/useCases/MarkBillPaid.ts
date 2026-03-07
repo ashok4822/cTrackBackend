@@ -5,6 +5,6 @@ export class MarkBillPaid {
     constructor(private billRepository: IBillRepository) { }
 
     async execute(id: string): Promise<Bill | null> {
-        return this.billRepository.update(id, { status: "paid" } as Partial<Bill>);
+        return this.billRepository.update(id, { status: "paid", paidAt: new Date() } as Partial<Bill>);
     }
 }

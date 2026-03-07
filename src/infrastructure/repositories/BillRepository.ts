@@ -35,6 +35,7 @@ export class BillRepository implements IBillRepository {
             status: bill.status,
             dueDate: bill.dueDate,
             remarks: bill.remarks,
+            paidAt: bill.paidAt,
         });
         const saved = await doc.save();
         const obj = saved.toObject();
@@ -89,6 +90,7 @@ export class BillRepository implements IBillRepository {
             rest.status,
             rest.dueDate,
             rest.remarks,
+            rest.paidAt,
             rest.createdAt,
             rest.updatedAt
         );

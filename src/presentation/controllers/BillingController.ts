@@ -14,6 +14,8 @@ import { PayBillWithPDA } from "../../application/useCases/PayBillWithPDA";
 import { GetCargoCategories } from "../../application/useCases/GetCargoCategories";
 import { CreateCargoCategory } from "../../application/useCases/CreateCargoCategory";
 import { UpdateCargoCategory } from "../../application/useCases/UpdateCargoCategory";
+import { CreateRazorpayOrder } from "../../application/useCases/CreateRazorpayOrder";
+import { VerifyRazorpayPayment } from "../../application/useCases/VerifyRazorpayPayment";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 
 export class BillingController {
@@ -32,7 +34,9 @@ export class BillingController {
         private markBillPaidUseCase?: MarkBillPaid,
         private createBillUseCase?: CreateBill,
         private payBillWithPDAUseCase?: PayBillWithPDA,
-        private getBillByIdUseCase?: GetBillById
+        private getBillByIdUseCase?: GetBillById,
+        private createRazorpayOrderUseCase?: CreateRazorpayOrder,
+        private verifyRazorpayPaymentUseCase?: VerifyRazorpayPayment
     ) { }
 
     async getAllActivities(req: Request, res: Response) {
@@ -210,6 +214,51 @@ export class BillingController {
             res.status(HttpStatus.OK).json(category);
         } catch (error: any) {
             console.error(`Error patching cargo category: ${error.message}`);
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async createRazorpayOrder(req: Request, res: Response) {
+        try {
+            if (!this.createRazorpayOrderUseCase) {
+                return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: "Razorpay service not configured" });
+            }
+            const { id } = req.params;
+            const user = (req as any).user;
+            if (!user) {
+                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
+            }
+
+            const order = await this.createRazorpayOrderUseCase.execute(id as string, user.id);
+            res.status(HttpStatus.OK).json(order);
+        } catch (error: any) {
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async verifyRazorpayPayment(req: Request, res: Response) {
+        try {
+            if (!this.verifyRazorpayPaymentUseCase) {
+                return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: "Razorpay service not configured" });
+            }
+            const { id } = req.params;
+            const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+            const user = (req as any).user;
+
+            if (!user) {
+                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
+            }
+
+            const bill = await this.verifyRazorpayPaymentUseCase.execute(
+                id as string,
+                user.id,
+                razorpay_order_id,
+                razorpay_payment_id,
+                razorpay_signature
+            );
+
+            res.status(HttpStatus.OK).json({ message: "Payment verified and bill marked as paid", bill });
+        } catch (error: any) {
             res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
         }
     }
