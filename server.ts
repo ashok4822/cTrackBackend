@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import path from "path";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { createServer } from "http";
 import { connectDB } from "./src/infrastructure/database/MongoConnection";
 import { createAuthRouter } from "./src/presentation/routes/authRoutes";
 import { userRouter } from "./src/presentation/routes/userRoutes";
@@ -15,7 +16,9 @@ import { createEquipmentRouter } from "./src/presentation/routes/equipmentRoutes
 import { createBillingRouter } from "./src/presentation/routes/billingRoutes";
 import containerRequestRouter from "./src/presentation/routes/containerRequestRoutes";
 import { createPDARouter } from "./src/presentation/routes/pdaRoutes";
+import { createDashboardRouter } from "./src/presentation/routes/dashboardRoutes";
 import { HttpStatus } from "./src/domain/constants/HttpStatus";
+import { socketService } from "./src/infrastructure/services/socketService";
 import {
   globalLimiter,
   authLimiter,
@@ -27,7 +30,11 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 5001;
+
+// Initialize Socket.io
+socketService.initialize(httpServer);
 
 app.use(
   cors({
@@ -78,6 +85,7 @@ app.use("/api/equipment", createEquipmentRouter());
 app.use("/api/billing", createBillingRouter());
 app.use("/api/container-requests", containerRequestRouter);
 app.use("/api/pda", createPDARouter());
+app.use("/api/dashboard", createDashboardRouter());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -94,6 +102,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () =>
+httpServer.listen(PORT, () =>
   console.log(`Server is running on http://localhost:${PORT}`),
 );

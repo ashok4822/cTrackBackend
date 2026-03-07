@@ -4,6 +4,7 @@ import { CreateBlock } from "../../application/useCases/CreateBlock";
 import { UpdateBlock } from "../../application/useCases/UpdateBlock";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 import { UserContext } from "../../application/useCases/AdminCreateUser";
+import { socketService } from "../../infrastructure/services/socketService";
 
 export class YardController {
     constructor(
@@ -40,6 +41,10 @@ export class YardController {
             const { name, capacity } = req.body;
             const userContext = this.getUserContext(req);
             await this.updateBlockUseCase.execute(id as string, { name, capacity }, userContext);
+
+            // Real-time update
+            socketService.emitKPIUpdate({ type: 'YARD_UPDATE', action: 'UPDATE', data: req.body });
+
             return res.status(HttpStatus.OK).json({
                 message: "Block updated successfully",
             });
@@ -58,6 +63,10 @@ export class YardController {
             const { name, capacity } = req.body;
             const userContext = this.getUserContext(req);
             await this.createBlockUseCase.execute({ name, capacity }, userContext);
+
+            // Real-time update
+            socketService.emitKPIUpdate({ type: 'YARD_UPDATE', action: 'CREATE', data: req.body });
+
             return res.status(HttpStatus.CREATED).json({
                 message: "Block created successfully",
             });

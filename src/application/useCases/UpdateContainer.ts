@@ -5,10 +5,10 @@ import { ContainerHistory } from "../../domain/entities/ContainerHistory";
 import { IEquipmentRepository } from "../../domain/repositories/IEquipmentRepository";
 import { IEquipmentHistoryRepository } from "../../domain/repositories/IEquipmentHistoryRepository";
 import { EquipmentHistory } from "../../domain/entities/EquipmentHistory";
-import { IActivityRepository } from "../../domain/repositories/IActivityRepository";
-import { IChargeRepository } from "../../domain/repositories/IChargeRepository";
 import { IBillRepository } from "../../domain/repositories/IBillRepository";
 import { Bill } from "../../domain/entities/Bill";
+import { IBlockRepository } from "../../domain/repositories/IBlockRepository";
+import { Block } from "../../domain/entities/Block";
 
 export class UpdateContainer {
     constructor(
@@ -16,6 +16,7 @@ export class UpdateContainer {
         private historyRepository: IContainerHistoryRepository,
         private equipmentRepository: IEquipmentRepository,
         private equipmentHistoryRepository: IEquipmentHistoryRepository,
+        private blockRepository: IBlockRepository,
         private billRepository?: IBillRepository
     ) { }
 
@@ -25,11 +26,49 @@ export class UpdateContainer {
             throw new Error("Container not found");
         }
 
-        // Validate yard location update
-        if (data.yardLocation && data.yardLocation.block) {
+        // Handle yard location update and occupancy synchronization
+        if (data.yardLocation && data.yardLocation.block !== container.yardLocation?.block) {
             const allowedStatuses = ["gate-in", "in-yard", "damaged"];
             if (!allowedStatuses.includes(container.status)) {
                 throw new Error("Container must be inside terminal to be assigned to a yard block");
+            }
+
+            // 1. Decrement old block occupancy if it existed
+            if (container.yardLocation?.block) {
+                const oldBlock = await this.blockRepository.findByName(container.yardLocation.block);
+                if (oldBlock) {
+                    const updatedOldBlock = new Block(
+                        oldBlock.id,
+                        oldBlock.name,
+                        oldBlock.capacity,
+                        Math.max(0, oldBlock.occupied - 1),
+                        oldBlock.createdAt,
+                        new Date()
+                    );
+                    await this.blockRepository.save(updatedOldBlock);
+                }
+            }
+
+            // 2. Increment new block occupancy
+            if (data.yardLocation.block) {
+                const newBlock = await this.blockRepository.findByName(data.yardLocation.block);
+                if (!newBlock) {
+                    throw new Error(`Block ${data.yardLocation.block} not found`);
+                }
+
+                if (newBlock.occupied >= newBlock.capacity) {
+                    throw new Error(`Block ${data.yardLocation.block} is at full capacity`);
+                }
+
+                const updatedNewBlock = new Block(
+                    newBlock.id,
+                    newBlock.name,
+                    newBlock.capacity,
+                    newBlock.occupied + 1,
+                    newBlock.createdAt,
+                    new Date()
+                );
+                await this.blockRepository.save(updatedNewBlock);
             }
         }
 

@@ -16,6 +16,12 @@ export class BlockRepository implements IBlockRepository {
         return new Block(block.id, block.name, block.capacity, block.occupied, block.createdAt, block.updatedAt);
     }
 
+    async findByName(name: string): Promise<Block | null> {
+        const block = await BlockModel.findOne({ name });
+        if (!block) return null;
+        return new Block(block.id, block.name, block.capacity, block.occupied, block.createdAt, block.updatedAt);
+    }
+
     async save(block: Block): Promise<Block> {
         let savedDoc;
         if (block.id && block.id.match(/^[0-9a-fA-F]{24}$/)) {
