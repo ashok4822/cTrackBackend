@@ -4,9 +4,19 @@ import { BlockModel } from "../../infrastructure/models/BlockModel";
 import { ContainerHistoryModel } from "../../infrastructure/models/ContainerHistoryModel";
 import { ContainerRequestModel } from "../../infrastructure/models/ContainerRequestModel";
 import { EquipmentModel } from "../../infrastructure/models/EquipmentModel";
+import { BillModel } from "../../infrastructure/models/BillModel";
+import { PDAModel } from "../../infrastructure/models/PDAModel";
+import mongoose from "mongoose";
 
 export class GetDashboardKPIs {
-    async execute() {
+    async execute(role?: string, customerName?: string, userId?: string) {
+        const isCustomer = role === 'customer';
+        const containerFilter: any = isCustomer ? { customer: customerName } : {};
+        const requestFilter: any = isCustomer ? { customerId: customerName } : {}; // Assuming customerId in request corresponds to companyName/name
+
+        // Adjust for UID if needed (some models might use ID)
+        const pdaFilter = isCustomer && userId ? { userId: new mongoose.Types.ObjectId(userId) } : null;
+
         const now = new Date();
         const startOfDay = new Date(now);
         startOfDay.setHours(0, 0, 0, 0);
@@ -14,6 +24,9 @@ export class GetDashboardKPIs {
         const sevenDaysAgo = new Date(now);
         sevenDaysAgo.setDate(now.getDate() - 6);
         sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const ownedContainerIds = isCustomer ? await ContainerModel.find(containerFilter).distinct('_id') : null;
+        const historyFilter = ownedContainerIds ? { containerId: { $in: ownedContainerIds } } : {};
 
         const [
             totalContainersInYard,
@@ -29,17 +42,28 @@ export class GetDashboardKPIs {
             equipmentIssues,
             liveQueueRaw,
             activeTasksRaw,
-            allEquipment
+            allEquipment,
+            pdaData,
+            unpaidBillsRaw
         ] = await Promise.all([
-            ContainerModel.countDocuments({ status: { $in: ["gate-in", "in-yard", "damaged"] } }),
-            ContainerModel.countDocuments({ status: "in-transit" }),
-            GateOperationModel.countDocuments({ type: "gate-in", timestamp: { $gte: startOfDay } }),
-            GateOperationModel.countDocuments({ type: "gate-out", timestamp: { $gte: startOfDay } }),
+            ContainerModel.countDocuments({ ...containerFilter, status: { $in: ["gate-in", "in-yard", "damaged"] } }),
+            ContainerModel.countDocuments({ ...containerFilter, status: "in-transit" }),
+            GateOperationModel.countDocuments({
+                type: "gate-in",
+                timestamp: { $gte: startOfDay },
+                ...(isCustomer ? { containerNumber: { $in: (await ContainerModel.find(containerFilter).distinct('containerNumber')) } } : {})
+            }),
+            GateOperationModel.countDocuments({
+                type: "gate-out",
+                timestamp: { $gte: startOfDay },
+                ...(isCustomer ? { containerNumber: { $in: (await ContainerModel.find(containerFilter).distinct('containerNumber')) } } : {})
+            }),
             BlockModel.find({}),
             GateOperationModel.aggregate([
                 {
                     $match: {
-                        timestamp: { $gte: sevenDaysAgo }
+                        timestamp: { $gte: sevenDaysAgo },
+                        ...(isCustomer ? { containerNumber: { $in: (await ContainerModel.find(containerFilter).distinct('containerNumber')) } } : {})
                     }
                 },
                 {
@@ -54,23 +78,30 @@ export class GetDashboardKPIs {
                 { $sort: { "_id.day": 1 } }
             ]),
             ContainerModel.find({
+                ...containerFilter,
                 status: { $in: ["gate-in", "in-yard", "damaged"] },
                 gateInTime: { $exists: true }
             }),
-            ContainerHistoryModel.find()
+            ContainerHistoryModel.find(historyFilter)
                 .sort({ timestamp: -1 })
                 .limit(10)
                 .populate('containerId', 'containerNumber'),
-            ContainerRequestModel.countDocuments({ status: "pending" }),
-            ContainerModel.find({ damaged: true }).limit(5),
+            ContainerRequestModel.countDocuments({ ...requestFilter, status: "pending" }),
+            ContainerModel.find({ ...containerFilter, damaged: true }).limit(5),
             EquipmentModel.find({ status: { $in: ["down", "maintenance"] } }),
-            ContainerModel.find({ status: { $in: ["gate-in", "gate-out", "in-transit"] } })
+            ContainerModel.find({ ...containerFilter, status: { $in: ["gate-in", "gate-out", "in-transit"] } })
                 .sort({ updatedAt: -1 })
                 .limit(10),
-            ContainerRequestModel.find({ status: { $in: ["pending", "approved", "ready-for-dispatch"] } })
+            ContainerRequestModel.find({ ...requestFilter, status: { $in: ["pending", "approved", "ready-for-dispatch"] } })
                 .sort({ createdAt: -1 })
                 .limit(10),
-            EquipmentModel.find({})
+            EquipmentModel.find({}),
+            // 34. Customer specific financial data
+            isCustomer && pdaFilter ? PDAModel.findOne(pdaFilter) : Promise.resolve(null),
+            isCustomer ? BillModel.aggregate([
+                { $match: { customer: customerName, status: { $ne: "paid" } } },
+                { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            ]) : Promise.resolve([])
         ]);
 
         // ... intermediate logic ...
@@ -149,24 +180,26 @@ export class GetDashboardKPIs {
         }
 
         // 4. Recent Activity Mapping
-        const recentActivities = recentActivitiesRaw.map(history => {
-            let type = 'yard';
-            const activity = (history.activity || '').toLowerCase();
-            if (activity.includes('gate')) type = 'gate';
-            if (activity.includes('payment')) type = 'payment';
-            if (activity.includes('survey')) type = 'survey';
-            if (activity.includes('approval')) type = 'approval';
+        const recentActivities = recentActivitiesRaw
+            .filter(history => history.containerId) // Only show if container was successfully populated (belongs to customer if filter was active)
+            .map(history => {
+                let type = 'yard';
+                const activity = (history.activity || '').toLowerCase();
+                if (activity.includes('gate')) type = 'gate';
+                if (activity.includes('payment')) type = 'payment';
+                if (activity.includes('survey')) type = 'survey';
+                if (activity.includes('approval')) type = 'approval';
 
-            const containerNumber = (history.containerId as any)?.containerNumber || 'Unknown';
+                const containerNumber = (history.containerId as any)?.containerNumber || 'Unknown';
 
-            return {
-                id: (history as any)._id.toString(),
-                action: history.activity,
-                description: `Container ${containerNumber}: ${history.details || 'No details'}`,
-                time: history.timestamp.toISOString(),
-                type
-            };
-        });
+                return {
+                    id: (history as any)._id.toString(),
+                    action: history.activity,
+                    description: `Container ${containerNumber}: ${history.details || 'No details'}`,
+                    time: history.timestamp.toISOString(),
+                    type
+                };
+            });
 
         // 5. Derived Alerts
         const recentAlerts: any[] = [];
@@ -213,7 +246,9 @@ export class GetDashboardKPIs {
             recentAlerts,
             liveQueue,
             activeTasks,
-            equipmentStatusSummary
+            equipmentStatusSummary,
+            pdaBalance: pdaData?.balance || 0,
+            unpaidBillsAmount: unpaidBillsRaw?.[0]?.total || 0
         };
     }
 }
