@@ -16,6 +16,8 @@ import { BillRepository } from "../../infrastructure/repositories/BillRepository
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
+import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
+
 export const createContainerRouter = () => {
     const router = Router();
     const repository = new ContainerRepository();
@@ -23,6 +25,7 @@ export const createContainerRouter = () => {
     const equipmentRepository = new EquipmentRepository();
     const equipmentHistoryRepository = new EquipmentHistoryRepository();
     const billRepository = new BillRepository();
+    const blockRepository = new BlockRepository();
 
     const createUseCase = new CreateContainer(repository, historyRepository);
     const getAllUseCase = new GetAllContainers(repository);
@@ -32,6 +35,7 @@ export const createContainerRouter = () => {
         historyRepository,
         equipmentRepository,
         equipmentHistoryRepository,
+        blockRepository,
         billRepository
     );
     const blacklistUseCase = new BlacklistContainer(repository, historyRepository);

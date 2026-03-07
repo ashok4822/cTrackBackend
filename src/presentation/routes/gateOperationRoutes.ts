@@ -11,6 +11,8 @@ import { BillRepository } from "../../infrastructure/repositories/BillRepository
 import { UserRepository } from "../../infrastructure/repositories/UserRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
+import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
+
 export const createGateOperationRouter = () => {
     const router = Router();
     const repository = new GateOperationRepository();
@@ -20,6 +22,7 @@ export const createGateOperationRouter = () => {
     const containerRequestRepository = new ContainerRequestRepository();
     const billRepository = new BillRepository();
     const userRepository = new UserRepository();
+    const blockRepository = new BlockRepository();
 
     const getUseCase = new GetGateOperations(repository);
     const createUseCase = new CreateGateOperation(
@@ -29,6 +32,7 @@ export const createGateOperationRouter = () => {
         historyRepository,
         containerRequestRepository,
         userRepository,
+        blockRepository,
         billRepository
     );
 

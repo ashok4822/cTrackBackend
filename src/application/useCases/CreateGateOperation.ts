@@ -10,6 +10,9 @@ import { ContainerHistory } from "../../domain/entities/ContainerHistory";
 import { Container } from "../../domain/entities/Container";
 import { Vehicle, VehicleType } from "../../domain/entities/Vehicle";
 
+import { IBlockRepository } from "../../domain/repositories/IBlockRepository";
+import { Block } from "../../domain/entities/Block";
+
 export class CreateGateOperation {
     constructor(
         private gateOperationRepository: IGateOperationRepository,
@@ -18,6 +21,7 @@ export class CreateGateOperation {
         private historyRepository: IContainerHistoryRepository,
         private containerRequestRepository: IContainerRequestRepository,
         private userRepository: IUserRepository,
+        private blockRepository: IBlockRepository,
         private billRepository?: IBillRepository
     ) { }
 
@@ -229,6 +233,22 @@ export class CreateGateOperation {
             } else {
                 // gate-out
                 if (container) {
+                    // gate-out synchronization: Decrement block occupancy if container was in yard
+                    if (container.yardLocation?.block) {
+                        const block = await this.blockRepository.findByName(container.yardLocation.block);
+                        if (block) {
+                            const updatedBlock = new Block(
+                                block.id,
+                                block.name,
+                                block.capacity,
+                                Math.max(0, block.occupied - 1),
+                                block.createdAt,
+                                new Date()
+                            );
+                            await this.blockRepository.save(updatedBlock);
+                        }
+                    }
+
                     const updatedContainer = new Container(
                         container.id,
                         container.containerNumber,
@@ -276,21 +296,21 @@ export class CreateGateOperation {
                     }
                 }
             }
+        }
 
-            if (container) {
-                const savedContainer = await this.containerRepository.save(container);
+        if (container) {
+            const savedContainer = await this.containerRepository.save(container);
 
-                // 6. Record History
-                if (savedContainer.id) {
-                    const history = new ContainerHistory(
-                        null,
-                        savedContainer.id,
-                        data.type === "gate-in" ? "Gate In" : "Gate Out",
-                        `Processed ${data.type} operation at gate. Vehicle: ${data.vehicleNumber}, Driver: ${data.driverName}`,
-                        performedBy
-                    );
-                    await this.historyRepository.save(history);
-                }
+            // 6. Record History
+            if (savedContainer.id) {
+                const history = new ContainerHistory(
+                    null,
+                    savedContainer.id,
+                    data.type === "gate-in" ? "Gate In" : "Gate Out",
+                    `Processed ${data.type} operation at gate. Vehicle: ${data.vehicleNumber}, Driver: ${data.driverName}`,
+                    performedBy
+                );
+                await this.historyRepository.save(history);
             }
         }
     }
