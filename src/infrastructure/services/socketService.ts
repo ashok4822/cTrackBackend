@@ -35,6 +35,14 @@ class SocketService {
         this.io.on("connection", (socket) => {
             console.log(`New client connected: ${socket.id}`);
 
+            // Join a private room for the user
+            socket.on("join", (userId: string) => {
+                if (userId) {
+                    socket.join(userId);
+                    console.log(`User ${userId} joined room ${userId}`);
+                }
+            });
+
             socket.on("disconnect", () => {
                 console.log(`Client disconnected: ${socket.id}`);
             });
@@ -62,9 +70,19 @@ class SocketService {
         }
     }
 
-    public emitAlert(alert: any) {
+    public emitAlert(alert: any, userId?: string) {
         if (this.io) {
-            this.io.emit("new_alert", alert);
+            if (userId) {
+                this.io.to(userId).emit("new_alert", alert);
+            } else {
+                this.io.emit("new_alert", alert);
+            }
+        }
+    }
+
+    public emitNotification(notification: any, userId: string) {
+        if (this.io) {
+            this.io.to(userId).emit("notification", notification);
         }
     }
 }

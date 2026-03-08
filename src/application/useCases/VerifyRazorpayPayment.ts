@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { IBillRepository } from "../../domain/repositories/IBillRepository";
 import { Bill } from "../../domain/entities/Bill";
+import { NotificationModel } from "../../infrastructure/models/NotificationModel";
+import { socketService } from "../../infrastructure/services/socketService";
 
 export class VerifyRazorpayPayment {
     constructor(private billRepository: IBillRepository) { }
@@ -46,6 +48,20 @@ export class VerifyRazorpayPayment {
 
         if (!updatedBill) {
             throw new Error("Failed to update bill status");
+        }
+
+        // Notify customer about successful payment
+        try {
+            const notification = await NotificationModel.create({
+                userId: userId,
+                type: "success",
+                title: "Payment Successful",
+                message: `Your payment of ₹${updatedBill.totalAmount} for bill ${updatedBill.billNumber} has been received.`,
+                link: "/customer/bills"
+            });
+            socketService.emitNotification(notification, userId);
+        } catch (err) {
+            console.error("Failed to create/emit notification for payment success:", err);
         }
 
         return updatedBill;

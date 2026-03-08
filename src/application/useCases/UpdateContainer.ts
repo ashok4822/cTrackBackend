@@ -120,8 +120,9 @@ export class UpdateContainer {
                         bill.status,
                         bill.dueDate,
                         bill.remarks,
+                        bill.paidAt,
                         bill.createdAt,
-                        bill.updatedAt
+                        new Date() // updatedAt
                     );
                     await this.billRepository.save(updatedBill);
                 }

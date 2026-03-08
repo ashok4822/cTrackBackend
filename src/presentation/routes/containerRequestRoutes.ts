@@ -6,6 +6,7 @@ import { GetContainerById } from "../../application/useCases/GetContainerById";
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
 import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
+import { UserRepository } from "../../infrastructure/repositories/UserRepository";
 import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
 import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
@@ -18,11 +19,15 @@ const router = Router();
 const containerRequestRepository = new ContainerRequestRepository();
 const containerRepository = new ContainerRepository();
 const billRepository = new BillRepository();
+const userRepository = new UserRepository();
 const activityRepository = new ActivityRepository();
 const chargeRepository = new ChargeRepository();
 const equipmentHistoryRepository = new EquipmentHistoryRepository();
 
-const createContainerRequest = new CreateContainerRequest(containerRequestRepository);
+const createContainerRequest = new CreateContainerRequest(
+    containerRequestRepository,
+    userRepository
+);
 const getCustomerRequests = new GetCustomerRequests(containerRequestRepository);
 const getContainerById = new GetContainerById(containerRepository);
 const getAllContainerRequests = new GetAllContainerRequests(containerRequestRepository);

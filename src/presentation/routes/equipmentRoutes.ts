@@ -7,6 +7,7 @@ import { GetAllEquipment } from "../../application/useCases/GetAllEquipment";
 import { GetEquipmentHistory } from "../../application/useCases/GetEquipmentHistory";
 import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
 import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
+import { UserRepository } from "../../infrastructure/repositories/UserRepository";
 import {
     authMiddleware,
     roleMiddleware,
@@ -15,10 +16,11 @@ import {
 export const createEquipmentRouter = () => {
     const router = Router();
     const repository = new EquipmentRepository();
-
     const historyRepository = new EquipmentHistoryRepository();
+    const userRepository = new UserRepository();
+
     const createUseCase = new CreateEquipment(repository, historyRepository);
-    const updateUseCase = new UpdateEquipment(repository, historyRepository);
+    const updateUseCase = new UpdateEquipment(repository, historyRepository, userRepository);
     const deleteUseCase = new DeleteEquipment(repository);
     const getAllUseCase = new GetAllEquipment(repository);
     const getHistoryUseCase = new GetEquipmentHistory(historyRepository);

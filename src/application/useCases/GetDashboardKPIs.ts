@@ -246,7 +246,7 @@ export class GetDashboardKPIs {
                 type: eq.status === 'down' ? 'error' : 'info',
                 title: eq.status === 'down' ? 'Equipment Down' : 'Equipment Maintenance',
                 message: `${eq.type} ${eq.name} is currently ${eq.status}.`,
-                link: '/admin/equipment'
+                link: '/admin/vehicles'
             });
         });
 

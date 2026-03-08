@@ -31,8 +31,9 @@ export class CreateBill {
             "pending",
             data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             data.remarks,
-            new Date(),
-            new Date()
+            undefined, // paidAt
+            new Date(), // createdAt
+            new Date() // updatedAt
         );
 
         return await this.billRepository.save(bill);
