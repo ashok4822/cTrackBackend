@@ -9,6 +9,8 @@ import { IBillRepository } from "../../domain/repositories/IBillRepository";
 import { Bill } from "../../domain/entities/Bill";
 import { IBlockRepository } from "../../domain/repositories/IBlockRepository";
 import { Block } from "../../domain/entities/Block";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
 
 export class UpdateContainer {
     constructor(
@@ -17,10 +19,16 @@ export class UpdateContainer {
         private equipmentRepository: IEquipmentRepository,
         private equipmentHistoryRepository: IEquipmentHistoryRepository,
         private blockRepository: IBlockRepository,
+        private auditLogRepository?: IAuditLogRepository,
         private billRepository?: IBillRepository
     ) { }
 
-    async execute(id: string, data: Partial<Container>, equipmentName?: string, performedBy: string = "System"): Promise<void> {
+    async execute(id: string, data: Partial<Container>, userContext?: {
+        userId: string;
+        userName: string;
+        userRole: string;
+        ipAddress: string;
+    }, equipmentName?: string, performedBy: string = "System"): Promise<void> {
         const container = await this.containerRepository.findById(id);
         if (!container) {
             throw new Error("Container not found");
@@ -100,6 +108,21 @@ export class UpdateContainer {
         );
 
         await this.containerRepository.save(updatedContainer);
+
+        // Audit Log
+        if (this.auditLogRepository && userContext) {
+            await this.auditLogRepository.save(new AuditLog(
+                null,
+                userContext.userId,
+                userContext.userRole,
+                userContext.userName,
+                "CONTAINER_UPDATED",
+                "Container",
+                updatedContainer.id,
+                JSON.stringify({ containerNumber: updatedContainer.containerNumber, status: updatedContainer.status }),
+                userContext.ipAddress
+            ));
+        }
 
         // If customer changed, transfer pending bills to the new customer
         if (data.customer !== undefined && data.customer !== container.customer && this.billRepository) {

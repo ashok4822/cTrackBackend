@@ -3,11 +3,14 @@ import { IContainerRequestRepository } from "../../domain/repositories/IContaine
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { socketService } from "../../infrastructure/services/socketService";
 import { NotificationModel } from "../../infrastructure/models/NotificationModel";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
 
 export class CreateContainerRequest {
     constructor(
         private containerRequestRepository: IContainerRequestRepository,
-        private userRepository: IUserRepository
+        private userRepository: IUserRepository,
+        private auditLogRepository?: IAuditLogRepository
     ) { }
 
     async execute(requestData: {
@@ -27,6 +30,11 @@ export class CreateContainerRequest {
         containerId?: string;
         containerNumber?: string;
         remarks?: string;
+    }, userContext?: {
+        userId: string;
+        userName: string;
+        userRole: string;
+        ipAddress: string;
     }): Promise<ContainerRequest> {
         // Validation: Prevent duplicate destuffing requests for the same container
         if (requestData.type === "destuffing" && requestData.containerId) {
@@ -74,6 +82,21 @@ export class CreateContainerRequest {
         );
 
         const savedRequest = await this.containerRequestRepository.create(request);
+
+        // Audit Log
+        if (this.auditLogRepository && userContext) {
+            await this.auditLogRepository.save(new AuditLog(
+                null,
+                userContext.userId,
+                userContext.userRole,
+                userContext.userName,
+                "REQUEST_CREATED",
+                "Request",
+                savedRequest.id,
+                JSON.stringify({ type: savedRequest.type, containerNumber: savedRequest.containerNumber }),
+                userContext.ipAddress
+            ));
+        }
 
         // Notify Operators
         try {

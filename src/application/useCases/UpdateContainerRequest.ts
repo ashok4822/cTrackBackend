@@ -8,6 +8,8 @@ import { IEquipmentHistoryRepository } from "../../domain/repositories/IEquipmen
 import { Bill, BillLineItem } from "../../domain/entities/Bill";
 import { EquipmentHistory } from "../../domain/entities/EquipmentHistory";
 import { NotificationModel } from "../../infrastructure/models/NotificationModel";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
 import { socketService } from "../../infrastructure/services/socketService";
 
 export class UpdateContainerRequest {
@@ -17,10 +19,16 @@ export class UpdateContainerRequest {
         private billRepository?: IBillRepository,
         private activityRepository?: IActivityRepository,
         private chargeRepository?: IChargeRepository,
-        private equipmentHistoryRepository?: IEquipmentHistoryRepository
+        private equipmentHistoryRepository?: IEquipmentHistoryRepository,
+        private auditLogRepository?: IAuditLogRepository
     ) { }
 
-    async execute(id: string, data: Partial<ContainerRequest>): Promise<ContainerRequest | null> {
+    async execute(id: string, data: Partial<ContainerRequest>, userContext?: {
+        userId: string;
+        userName: string;
+        userRole: string;
+        ipAddress: string;
+    }): Promise<ContainerRequest | null> {
         const existingRequest = await this.repository.findById(id);
         if (!existingRequest) return null;
 
@@ -69,6 +77,21 @@ export class UpdateContainerRequest {
         }
 
         const updatedRequest = await this.repository.update(id, data);
+
+        // Audit Log
+        if (this.auditLogRepository && userContext && updatedRequest) {
+            await this.auditLogRepository.save(new AuditLog(
+                null,
+                userContext.userId,
+                userContext.userRole,
+                userContext.userName,
+                "REQUEST_UPDATED",
+                "Request",
+                updatedRequest.id,
+                JSON.stringify({ status: updatedRequest.status, containerNumber: updatedRequest.containerNumber }),
+                userContext.ipAddress
+            ));
+        }
 
         // Notify customer about request update
         if (updatedRequest && data.status && data.status !== existingRequest.status) {

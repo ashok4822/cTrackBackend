@@ -14,6 +14,7 @@ import { EquipmentRepository } from "../../infrastructure/repositories/Equipment
 import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
@@ -26,8 +27,9 @@ export const createContainerRouter = () => {
     const equipmentHistoryRepository = new EquipmentHistoryRepository();
     const billRepository = new BillRepository();
     const blockRepository = new BlockRepository();
+    const auditLogRepository = new MongoAuditLogRepository();
 
-    const createUseCase = new CreateContainer(repository, historyRepository);
+    const createUseCase = new CreateContainer(repository, historyRepository, auditLogRepository);
     const getAllUseCase = new GetAllContainers(repository);
     const getByIdUseCase = new GetContainerById(repository);
     const updateUseCase = new UpdateContainer(
@@ -36,6 +38,7 @@ export const createContainerRouter = () => {
         equipmentRepository,
         equipmentHistoryRepository,
         blockRepository,
+        auditLogRepository,
         billRepository
     );
     const blacklistUseCase = new BlacklistContainer(repository, historyRepository);

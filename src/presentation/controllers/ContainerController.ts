@@ -24,7 +24,13 @@ export class ContainerController {
 
     async createContainer(req: Request, res: Response) {
         try {
-            await this.createContainerUseCase.execute(req.body);
+            const userContext = {
+                userId: req.user?.id || 'unknown',
+                userName: req.user?.name || req.user?.email || 'unknown',
+                userRole: req.user?.role || 'unknown',
+                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
+            };
+            await this.createContainerUseCase.execute(req.body, userContext);
 
             // Real-time update
             socketService.emitKPIUpdate({ type: 'CONTAINER_CREATED', data: req.body });
@@ -69,7 +75,13 @@ export class ContainerController {
             const { id } = req.params;
             const { equipment: equipmentName, ...data } = req.body;
             const performedBy = req.user?.name || req.user?.email || "System";
-            await this.updateContainerUseCase.execute(id as string, data, equipmentName, performedBy);
+            const userContext = {
+                userId: req.user?.id || 'unknown',
+                userName: req.user?.name || req.user?.email || 'unknown',
+                userRole: req.user?.role || 'unknown',
+                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
+            };
+            await this.updateContainerUseCase.execute(id as string, data, userContext, equipmentName, performedBy);
 
             // Real-time update
             socketService.emitKPIUpdate({ type: 'CONTAINER_UPDATED', id, data });

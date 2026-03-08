@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { ContainerRequestController } from "../controllers/ContainerRequestController";
 import { CreateContainerRequest } from "../../application/useCases/CreateContainerRequest";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { GetCustomerRequests } from "../../application/useCases/GetCustomerRequests";
 import { GetContainerById } from "../../application/useCases/GetContainerById";
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
@@ -23,10 +24,12 @@ const userRepository = new UserRepository();
 const activityRepository = new ActivityRepository();
 const chargeRepository = new ChargeRepository();
 const equipmentHistoryRepository = new EquipmentHistoryRepository();
+const auditLogRepository = new MongoAuditLogRepository();
 
 const createContainerRequest = new CreateContainerRequest(
     containerRequestRepository,
-    userRepository
+    userRepository,
+    auditLogRepository
 );
 const getCustomerRequests = new GetCustomerRequests(containerRequestRepository);
 const getContainerById = new GetContainerById(containerRepository);
@@ -37,7 +40,8 @@ const updateContainerRequest = new UpdateContainerRequest(
     billRepository,
     activityRepository,
     chargeRepository,
-    equipmentHistoryRepository
+    equipmentHistoryRepository,
+    auditLogRepository
 );
 
 const controller = new ContainerRequestController(

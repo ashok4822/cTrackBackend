@@ -2,11 +2,14 @@ import { IContainerRepository } from "../../domain/repositories/IContainerReposi
 import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
 import { Container } from "../../domain/entities/Container";
 import { ContainerHistory } from "../../domain/entities/ContainerHistory";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
 
 export class CreateContainer {
     constructor(
         private containerRepository: IContainerRepository,
-        private historyRepository: IContainerHistoryRepository
+        private historyRepository: IContainerHistoryRepository,
+        private auditLogRepository?: IAuditLogRepository
     ) { }
 
     async execute(data: {
@@ -19,6 +22,11 @@ export class CreateContainer {
         customer?: string;
         weight?: number;
         sealNumber?: string;
+    }, userContext?: {
+        userId: string;
+        userName: string;
+        userRole: string;
+        ipAddress: string;
     }): Promise<void> {
         const container = new Container(
             null,
@@ -47,6 +55,21 @@ export class CreateContainer {
             undefined  // updatedAt
         );
         const savedContainer = await this.containerRepository.save(container);
+
+        // Audit Log
+        if (this.auditLogRepository && userContext) {
+            await this.auditLogRepository.save(new AuditLog(
+                null,
+                userContext.userId,
+                userContext.userRole,
+                userContext.userName,
+                "CONTAINER_CREATED",
+                "Container",
+                savedContainer.id,
+                JSON.stringify({ containerNumber: savedContainer.containerNumber, status: savedContainer.status }),
+                userContext.ipAddress
+            ));
+        }
 
         if (savedContainer.id) {
             const history = new ContainerHistory(

@@ -3,16 +3,27 @@ import { IBillRepository } from "../../domain/repositories/IBillRepository";
 import { Bill } from "../../domain/entities/Bill";
 import { NotificationModel } from "../../infrastructure/models/NotificationModel";
 import { socketService } from "../../infrastructure/services/socketService";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
 
 export class VerifyRazorpayPayment {
-    constructor(private billRepository: IBillRepository) { }
+    constructor(
+        private billRepository: IBillRepository,
+        private auditLogRepository?: IAuditLogRepository
+    ) { }
 
     async execute(
         billId: string,
         userId: string,
         razorpay_order_id: string,
         razorpay_payment_id: string,
-        razorpay_signature: string
+        razorpay_signature: string,
+        userContext?: {
+            userId: string;
+            userName: string;
+            userRole: string;
+            ipAddress: string;
+        }
     ): Promise<Bill> {
         const bill = await this.billRepository.findById(billId);
 
@@ -48,6 +59,21 @@ export class VerifyRazorpayPayment {
 
         if (!updatedBill) {
             throw new Error("Failed to update bill status");
+        }
+
+        // Audit Log
+        if (this.auditLogRepository && userContext) {
+            await this.auditLogRepository.save(new AuditLog(
+                null,
+                userContext.userId,
+                userContext.userRole,
+                userContext.userName,
+                "BILL_PAID",
+                "Bill",
+                updatedBill.id,
+                JSON.stringify({ billNumber: updatedBill.billNumber, totalAmount: updatedBill.totalAmount, method: "Razorpay" }),
+                userContext.ipAddress
+            ));
         }
 
         // Notify customer about successful payment

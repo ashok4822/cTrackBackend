@@ -133,7 +133,8 @@ export class AuthController {
           .json({ message: "Password must be at least 6 characters long" });
       }
 
-      await this.verifyOtpAndSignupUseCase.execute(email, otp, password, name);
+      const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
+      await this.verifyOtpAndSignupUseCase.execute(email, otp, password, name, ipAddress);
       return res
         .status(HttpStatus.CREATED)
         .json({ message: "Customer created successfully" });

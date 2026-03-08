@@ -178,7 +178,14 @@ export class BillingController {
                 return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
             }
 
-            const bill = await this.payBillWithPDAUseCase.execute(id as string, user.id);
+            const userContext = {
+                userId: user.id,
+                userName: user.name || user.email || "Customer",
+                userRole: user.role,
+                ipAddress: req.ip || req.socket.remoteAddress || "unknown"
+            };
+
+            const bill = await this.payBillWithPDAUseCase.execute(id as string, user.id, userContext);
             res.status(HttpStatus.OK).json({ message: "Bill paid successfully", bill });
         } catch (error: any) {
             res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
@@ -249,12 +256,20 @@ export class BillingController {
                 return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
             }
 
+            const userContext = {
+                userId: user.id,
+                userName: user.name || user.email || "Customer",
+                userRole: user.role,
+                ipAddress: req.ip || req.socket.remoteAddress || "unknown"
+            };
+
             const bill = await this.verifyRazorpayPaymentUseCase.execute(
                 id as string,
                 user.id,
                 razorpay_order_id,
                 razorpay_payment_id,
-                razorpay_signature
+                razorpay_signature,
+                userContext
             );
 
             res.status(HttpStatus.OK).json({ message: "Payment verified and bill marked as paid", bill });

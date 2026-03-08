@@ -2,12 +2,15 @@ import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { IOtpRepository } from "../../domain/repositories/IOtpRepository";
 import { IHashService } from "../services/IHashService";
 import { User } from "../../domain/entities/User";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
 
 export class VerifyOtpAndSignup {
     constructor(
         private userRepository: IUserRepository,
         private otpRepository: IOtpRepository,
         private hashService: IHashService,
+        private auditLogRepository?: IAuditLogRepository
     ) { }
 
     async execute(
@@ -15,6 +18,7 @@ export class VerifyOtpAndSignup {
         otp: string,
         password: string,
         name: string,
+        ipAddress?: string
     ): Promise<void> {
         // Validation for password strength
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -41,7 +45,22 @@ export class VerifyOtpAndSignup {
         const hashedPassword = await this.hashService.hash(password);
         const user = new User("", email, "customer", hashedPassword, name, undefined, undefined, undefined);
 
-        await this.userRepository.save(user);
+        const savedUser = await this.userRepository.save(user);
+
+        // Audit Log
+        if (this.auditLogRepository && ipAddress) {
+            await this.auditLogRepository.save(new AuditLog(
+                null,
+                savedUser.id!,
+                savedUser.role,
+                savedUser.name || savedUser.email,
+                "SIGNUP",
+                "User",
+                savedUser.id,
+                JSON.stringify({ email: savedUser.email }),
+                ipAddress
+            ));
+        }
         await this.otpRepository.deleteOtp(email);
     }
 }
