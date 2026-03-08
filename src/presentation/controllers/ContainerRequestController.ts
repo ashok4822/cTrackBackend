@@ -33,10 +33,17 @@ export class ContainerRequestController {
                 }
             }
 
+            const userContext = {
+                userId: (req as any).user?.id || customerId,
+                userName: (req as any).user?.name || "Customer",
+                userRole: (req as any).user?.role || "customer",
+                ipAddress: req.ip || req.socket.remoteAddress || "unknown"
+            };
+
             const result = await this.createContainerRequest.execute({
                 ...req.body,
                 customerId,
-            });
+            }, userContext);
 
             res.status(201).json(result);
         } catch (error: any) {
@@ -75,7 +82,14 @@ export class ContainerRequestController {
             const { id } = req.params;
             const data = req.body;
 
-            const updated = await this.updateContainerRequest.execute(id as string, data);
+            const userContext = {
+                userId: (req as any).user?.id,
+                userName: (req as any).user?.name,
+                userRole: (req as any).user?.role,
+                ipAddress: req.ip || req.socket.remoteAddress || "unknown"
+            };
+
+            const updated = await this.updateContainerRequest.execute(id as string, data, userContext);
 
             if (!updated) {
                 res.status(404).json({ message: "Container request not found" });

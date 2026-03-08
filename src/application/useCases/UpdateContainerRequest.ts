@@ -7,6 +7,10 @@ import { IChargeRepository } from "../../domain/repositories/IChargeRepository";
 import { IEquipmentHistoryRepository } from "../../domain/repositories/IEquipmentHistoryRepository";
 import { Bill, BillLineItem } from "../../domain/entities/Bill";
 import { EquipmentHistory } from "../../domain/entities/EquipmentHistory";
+import { NotificationModel } from "../../infrastructure/models/NotificationModel";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
+import { socketService } from "../../infrastructure/services/socketService";
 
 export class UpdateContainerRequest {
     constructor(
@@ -15,10 +19,16 @@ export class UpdateContainerRequest {
         private billRepository?: IBillRepository,
         private activityRepository?: IActivityRepository,
         private chargeRepository?: IChargeRepository,
-        private equipmentHistoryRepository?: IEquipmentHistoryRepository
+        private equipmentHistoryRepository?: IEquipmentHistoryRepository,
+        private auditLogRepository?: IAuditLogRepository
     ) { }
 
-    async execute(id: string, data: Partial<ContainerRequest>): Promise<ContainerRequest | null> {
+    async execute(id: string, data: Partial<ContainerRequest>, userContext?: {
+        userId: string;
+        userName: string;
+        userRole: string;
+        ipAddress: string;
+    }): Promise<ContainerRequest | null> {
         const existingRequest = await this.repository.findById(id);
         if (!existingRequest) return null;
 
@@ -67,6 +77,37 @@ export class UpdateContainerRequest {
         }
 
         const updatedRequest = await this.repository.update(id, data);
+
+        // Audit Log
+        if (this.auditLogRepository && userContext && updatedRequest) {
+            await this.auditLogRepository.save(new AuditLog(
+                null,
+                userContext.userId,
+                userContext.userRole,
+                userContext.userName,
+                "REQUEST_UPDATED",
+                "Request",
+                updatedRequest.id,
+                JSON.stringify({ status: updatedRequest.status, containerNumber: updatedRequest.containerNumber }),
+                userContext.ipAddress
+            ));
+        }
+
+        // Notify customer about request update
+        if (updatedRequest && data.status && data.status !== existingRequest.status) {
+            try {
+                const notification = await NotificationModel.create({
+                    userId: updatedRequest.customerId,
+                    type: data.status === "rejected" ? "alert" : "success",
+                    title: "Request Status Updated",
+                    message: `Your ${updatedRequest.type} request status has been updated to ${data.status}.`,
+                    link: "/customer/requests"
+                });
+                socketService.emitNotification(notification, updatedRequest.customerId);
+            } catch (err) {
+                console.error("Failed to create/emit notification for request update:", err);
+            }
+        }
 
         // If a stuffing request is approved and a container is allocated, assign container ownership and transfer bills to customer
         if (
@@ -135,8 +176,9 @@ export class UpdateContainerRequest {
                                 bill.status,
                                 bill.dueDate,
                                 bill.remarks,
+                                bill.paidAt,
                                 bill.createdAt,
-                                bill.updatedAt
+                                new Date() // updatedAt
                             );
                             await this.billRepository.save(updatedBill);
                         }
@@ -323,8 +365,9 @@ export class UpdateContainerRequest {
                     pendingBill.status,
                     pendingBill.dueDate,
                     `${pendingBill.remarks || ""} | Added ${request.type} charges. ${billIdentifier}`.trim(),
+                    pendingBill.paidAt,
                     pendingBill.createdAt,
-                    new Date()
+                    new Date() // updatedAt
                 );
 
                 await this.billRepository.save(updatedBill);
@@ -348,10 +391,27 @@ export class UpdateContainerRequest {
                     "pending",
                     dueDate,
                     `Auto-generated for ${request.type} request dispatch. ${billIdentifier}`,
-                    new Date()
+                    undefined, // paidAt should be undefined for new bills
+                    new Date() // createdAt
                 );
 
                 const savedBill = await this.billRepository.save(bill);
+
+                // Notify customer about new bill
+                if (request.customerId) {
+                    try {
+                        const notification = await NotificationModel.create({
+                            userId: request.customerId,
+                            type: "info",
+                            title: "New Bill Generated",
+                            message: `A new bill ${billNumber} for ₹${totalAmount} has been generated.`,
+                            link: "/customer/bills"
+                        });
+                        socketService.emitNotification(notification, request.customerId);
+                    } catch (err) {
+                        console.error("Failed to create/emit notification for new bill:", err);
+                    }
+                }
                 console.log(`Bill generated successfully: ${savedBill.billNumber} for customer: ${request.customerId} (Request: ${request.id})`);
             }
         } else {

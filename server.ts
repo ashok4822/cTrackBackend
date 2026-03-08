@@ -17,6 +17,7 @@ import { createBillingRouter } from "./src/presentation/routes/billingRoutes";
 import containerRequestRouter from "./src/presentation/routes/containerRequestRoutes";
 import { createPDARouter } from "./src/presentation/routes/pdaRoutes";
 import { createDashboardRouter } from "./src/presentation/routes/dashboardRoutes";
+import { createNotificationRouter } from "./src/presentation/routes/notificationRoutes";
 import { HttpStatus } from "./src/domain/constants/HttpStatus";
 import { socketService } from "./src/infrastructure/services/socketService";
 import {
@@ -86,6 +87,7 @@ app.use("/api/billing", createBillingRouter());
 app.use("/api/container-requests", containerRequestRouter);
 app.use("/api/pda", createPDARouter());
 app.use("/api/dashboard", createDashboardRouter());
+app.use("/api/notifications", createNotificationRouter());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 

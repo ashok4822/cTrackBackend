@@ -24,21 +24,43 @@ export class BillRepository implements IBillRepository {
     }
 
     async save(bill: Bill): Promise<Bill> {
-        const doc = new BillModel({
-            billNumber: bill.billNumber,
-            containerNumber: bill.containerNumber,
-            containerId: bill.containerId,
-            shippingLine: bill.shippingLine,
-            customer: bill.customer,
-            lineItems: bill.lineItems,
-            totalAmount: bill.totalAmount,
-            status: bill.status,
-            dueDate: bill.dueDate,
-            remarks: bill.remarks,
-            paidAt: bill.paidAt,
-        });
-        const saved = await doc.save();
-        const obj = saved.toObject();
+        let doc;
+        if (bill.id && mongoose.Types.ObjectId.isValid(bill.id)) {
+            doc = await BillModel.findByIdAndUpdate(
+                bill.id,
+                {
+                    billNumber: bill.billNumber,
+                    containerNumber: bill.containerNumber,
+                    containerId: bill.containerId,
+                    shippingLine: bill.shippingLine,
+                    customer: bill.customer,
+                    lineItems: bill.lineItems,
+                    totalAmount: bill.totalAmount,
+                    status: bill.status,
+                    dueDate: bill.dueDate,
+                    remarks: bill.remarks,
+                    paidAt: bill.paidAt,
+                },
+                { new: true, upsert: true }
+            );
+        } else {
+            doc = new BillModel({
+                billNumber: bill.billNumber,
+                containerNumber: bill.containerNumber,
+                containerId: bill.containerId,
+                shippingLine: bill.shippingLine,
+                customer: bill.customer,
+                lineItems: bill.lineItems,
+                totalAmount: bill.totalAmount,
+                status: bill.status,
+                dueDate: bill.dueDate,
+                remarks: bill.remarks,
+                paidAt: bill.paidAt,
+            });
+            await doc.save();
+        }
+
+        const obj = (doc as any).toObject ? (doc as any).toObject() : doc;
         const [mapped] = await this.mapWithCustomers([obj]);
         return mapped;
     }

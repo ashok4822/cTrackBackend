@@ -18,6 +18,11 @@ export class UserRepository extends BaseRepository<User, IUserDocument> implemen
     return userDoc ? this.toEntity(userDoc) : null;
   }
 
+  async findByRole(role: string): Promise<User[]> {
+    const userDocs = await this.model.find({ role }).exec();
+    return userDocs.map((doc) => this.toEntity(doc));
+  }
+
   async exists(email: string): Promise<boolean> {
     return super.exists({ email });
   }

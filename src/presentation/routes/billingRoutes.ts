@@ -17,6 +17,7 @@ import { CreateCargoCategory } from "../../application/useCases/CreateCargoCateg
 import { UpdateCargoCategory } from "../../application/useCases/UpdateCargoCategory";
 import { CreateRazorpayOrder } from "../../application/useCases/CreateRazorpayOrder";
 import { VerifyRazorpayPayment } from "../../application/useCases/VerifyRazorpayPayment";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
 import { ChargeHistoryRepository } from "../../infrastructure/repositories/ChargeHistoryRepository";
@@ -34,6 +35,7 @@ export const createBillingRouter = () => {
     const billRepo = new BillRepository();
     const pdaRepo = new PDARepository();
     const cargoCategoryRepo = new CargoCategoryRepository();
+    const auditLogRepo = new MongoAuditLogRepository();
 
     const getActivities = new GetActivities(activityRepo);
     const createActivity = new CreateActivity(activityRepo);
@@ -45,13 +47,13 @@ export const createBillingRouter = () => {
     const getBills = new GetBills(billRepo);
     const markBillPaid = new MarkBillPaid(billRepo);
     const createBill = new CreateBill(billRepo);
-    const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo);
+    const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo, auditLogRepo);
     const getBillById = new GetBillById(billRepo);
     const getCargoCategories = new GetCargoCategories(cargoCategoryRepo);
     const createCargoCategory = new CreateCargoCategory(cargoCategoryRepo);
     const updateCargoCategory = new UpdateCargoCategory(cargoCategoryRepo);
     const createRazorpayOrder = new CreateRazorpayOrder(billRepo);
-    const verifyRazorpayPayment = new VerifyRazorpayPayment(billRepo);
+    const verifyRazorpayPayment = new VerifyRazorpayPayment(billRepo, auditLogRepo);
 
     const controller = new BillingController(
         getActivities,

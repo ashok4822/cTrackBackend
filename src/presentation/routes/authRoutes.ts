@@ -45,6 +45,7 @@ export const createAuthRouter = () => {
     userRepository,
     otpRepository,
     hashService,
+    auditLogRepository
   );
   const forgotPasswordUseCase = new ForgotPassword(
     userRepository,

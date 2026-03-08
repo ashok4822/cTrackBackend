@@ -13,9 +13,13 @@ export type AuditAction =
     | "CONTAINER_CREATED"
     | "CONTAINER_UPDATED"
     | "CONTAINER_BLACKLISTED"
-    | "CONTAINER_UNBLACKLISTED";
+    | "CONTAINER_UNBLACKLISTED"
+    | "REQUEST_CREATED"
+    | "REQUEST_UPDATED"
+    | "BILL_PAID"
+    | "SIGNUP";
 
-export type EntityType = "User" | "Container" | "ShippingLine" | "Block" | "Auth" | "Profile";
+export type EntityType = "User" | "Container" | "ShippingLine" | "Block" | "Auth" | "Profile" | "Request" | "Bill";
 
 export class AuditLog {
     constructor(
