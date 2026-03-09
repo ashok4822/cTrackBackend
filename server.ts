@@ -98,13 +98,20 @@ app.get("/health", (req, res) => {
 });
 
 // Global Error Handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error("Global Error Handler caught an error:", err);
-  res.status(err.status || 500).json({
-    message: err.message || "Internal Server Error",
-    error: process.env.NODE_ENV === "development" ? err : {}
-  });
-});
+app.use(
+  (
+    err: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    console.error("Global Error Handler caught an error:", err);
+    res.status(err.status || 500).json({
+      message: err.message || "Internal Server Error",
+      error: process.env.NODE_ENV === "development" ? err : {},
+    });
+  },
+);
 
 httpServer.listen(PORT, () =>
   console.log(`Server is running on http://localhost:${PORT}`),
