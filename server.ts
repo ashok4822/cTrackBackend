@@ -18,6 +18,7 @@ import containerRequestRouter from "./src/presentation/routes/containerRequestRo
 import { createPDARouter } from "./src/presentation/routes/pdaRoutes";
 import { createDashboardRouter } from "./src/presentation/routes/dashboardRoutes";
 import { createNotificationRouter } from "./src/presentation/routes/notificationRoutes";
+import { createSupportRouter } from "./src/presentation/routes/supportRoutes";
 import { HttpStatus } from "./src/domain/constants/HttpStatus";
 import { socketService } from "./src/infrastructure/services/socketService";
 import {
@@ -88,6 +89,7 @@ app.use("/api/container-requests", containerRequestRouter);
 app.use("/api/pda", createPDARouter());
 app.use("/api/dashboard", createDashboardRouter());
 app.use("/api/notifications", createNotificationRouter());
+app.use("/api/support", createSupportRouter());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -96,13 +98,20 @@ app.get("/health", (req, res) => {
 });
 
 // Global Error Handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error("Global Error Handler caught an error:", err);
-  res.status(err.status || 500).json({
-    message: err.message || "Internal Server Error",
-    error: process.env.NODE_ENV === "development" ? err : {}
-  });
-});
+app.use(
+  (
+    err: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    console.error("Global Error Handler caught an error:", err);
+    res.status(err.status || 500).json({
+      message: err.message || "Internal Server Error",
+      error: process.env.NODE_ENV === "development" ? err : {},
+    });
+  },
+);
 
 httpServer.listen(PORT, () =>
   console.log(`Server is running on http://localhost:${PORT}`),
