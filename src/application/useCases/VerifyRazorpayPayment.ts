@@ -48,6 +48,7 @@ export class VerifyRazorpayPayment {
         // Update bill status
         const updatedBill = await this.billRepository.update(billId, {
             status: "paid",
+            paymentMethod: "online",
             paymentDetails: {
                 method: "online",
                 transactionId: razorpay_payment_id,

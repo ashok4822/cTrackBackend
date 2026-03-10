@@ -145,6 +145,7 @@ export class UpdateContainer {
                         bill.dueDate,
                         bill.remarks,
                         bill.paidAt,
+                        bill.paymentMethod,
                         bill.createdAt,
                         new Date() // updatedAt
                     );

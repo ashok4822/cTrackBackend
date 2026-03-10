@@ -40,6 +40,7 @@ export class BillRepository implements IBillRepository {
                     dueDate: bill.dueDate,
                     remarks: bill.remarks,
                     paidAt: bill.paidAt,
+                    paymentMethod: bill.paymentMethod,
                 },
                 { new: true, upsert: true }
             );
@@ -56,6 +57,7 @@ export class BillRepository implements IBillRepository {
                 dueDate: bill.dueDate,
                 remarks: bill.remarks,
                 paidAt: bill.paidAt,
+                paymentMethod: bill.paymentMethod,
             });
             await doc.save();
         }
@@ -113,6 +115,7 @@ export class BillRepository implements IBillRepository {
             rest.dueDate,
             rest.remarks,
             rest.paidAt,
+            rest.paymentMethod,
             rest.createdAt,
             rest.updatedAt
         );

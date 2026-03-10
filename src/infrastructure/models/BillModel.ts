@@ -19,6 +19,7 @@ export interface IBillDocument extends Document {
     dueDate: Date;
     remarks?: string;
     paidAt?: Date;
+    paymentMethod?: "pda" | "online";
     createdAt: Date;
     updatedAt: Date;
 }
@@ -44,6 +45,7 @@ const BillSchema: Schema = new Schema(
         dueDate: { type: Date, required: true },
         remarks: { type: String },
         paidAt: { type: Date },
+        paymentMethod: { type: String, enum: ["pda", "online"] },
     },
     {
         timestamps: true,

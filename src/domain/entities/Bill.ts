@@ -21,6 +21,7 @@ export class Bill {
         public readonly dueDate: Date = new Date(),
         public readonly remarks?: string,
         public readonly paidAt?: Date,
+        public readonly paymentMethod?: "pda" | "online",
         public readonly createdAt?: Date,
         public readonly updatedAt?: Date
     ) { }
