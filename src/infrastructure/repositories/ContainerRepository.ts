@@ -111,6 +111,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             c.damaged,
             c.damageDetails,
             c.blacklisted,
+            c.cargoCategory,
             c.createdAt,
             c.updatedAt
         );
@@ -138,6 +139,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             damageDetails: container.damageDetails,
             blacklisted: container.blacklisted,
             empty: container.empty,
+            cargoCategory: container.cargoCategory,
         };
     }
 }

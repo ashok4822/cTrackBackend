@@ -22,6 +22,7 @@ export class Container {
         public readonly damaged?: boolean,
         public readonly damageDetails?: string,
         public readonly blacklisted?: boolean,
+        public readonly cargoCategory?: string,
         public readonly createdAt?: Date,
         public readonly updatedAt?: Date
     ) { }

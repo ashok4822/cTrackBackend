@@ -9,6 +9,7 @@ export interface IGateOperationDocument extends Document {
     timestamp: Date;
     approvedBy?: string;
     remarks?: string;
+    cargoCategory?: string;
 }
 
 const GateOperationSchema: Schema = new Schema(
@@ -21,6 +22,7 @@ const GateOperationSchema: Schema = new Schema(
         timestamp: { type: Date, default: Date.now },
         approvedBy: { type: String },
         remarks: { type: String },
+        cargoCategory: { type: String },
     },
     {
         timestamps: true,

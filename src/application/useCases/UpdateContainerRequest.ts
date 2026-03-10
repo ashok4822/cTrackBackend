@@ -152,6 +152,7 @@ export class UpdateContainerRequest {
                         container.damaged,
                         container.damageDetails,
                         container.blacklisted,
+                        container.cargoCategory,
                         container.createdAt,
                         container.updatedAt
                     );

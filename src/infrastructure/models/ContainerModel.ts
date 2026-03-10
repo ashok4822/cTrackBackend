@@ -21,6 +21,7 @@ export interface IContainerDocument extends Document {
   damageDetails?: string;
   blacklisted?: boolean;
   empty?: boolean;
+  cargoCategory?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +68,7 @@ const ContainerSchema: Schema = new Schema(
     damageDetails: { type: String },
     blacklisted: { type: Boolean, default: false },
     empty: { type: Boolean, default: true },
+    cargoCategory: { type: String },
   },
   {
     timestamps: true,

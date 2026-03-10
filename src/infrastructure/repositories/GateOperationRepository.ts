@@ -46,6 +46,7 @@ export class GateOperationRepository implements IGateOperationRepository {
             timestamp: operation.timestamp,
             approvedBy: operation.approvedBy,
             remarks: operation.remarks,
+            cargoCategory: operation.cargoCategory,
         };
 
         if (operation.id && operation.id.match(/^[0-9a-fA-F]{24}$/)) {
@@ -68,7 +69,8 @@ export class GateOperationRepository implements IGateOperationRepository {
             o.purpose,
             o.timestamp,
             o.approvedBy,
-            o.remarks
+            o.remarks,
+            o.cargoCategory
         );
     }
 }

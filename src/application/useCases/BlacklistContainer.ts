@@ -38,6 +38,7 @@ export class BlacklistContainer {
             container.damaged,
             container.damageDetails,
             true, // blacklisted
+            container.cargoCategory,
             container.createdAt,
             container.updatedAt
         );

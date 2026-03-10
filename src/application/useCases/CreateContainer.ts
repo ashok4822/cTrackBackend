@@ -51,6 +51,7 @@ export class CreateContainer {
             undefined, // damaged
             undefined, // damageDetails
             undefined, // blacklisted
+            undefined, // cargoCategory
             undefined, // createdAt
             undefined  // updatedAt
         );

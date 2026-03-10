@@ -48,6 +48,7 @@ export class CreateGateOperation {
         empty?: boolean;
         movementType?: "import" | "export" | "domestic";
         customer?: string;
+        cargoCategory?: string;
     }, performedBy: string = "Operator"): Promise<void> {
         // 1. Find Vehicle and Container first for validation
         const vehicles = await this.vehicleRepository.findAll({ vehicleNumber: data.vehicleNumber });
@@ -99,7 +100,8 @@ export class CreateGateOperation {
             data.purpose,
             new Date(),
             data.approvedBy,
-            data.remarks
+            data.remarks,
+            data.cargoCategory
         );
         await this.gateOperationRepository.save(operation);
 
@@ -197,6 +199,7 @@ export class CreateGateOperation {
                         false, // damaged
                         undefined,
                         false, // blacklisted
+                        data.cargoCategory,
                         new Date(),
                         new Date()
                     );
@@ -225,6 +228,7 @@ export class CreateGateOperation {
                         container.damaged,
                         container.damageDetails,
                         container.blacklisted,
+                        data.cargoCategory || container.cargoCategory,
                         container.createdAt,
                         new Date()
                     );
@@ -272,6 +276,7 @@ export class CreateGateOperation {
                         container.damaged,
                         container.damageDetails,
                         container.blacklisted,
+                        container.cargoCategory,
                         container.createdAt,
                         new Date()
                     );
