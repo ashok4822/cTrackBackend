@@ -123,7 +123,9 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             },
             {
                 $addFields: {
-                    cargoCategoryName: "$categoryDetails.name"
+                    cargoCategoryName: {
+                        $ifNull: ["$categoryDetails.name", "$containerDetails.cargoCategory"]
+                    }
                 }
             },
             {
@@ -245,7 +247,9 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
             },
             {
                 $addFields: {
-                    cargoCategoryName: "$categoryDetails.name"
+                    cargoCategoryName: {
+                        $ifNull: ["$categoryDetails.name", "$containerDetails.cargoCategory"]
+                    }
                 }
             },
             {
