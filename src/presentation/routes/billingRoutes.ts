@@ -17,6 +17,7 @@ import { CreateCargoCategory } from "../../application/useCases/CreateCargoCateg
 import { UpdateCargoCategory } from "../../application/useCases/UpdateCargoCategory";
 import { CreateRazorpayOrder } from "../../application/useCases/CreateRazorpayOrder";
 import { VerifyRazorpayPayment } from "../../application/useCases/VerifyRazorpayPayment";
+import { GetBillTransactions } from "../../application/useCases/GetBillTransactions";
 import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
@@ -24,6 +25,7 @@ import { ChargeHistoryRepository } from "../../infrastructure/repositories/Charg
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { PDARepository } from "../../infrastructure/repositories/PDARepository";
 import { CargoCategoryRepository } from "../../infrastructure/repositories/CargoCategoryRepository";
+import { BillTransactionRepository } from "../../infrastructure/repositories/BillTransactionRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createBillingRouter = () => {
@@ -36,6 +38,7 @@ export const createBillingRouter = () => {
     const pdaRepo = new PDARepository();
     const cargoCategoryRepo = new CargoCategoryRepository();
     const auditLogRepo = new MongoAuditLogRepository();
+    const transactionRepo = new BillTransactionRepository();
 
     const getActivities = new GetActivities(activityRepo);
     const createActivity = new CreateActivity(activityRepo);
@@ -47,13 +50,14 @@ export const createBillingRouter = () => {
     const getBills = new GetBills(billRepo);
     const markBillPaid = new MarkBillPaid(billRepo);
     const createBill = new CreateBill(billRepo);
-    const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo, auditLogRepo);
+    const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo, auditLogRepo, transactionRepo);
     const getBillById = new GetBillById(billRepo);
     const getCargoCategories = new GetCargoCategories(cargoCategoryRepo);
     const createCargoCategory = new CreateCargoCategory(cargoCategoryRepo);
     const updateCargoCategory = new UpdateCargoCategory(cargoCategoryRepo);
-    const createRazorpayOrder = new CreateRazorpayOrder(billRepo);
-    const verifyRazorpayPayment = new VerifyRazorpayPayment(billRepo, auditLogRepo);
+    const createRazorpayOrder = new CreateRazorpayOrder(billRepo, transactionRepo);
+    const verifyRazorpayPayment = new VerifyRazorpayPayment(billRepo, auditLogRepo, transactionRepo);
+    const getBillTransactions = new GetBillTransactions(transactionRepo);
 
     const controller = new BillingController(
         getActivities,
@@ -72,7 +76,8 @@ export const createBillingRouter = () => {
         payBillWithPDA,
         getBillById,
         createRazorpayOrder,
-        verifyRazorpayPayment
+        verifyRazorpayPayment,
+        getBillTransactions
     );
 
     // Apply auth middleware to all billing routes
@@ -91,6 +96,7 @@ export const createBillingRouter = () => {
     router.get("/bills", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBills(req, res));
     router.post("/bills", roleMiddleware(["admin", "operator"]), (req, res) => controller.addBill(req, res));
     router.get("/bills/:id", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBill(req, res));
+    router.get("/bills/:id/transactions", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBillTransactions(req, res));
     router.patch("/bills/:id/paid", roleMiddleware(["admin", "operator"]), (req, res) => controller.markBillPaid(req, res));
     router.post("/bills/:id/pay", roleMiddleware(["customer"]), (req, res) => controller.payBill(req, res));
     router.post("/bills/:id/razorpay/order", roleMiddleware(["customer"]), (req, res) => controller.createRazorpayOrder(req, res));

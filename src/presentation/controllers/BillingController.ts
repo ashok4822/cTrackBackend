@@ -16,6 +16,7 @@ import { CreateCargoCategory } from "../../application/useCases/CreateCargoCateg
 import { UpdateCargoCategory } from "../../application/useCases/UpdateCargoCategory";
 import { CreateRazorpayOrder } from "../../application/useCases/CreateRazorpayOrder";
 import { VerifyRazorpayPayment } from "../../application/useCases/VerifyRazorpayPayment";
+import { GetBillTransactions } from "../../application/useCases/GetBillTransactions";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 
 export class BillingController {
@@ -36,7 +37,8 @@ export class BillingController {
         private payBillWithPDAUseCase?: PayBillWithPDA,
         private getBillByIdUseCase?: GetBillById,
         private createRazorpayOrderUseCase?: CreateRazorpayOrder,
-        private verifyRazorpayPaymentUseCase?: VerifyRazorpayPayment
+        private verifyRazorpayPaymentUseCase?: VerifyRazorpayPayment,
+        private getBillTransactionsUseCase?: GetBillTransactions
     ) { }
 
     async getAllActivities(req: Request, res: Response) {
@@ -273,6 +275,25 @@ export class BillingController {
             );
 
             res.status(HttpStatus.OK).json({ message: "Payment verified and bill marked as paid", bill });
+        } catch (error: any) {
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        }
+    }
+
+    async getBillTransactions(req: Request, res: Response) {
+        try {
+            if (!this.getBillTransactionsUseCase) {
+                return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: "Transaction service not configured" });
+            }
+            const { id } = req.params;
+            const user = (req as any).user;
+
+            if (!user) {
+                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
+            }
+
+            const transactions = await this.getBillTransactionsUseCase.execute(id as string, user.id, user.role);
+            res.status(HttpStatus.OK).json(transactions);
         } catch (error: any) {
             res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
         }

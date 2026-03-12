@@ -1,10 +1,15 @@
 import Razorpay from "razorpay";
 import { IBillRepository } from "../../domain/repositories/IBillRepository";
+import { IBillTransactionRepository } from "../../domain/repositories/IBillTransactionRepository";
+import { BillTransaction } from "../../domain/entities/BillTransaction";
 
 export class CreateRazorpayOrder {
     private razorpay: Razorpay;
 
-    constructor(private billRepository: IBillRepository) {
+    constructor(
+        private billRepository: IBillRepository,
+        private transactionRepository: IBillTransactionRepository
+    ) {
         this.razorpay = new Razorpay({
             key_id: process.env.RAZOR_KEY_ID || "",
             key_secret: process.env.RAZOR_SECRET_ID || "",
@@ -34,6 +39,19 @@ export class CreateRazorpayOrder {
 
         try {
             const order = await this.razorpay.orders.create(options);
+
+            // Log pending transaction
+            await this.transactionRepository.save(new BillTransaction(
+                null,
+                billId,
+                userId,
+                bill.totalAmount,
+                "online",
+                "pending",
+                undefined,
+                order.id
+            ));
+
             return order;
         } catch (error: any) {
             throw new Error(`Razorpay Order Creation Failed: ${error.message}`);

@@ -1,6 +1,7 @@
 import { IPDARepository } from "../../domain/repositories/IPDARepository";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { PDA } from "../../domain/entities/PDA";
+import { appConfig } from "../../infrastructure/config/appConfig";
 
 export class GetPDA {
     constructor(
@@ -13,7 +14,11 @@ export class GetPDA {
             const pdas = await this.pdaRepository.findAll();
             return await Promise.all(pdas.map(async (pda) => {
                 const transactions = await this.pdaRepository.findTransactionsByPdaId(pda.id);
-                return { ...pda, transactions };
+                return { 
+                    ...pda, 
+                    transactions, 
+                    lowBalanceThreshold: appConfig.pda.lowBalanceThreshold 
+                };
             }));
         }
 
@@ -33,7 +38,11 @@ export class GetPDA {
 
         if (pda) {
             const transactions = await this.pdaRepository.findTransactionsByPdaId(pda.id);
-            return { ...pda, transactions };
+            return { 
+                ...pda, 
+                transactions, 
+                lowBalanceThreshold: appConfig.pda.lowBalanceThreshold 
+            };
         }
 
         return null;

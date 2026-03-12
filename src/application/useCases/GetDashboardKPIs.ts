@@ -6,6 +6,7 @@ import { ContainerRequestModel } from "../../infrastructure/models/ContainerRequ
 import { EquipmentModel } from "../../infrastructure/models/EquipmentModel";
 import { BillModel } from "../../infrastructure/models/BillModel";
 import { PDAModel } from "../../infrastructure/models/PDAModel";
+import { appConfig } from "../../infrastructure/config/appConfig";
 import mongoose from "mongoose";
 
 export class GetDashboardKPIs {
@@ -264,6 +265,7 @@ export class GetDashboardKPIs {
             activeTasks,
             equipmentStatusSummary,
             pdaBalance: pdaData?.balance || 0,
+            lowBalanceThreshold: appConfig.pda.lowBalanceThreshold,
             unpaidBillsAmount: unpaidBillsRaw?.[0]?.total || 0
         };
     }

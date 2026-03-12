@@ -5,11 +5,13 @@ import { NotificationModel } from "../../infrastructure/models/NotificationModel
 import { socketService } from "../../infrastructure/services/socketService";
 import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
 import { AuditLog } from "../../domain/entities/AuditLog";
+import { IBillTransactionRepository } from "../../domain/repositories/IBillTransactionRepository";
 
 export class VerifyRazorpayPayment {
     constructor(
         private billRepository: IBillRepository,
-        private auditLogRepository?: IAuditLogRepository
+        private auditLogRepository?: IAuditLogRepository,
+        private transactionRepository?: IBillTransactionRepository
     ) { }
 
     async execute(
@@ -42,6 +44,16 @@ export class VerifyRazorpayPayment {
         const generated_signature = hmac.digest("hex");
 
         if (generated_signature !== razorpay_signature) {
+            // Log failed transaction
+            if (this.transactionRepository) {
+                const transaction = await this.transactionRepository.findByOrderId(razorpay_order_id);
+                if (transaction && transaction.id) {
+                    await this.transactionRepository.updateStatus(transaction.id, "failed", {
+                        transactionId: razorpay_payment_id,
+                        errorDetails: "Invalid payment signature"
+                    });
+                }
+            }
             throw new Error("Invalid payment signature");
         }
 
@@ -60,6 +72,16 @@ export class VerifyRazorpayPayment {
 
         if (!updatedBill) {
             throw new Error("Failed to update bill status");
+        }
+
+        // Update transaction to success
+        if (this.transactionRepository) {
+            const transaction = await this.transactionRepository.findByOrderId(razorpay_order_id);
+            if (transaction && transaction.id) {
+                await this.transactionRepository.updateStatus(transaction.id, "success", {
+                    transactionId: razorpay_payment_id
+                });
+            }
         }
 
         // Audit Log
