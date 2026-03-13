@@ -23,7 +23,13 @@ export class GateOperationController {
     async createGateOperation(req: Request, res: Response) {
         try {
             const performedBy = req.user?.name || req.user?.email || "System";
-            await this.createGateOperationUseCase.execute(req.body, performedBy);
+            const userContext = {
+                userId: req.user?.id || 'unknown',
+                userName: req.user?.name || req.user?.email || 'unknown',
+                userRole: req.user?.role || 'unknown',
+                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
+            };
+            await this.createGateOperationUseCase.execute(req.body, userContext, performedBy);
 
             // Real-time update
             console.log(`[Socket] Emitting KPI update for ${req.body.type} operation`);

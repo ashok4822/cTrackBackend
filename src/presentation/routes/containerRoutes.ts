@@ -41,8 +41,8 @@ export const createContainerRouter = () => {
         auditLogRepository,
         billRepository
     );
-    const blacklistUseCase = new BlacklistContainer(repository, historyRepository);
-    const unblacklistUseCase = new UnblacklistContainer(repository, historyRepository);
+    const blacklistUseCase = new BlacklistContainer(repository, historyRepository, auditLogRepository);
+    const unblacklistUseCase = new UnblacklistContainer(repository, historyRepository, auditLogRepository);
     const getHistoryUseCase = new GetContainerHistory(historyRepository);
     const containerRequestRepository = new ContainerRequestRepository();
     const getCustomerContainersUseCase = new GetCustomerContainers(repository, containerRequestRepository);

@@ -12,6 +12,9 @@ import { Vehicle, VehicleType } from "../../domain/entities/Vehicle";
 
 import { IBlockRepository } from "../../domain/repositories/IBlockRepository";
 import { Block } from "../../domain/entities/Block";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
+import { UserContext } from "./AdminCreateUser";
 
 export class CreateGateOperation {
     constructor(
@@ -22,6 +25,7 @@ export class CreateGateOperation {
         private containerRequestRepository: IContainerRequestRepository,
         private userRepository: IUserRepository,
         private blockRepository: IBlockRepository,
+        private auditLogRepository?: IAuditLogRepository,
         private billRepository?: IBillRepository
     ) { }
 
@@ -49,7 +53,7 @@ export class CreateGateOperation {
         movementType?: "import" | "export" | "domestic";
         customer?: string;
         cargoCategory?: string;
-    }, performedBy: string = "Operator"): Promise<void> {
+    }, userContext?: UserContext, performedBy: string = "Operator"): Promise<void> {
         // 1. Find Vehicle and Container first for validation
         const vehicles = await this.vehicleRepository.findAll({ vehicleNumber: data.vehicleNumber });
         let vehicle = vehicles.length > 0 ? vehicles[0] : null;
@@ -316,6 +320,21 @@ export class CreateGateOperation {
                     performedBy
                 );
                 await this.historyRepository.save(history);
+            }
+
+            // 7. Audit Log
+            if (this.auditLogRepository && userContext) {
+                await this.auditLogRepository.save(new AuditLog(
+                    null,
+                    userContext.userId,
+                    userContext.userRole,
+                    userContext.userName,
+                    data.type === "gate-in" ? "CONTAINER_GATE_IN" : "CONTAINER_GATE_OUT",
+                    "Container",
+                    savedContainer.id,
+                    JSON.stringify({ containerNumber: savedContainer.containerNumber, type: data.type, vehicleNumber: data.vehicleNumber }),
+                    userContext.ipAddress
+                ));
             }
         }
     }

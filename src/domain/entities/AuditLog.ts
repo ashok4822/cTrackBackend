@@ -17,7 +17,9 @@ export type AuditAction =
     | "REQUEST_CREATED"
     | "REQUEST_UPDATED"
     | "BILL_PAID"
-    | "SIGNUP";
+    | "SIGNUP"
+    | "CONTAINER_GATE_IN"
+    | "CONTAINER_GATE_OUT";
 
 export type EntityType = "User" | "Container" | "ShippingLine" | "Block" | "Auth" | "Profile" | "Request" | "Bill";
 

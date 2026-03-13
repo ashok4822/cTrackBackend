@@ -2,14 +2,18 @@ import { IContainerRepository } from "../../domain/repositories/IContainerReposi
 import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
 import { ContainerHistory } from "../../domain/entities/ContainerHistory";
 import { Container } from "../../domain/entities/Container";
+import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
+import { AuditLog } from "../../domain/entities/AuditLog";
+import { UserContext } from "./AdminCreateUser";
 
 export class UnblacklistContainer {
     constructor(
         private containerRepository: IContainerRepository,
-        private historyRepository: IContainerHistoryRepository
+        private historyRepository: IContainerHistoryRepository,
+        private auditLogRepository?: IAuditLogRepository
     ) { }
 
-    async execute(id: string): Promise<void> {
+    async execute(id: string, userContext?: UserContext): Promise<void> {
         const container = await this.containerRepository.findById(id);
         if (!container) {
             throw new Error("Container not found");
@@ -50,7 +54,22 @@ export class UnblacklistContainer {
             id,
             "Unblacklisted",
             "Container has been unblacklisted",
-            "Admin"
+            userContext?.userName || "Admin"
         ));
+
+        // Audit Log
+        if (this.auditLogRepository && userContext) {
+            await this.auditLogRepository.save(new AuditLog(
+                null,
+                userContext.userId,
+                userContext.userRole,
+                userContext.userName,
+                "CONTAINER_UNBLACKLISTED",
+                "Container",
+                id,
+                JSON.stringify({ containerNumber: updatedContainer.containerNumber }),
+                userContext.ipAddress
+            ));
+        }
     }
 }
