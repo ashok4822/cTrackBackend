@@ -8,6 +8,7 @@ export class GateOperation {
         public readonly purpose: "port" | "factory" | "transfer",
         public readonly timestamp: Date,
         public readonly approvedBy?: string,
-        public readonly remarks?: string
+        public readonly remarks?: string,
+        public readonly cargoCategory?: string
     ) { }
 }

@@ -95,7 +95,13 @@ export class ContainerController {
     async blacklistContainer(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            await this.blacklistContainerUseCase.execute(id as string);
+            const userContext = {
+                userId: req.user?.id || 'unknown',
+                userName: req.user?.name || req.user?.email || 'unknown',
+                userRole: req.user?.role || 'unknown',
+                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
+            };
+            await this.blacklistContainerUseCase.execute(id as string, userContext);
 
             // Real-time update
             socketService.emitAlert({
@@ -114,7 +120,13 @@ export class ContainerController {
     async unblacklistContainer(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            await this.unblacklistContainerUseCase.execute(id as string);
+            const userContext = {
+                userId: req.user?.id || 'unknown',
+                userName: req.user?.name || req.user?.email || 'unknown',
+                userRole: req.user?.role || 'unknown',
+                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
+            };
+            await this.unblacklistContainerUseCase.execute(id as string, userContext);
             return res.status(HttpStatus.OK).json({ message: "Container unblacklisted successfully" });
         } catch (error: any) {
             return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });

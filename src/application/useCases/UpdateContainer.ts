@@ -103,6 +103,7 @@ export class UpdateContainer {
             data.damaged !== undefined ? data.damaged : container.damaged,
             data.damageDetails !== undefined ? data.damageDetails : container.damageDetails,
             data.blacklisted !== undefined ? data.blacklisted : container.blacklisted,
+            data.cargoCategory !== undefined ? data.cargoCategory : container.cargoCategory,
             container.createdAt,
             container.updatedAt
         );
@@ -144,6 +145,7 @@ export class UpdateContainer {
                         bill.dueDate,
                         bill.remarks,
                         bill.paidAt,
+                        bill.paymentMethod,
                         bill.createdAt,
                         new Date() // updatedAt
                     );

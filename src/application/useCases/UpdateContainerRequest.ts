@@ -109,27 +109,21 @@ export class UpdateContainerRequest {
             }
         }
 
-        // If a stuffing request is approved and a container is allocated, assign container ownership and transfer bills to customer
+        // If a request is approved and a container is allocated, assign container ownership and transfer bills to customer
         if (
             updatedRequest &&
             existingRequest &&
             existingRequest.status !== "approved" &&
             data.status === "approved" &&
-            data.containerId &&
-            existingRequest.type === "stuffing" &&
+            (data.containerId || updatedRequest.containerId) &&
             this.containerRepository
         ) {
             try {
-                const container = await this.containerRepository.findById(data.containerId);
+                const containerId = data.containerId || updatedRequest.containerId;
+                const container = await this.containerRepository.findById(containerId!);
                 if (container && container.customer !== existingRequest.customerId) {
                     // 1. Assign container to customer
-                    const updatedContainer = Object.assign(Object.create(Object.getPrototypeOf(container)), container, {
-                        ...container,
-                        customer: existingRequest.customerId
-                    });
-
-                    // Must update the createdAt/updatedAt appropriately or just use the whole class if possible 
-                    // To do this cleanly, create a new Container instance
+                    // Create a new Container instance with updated customer and customerName
                     const newContainer = new (container.constructor as any)(
                         container.id,
                         container.containerNumber,
@@ -139,7 +133,8 @@ export class UpdateContainerRequest {
                         container.shippingLine,
                         container.empty,
                         container.movementType,
-                        existingRequest.customerId, // New Customer
+                        existingRequest.customerId, // New Customer (ID)
+                        undefined, // customerName will be populated by repository mapWithCustomers
                         container.yardLocation,
                         container.gateInTime,
                         container.gateOutTime,
@@ -152,6 +147,7 @@ export class UpdateContainerRequest {
                         container.damaged,
                         container.damageDetails,
                         container.blacklisted,
+                        container.cargoCategory,
                         container.createdAt,
                         container.updatedAt
                     );
@@ -160,7 +156,7 @@ export class UpdateContainerRequest {
 
                     // 2. Transfer pending bills to customer
                     if (this.billRepository) {
-                        const bills = await this.billRepository.findByContainerId(data.containerId);
+                        const bills = await this.billRepository.findByContainerId(containerId!);
                         const pendingBills = bills.filter(b => b.status === "pending");
                         for (const bill of pendingBills) {
                             const updatedBill = new Bill(
@@ -177,6 +173,7 @@ export class UpdateContainerRequest {
                                 bill.dueDate,
                                 bill.remarks,
                                 bill.paidAt,
+                                bill.paymentMethod,
                                 bill.createdAt,
                                 new Date() // updatedAt
                             );
@@ -185,7 +182,7 @@ export class UpdateContainerRequest {
                     }
                 }
             } catch (error) {
-                console.error("Failed to assign container to customer on stuffing request approval:", error);
+                console.error("Failed to assign container to customer on request approval:", error);
             }
         }
 
@@ -366,6 +363,7 @@ export class UpdateContainerRequest {
                     pendingBill.dueDate,
                     `${pendingBill.remarks || ""} | Added ${request.type} charges. ${billIdentifier}`.trim(),
                     pendingBill.paidAt,
+                    pendingBill.paymentMethod,
                     pendingBill.createdAt,
                     new Date() // updatedAt
                 );
@@ -391,7 +389,8 @@ export class UpdateContainerRequest {
                     "pending",
                     dueDate,
                     `Auto-generated for ${request.type} request dispatch. ${billIdentifier}`,
-                    undefined, // paidAt should be undefined for new bills
+                    undefined, // paidAt
+                    undefined, // paymentMethod
                     new Date() // createdAt
                 );
 

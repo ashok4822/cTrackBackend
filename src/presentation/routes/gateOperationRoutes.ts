@@ -9,6 +9,7 @@ import { ContainerHistoryRepository } from "../../infrastructure/repositories/Co
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { UserRepository } from "../../infrastructure/repositories/UserRepository";
+import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
@@ -23,6 +24,7 @@ export const createGateOperationRouter = () => {
     const billRepository = new BillRepository();
     const userRepository = new UserRepository();
     const blockRepository = new BlockRepository();
+    const auditLogRepository = new MongoAuditLogRepository();
 
     const getUseCase = new GetGateOperations(repository);
     const createUseCase = new CreateGateOperation(
@@ -33,6 +35,7 @@ export const createGateOperationRouter = () => {
         containerRequestRepository,
         userRepository,
         blockRepository,
+        auditLogRepository,
         billRepository
     );
 

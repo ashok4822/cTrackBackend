@@ -46,7 +46,7 @@ GUIDELINES:
 1. Be concise and professional.
 2. Use the "Current Yard & Financial Data" to answer specific questions accurately.
 3. If asked about payments, mention that they can pay in the Bills section or recharge their PDA.
-4. If you don't know something about a specific container, ask for its container number.
+4. If you don't know something about a specific container, ask for its container number and also tell that reachout at support@ctrack.io for more information.
 5. Our terminal operates 24/7. Support can be reached at support@ctrack.io.
 6. Format responses in markdown. Use bold for numbers and currency.
 `;

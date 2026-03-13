@@ -6,12 +6,16 @@ import { NotificationModel } from "../../infrastructure/models/NotificationModel
 import { socketService } from "../../infrastructure/services/socketService";
 import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
 import { AuditLog } from "../../domain/entities/AuditLog";
+import { IBillTransactionRepository } from "../../domain/repositories/IBillTransactionRepository";
+import { BillTransaction } from "../../domain/entities/BillTransaction";
+import { appConfig } from "../../infrastructure/config/appConfig";
 
 export class PayBillWithPDA {
     constructor(
         private billRepository: IBillRepository,
         private pdaRepository: IPDARepository,
-        private auditLogRepository?: IAuditLogRepository
+        private auditLogRepository?: IAuditLogRepository,
+        private transactionRepository?: IBillTransactionRepository
     ) { }
 
     async execute(billId: string, userId: string, userContext?: {
@@ -59,10 +63,24 @@ export class PayBillWithPDA {
         // Update bill status
         const updatedBill = await this.billRepository.update(billId, {
             status: "paid",
-            paidAt: new Date()
+            paidAt: new Date(),
+            paymentMethod: "pda"
         });
         if (!updatedBill) {
             throw new Error("Failed to update bill status");
+        }
+
+        // Log bill transaction
+        if (this.transactionRepository) {
+            await this.transactionRepository.save(new BillTransaction(
+                null,
+                billId,
+                userId,
+                bill.totalAmount,
+                "pda",
+                "success",
+                `pda_${Date.now()}`
+            ));
         }
 
         // Audit Log
@@ -91,8 +109,8 @@ export class PayBillWithPDA {
             });
             socketService.emitNotification(notification, userId);
 
-            // Check for low balance alert (e.g., threshold 10,000)
-            if (newBalance < 10000) {
+            // Check for low balance alert using centralized config
+            if (newBalance < appConfig.pda.lowBalanceThreshold) {
                 const alertNotification = await NotificationModel.create({
                     userId: userId,
                     type: "alert",

@@ -32,6 +32,7 @@ export class CreateBill {
             data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             data.remarks,
             undefined, // paidAt
+            undefined, // paymentMethod
             new Date(), // createdAt
             new Date() // updatedAt
         );
