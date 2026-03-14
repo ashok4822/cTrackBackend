@@ -16,6 +16,7 @@ import { BillRepository } from "../../infrastructure/repositories/BillRepository
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
 import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { checkOverdueBills } from "../../infrastructure/services/checkOverdueBills";
 
 import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
 
@@ -62,7 +63,7 @@ export const createContainerRouter = () => {
         controller.getAllContainers(req, res)
     );
 
-    router.get("/my-containers", authMiddleware, roleMiddleware(["customer"]), (req, res) =>
+    router.get("/my-containers", authMiddleware, roleMiddleware(["customer"]), checkOverdueBills, (req, res) =>
         controller.getCustomerContainers(req, res)
     );
 

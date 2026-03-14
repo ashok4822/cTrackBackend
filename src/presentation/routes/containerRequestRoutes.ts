@@ -12,6 +12,7 @@ import { ActivityRepository } from "../../infrastructure/repositories/ActivityRe
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
 import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { checkOverdueBills } from "../../infrastructure/services/checkOverdueBills";
 import { GetAllContainerRequests } from "../../application/useCases/GetAllContainerRequests";
 import { UpdateContainerRequest } from "../../application/useCases/UpdateContainerRequest";
 
@@ -52,8 +53,8 @@ const controller = new ContainerRequestController(
     updateContainerRequest
 );
 
-router.post("/", authMiddleware, (req, res) => controller.create(req, res));
-router.get("/my-requests", authMiddleware, (req, res) => controller.getMyRequests(req, res));
+router.post("/", authMiddleware, checkOverdueBills, (req, res) => controller.create(req, res));
+router.get("/my-requests", authMiddleware, checkOverdueBills, (req, res) => controller.getMyRequests(req, res));
 router.get("/", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) => controller.getAll(req, res));
 router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) => controller.update(req, res));
 
