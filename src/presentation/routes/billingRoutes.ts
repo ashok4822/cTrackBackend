@@ -93,6 +93,7 @@ export const createBillingRouter = () => {
     router.patch("/charges/:id", roleMiddleware(["admin"]), (req, res) => controller.patchChargeRate(req, res));
 
     // Bills endpoints
+    router.get("/bills/overdue-status", roleMiddleware(["customer"]), (req, res) => controller.getOverdueStatus(req, res));
     router.get("/bills", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBills(req, res));
     router.post("/bills", roleMiddleware(["admin", "operator"]), (req, res) => controller.addBill(req, res));
     router.get("/bills/:id", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBill(req, res));

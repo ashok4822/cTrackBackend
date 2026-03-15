@@ -125,6 +125,22 @@ export class BillingController {
         }
     }
 
+    async getOverdueStatus(req: Request, res: Response) {
+        try {
+            const user = (req as any).user;
+            if (!user || user.role !== "customer") {
+                return res.status(HttpStatus.OK).json({ hasOverdueBills: false });
+            }
+            
+            // We can directly use GetBills use case to check for overdue status
+            const bills = await this.getBillsUseCase?.execute(user.id);
+            const hasOverdue = (bills || []).some(b => b.status === "overdue");
+            res.status(HttpStatus.OK).json({ hasOverdueBills: hasOverdue });
+        } catch (error: any) {
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+        }
+    }
+
     async markBillPaid(req: Request, res: Response) {
         try {
             if (!this.markBillPaidUseCase) {
