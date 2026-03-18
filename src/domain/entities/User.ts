@@ -13,6 +13,6 @@ export class User {
     public readonly companyName?: string,
     public readonly isBlocked: boolean = false,
     public readonly createdAt?: Date,
-    public readonly updatedAt?: Date
-  ) { }
+    public readonly updatedAt?: Date,
+  ) {}
 }
