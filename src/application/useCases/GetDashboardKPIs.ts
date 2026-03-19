@@ -78,7 +78,13 @@ export class GetDashboardKPIs {
                 {
                     $group: {
                         _id: {
-                            day: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+                            day: { 
+                                $dateToString: { 
+                                    format: "%Y-%m-%d", 
+                                    date: "$timestamp",
+                                    timezone: "Asia/Kolkata" // Fixed timezone for IST
+                                } 
+                            },
                             type: "$type"
                         },
                         count: { $sum: 1 }
@@ -157,11 +163,15 @@ export class GetDashboardKPIs {
         for (let i = 0; i < 7; i++) {
             const d = new Date(sevenDaysAgo);
             d.setDate(sevenDaysAgo.getDate() + i);
-            days.push(d.toISOString().split('T')[0]);
+            // Use local date string instead of toISOString to avoid UTC shift
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const dayNum = String(d.getDate()).padStart(2, '0');
+            days.push(`${year}-${month}-${dayNum}`);
         }
 
         const gateMovements = days.map(day => {
-            const dateObj = new Date(day);
+            const dateObj = new Date(day + 'T00:00:00'); // Ensure it's parsed as local midnight
             const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
 
             const gateIn = gateMovementsRaw.find(m => m._id.day === day && m._id.type === 'gate-in')?.count || 0;
