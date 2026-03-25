@@ -1,9 +1,9 @@
 import { IBillTransactionRepository } from "../../domain/repositories/IBillTransactionRepository";
 import { BillTransaction } from "../../domain/entities/BillTransaction";
-import { BillTransactionModel } from "../models/BillTransactionModel";
+import { BillTransactionModel, IBillTransactionDocument } from "../models/BillTransactionModel";
 
 export class BillTransactionRepository implements IBillTransactionRepository {
-    private mapToEntity(doc: any): BillTransaction {
+    private mapToEntity(doc: IBillTransactionDocument): BillTransaction {
         return new BillTransaction(
             doc._id.toString(),
             doc.billId.toString(),
@@ -40,7 +40,10 @@ export class BillTransactionRepository implements IBillTransactionRepository {
             savedDoc = await BillTransactionModel.create(data);
         }
 
-        return this.mapToEntity(savedDoc);
+        if (!savedDoc) {
+            throw new Error("Transaction not found");
+        }
+        return this.mapToEntity(savedDoc as IBillTransactionDocument);
     }
 
     async findById(id: string): Promise<BillTransaction | null> {

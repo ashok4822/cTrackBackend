@@ -1,6 +1,6 @@
 import { IEquipmentRepository } from "../../domain/repositories/IEquipmentRepository";
 import { Equipment } from "../../domain/entities/Equipment";
-import { EquipmentModel } from "../models/EquipmentModel";
+import { EquipmentModel, IEquipmentDocument } from "../models/EquipmentModel";
 
 export class EquipmentRepository implements IEquipmentRepository {
     async findAll(filters?: {
@@ -8,7 +8,7 @@ export class EquipmentRepository implements IEquipmentRepository {
         status?: string;
         name?: string;
     }): Promise<Equipment[]> {
-        const query: any = {};
+        const query: Record<string, unknown> = {};
         if (filters?.type) query.type = filters.type;
         if (filters?.status) query.status = filters.status;
         if (filters?.name) {
@@ -41,6 +41,9 @@ export class EquipmentRepository implements IEquipmentRepository {
                 data,
                 { new: true }
             );
+            if (!updated) {
+                throw new Error("Equipment not found");
+            }
             return this.toEntity(updated);
         } else {
             const newEquipment = new EquipmentModel(data);
@@ -53,9 +56,9 @@ export class EquipmentRepository implements IEquipmentRepository {
         await EquipmentModel.findByIdAndDelete(id);
     }
 
-    private toEntity(e: any): Equipment {
+    private toEntity(e: IEquipmentDocument): Equipment {
         return new Equipment(
-            e.id,
+            e._id.toString(),
             e.name,
             e.type,
             e.status,
@@ -65,5 +68,16 @@ export class EquipmentRepository implements IEquipmentRepository {
             e.createdAt,
             e.updatedAt
         );
+    }
+
+    async findByStatus(status: string | string[]): Promise<Equipment[]> {
+        const query: Record<string, unknown> = {};
+        if (Array.isArray(status)) {
+            query.status = { $in: status };
+        } else {
+            query.status = status;
+        }
+        const equipment = await EquipmentModel.find(query);
+        return equipment.map(this.toEntity);
     }
 }

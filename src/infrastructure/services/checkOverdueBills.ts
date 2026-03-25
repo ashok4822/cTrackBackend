@@ -6,7 +6,7 @@ export const checkOverdueBills = async (
     req: Request,
     res: Response,
     next: NextFunction,
-): Promise<any> => {
+): Promise<void | Response> => {
     try {
         const user = req.user;
         if (!user) {

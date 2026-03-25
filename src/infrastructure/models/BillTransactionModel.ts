@@ -10,6 +10,8 @@ export interface IBillTransactionDocument extends Document {
     orderId?: string;
     errorDetails?: string;
     timestamp: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 const BillTransactionSchema: Schema = new Schema(

@@ -9,6 +9,7 @@ import { GetContainerHistory } from "../../application/useCases/GetContainerHist
 import { GetCustomerContainers } from "../../application/useCases/GetCustomerContainers";
 import { HttpStatus } from "../../domain/constants/HttpStatus";
 import { socketService } from "../../infrastructure/services/socketService";
+import { ContainerFilter } from "../../domain/repositories/IContainerRepository";
 
 export class ContainerController {
     constructor(
@@ -42,18 +43,20 @@ export class ContainerController {
             });
 
             return res.status(HttpStatus.CREATED).json({ message: "Container created successfully" });
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message });
         }
     }
 
     async getAllContainers(req: Request, res: Response) {
         try {
-            const filters = req.query as any;
+            const filters = req.query as ContainerFilter;
             const containers = await this.getAllContainersUseCase.execute(filters);
             return res.status(HttpStatus.OK).json(containers);
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message });
         }
     }
 
@@ -65,8 +68,9 @@ export class ContainerController {
                 return res.status(HttpStatus.NOT_FOUND).json({ message: "Container not found" });
             }
             return res.status(HttpStatus.OK).json(container);
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message });
         }
     }
 
@@ -84,11 +88,12 @@ export class ContainerController {
             await this.updateContainerUseCase.execute(id as string, data, userContext, equipmentName, performedBy);
 
             // Real-time update
-            socketService.emitKPIUpdate({ type: 'CONTAINER_UPDATED', id, data });
+            socketService.emitKPIUpdate({ type: 'CONTAINER_UPDATED', id: id as string, data });
 
             return res.status(HttpStatus.OK).json({ message: "Container updated successfully" });
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message });
         }
     }
 
@@ -112,8 +117,9 @@ export class ContainerController {
             });
 
             return res.status(HttpStatus.OK).json({ message: "Container blacklisted successfully" });
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message });
         }
     }
 
@@ -128,8 +134,9 @@ export class ContainerController {
             };
             await this.unblacklistContainerUseCase.execute(id as string, userContext);
             return res.status(HttpStatus.OK).json({ message: "Container unblacklisted successfully" });
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message });
         }
     }
 
@@ -138,8 +145,9 @@ export class ContainerController {
             const { id } = req.params;
             const history = await this.getContainerHistoryUseCase.execute(id as string);
             return res.status(HttpStatus.OK).json(history);
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message });
         }
     }
 
@@ -152,8 +160,9 @@ export class ContainerController {
             }
             const containers = await this.getCustomerContainersUseCase.execute(customerName, customerId);
             return res.status(HttpStatus.OK).json(containers);
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message });
         }
     }
 }

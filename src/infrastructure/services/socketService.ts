@@ -1,6 +1,37 @@
 import { Server as SocketServer } from "socket.io";
 import { Server as HttpServer } from "http";
 
+interface SocketKPIUpdate {
+  type: string;
+  action?: string;
+  id?: string | string[];
+  data?: unknown;
+}
+
+interface SocketActivity {
+  type: string;
+  title: string;
+  description: string;
+  timestamp: Date;
+}
+
+interface SocketAlert {
+  type: "success" | "alert" | "info" | "warning";
+  title: string;
+  message: string;
+  id: string;
+}
+
+interface SocketNotification {
+  id: string;
+  type: "success" | "alert" | "info" | "warning";
+  title: string;
+  message: string;
+  link?: string;
+  read: boolean;
+  timestamp: Date;
+}
+
 class SocketService {
   private static instance: SocketService;
   private io: SocketServer | null = null;
@@ -33,18 +64,15 @@ class SocketService {
     });
 
     this.io.on("connection", (socket) => {
-      console.log(`New client connected: ${socket.id}`);
 
       // Join a private room for the user
       socket.on("join", (userId: string) => {
         if (userId) {
           socket.join(userId);
-          console.log(`User ${userId} joined room ${userId}`);
         }
       });
 
       socket.on("disconnect", () => {
-        console.log(`Client disconnected: ${socket.id}`);
       });
     });
 
@@ -58,19 +86,19 @@ class SocketService {
     return this.io;
   }
 
-  public emitKPIUpdate(data: any) {
+  public emitKPIUpdate(data: SocketKPIUpdate) {
     if (this.io) {
       this.io.emit("kpi_update", data);
     }
   }
 
-  public emitActivity(activity: any) {
+  public emitActivity(activity: SocketActivity) {
     if (this.io) {
       this.io.emit("new_activity", activity);
     }
   }
 
-  public emitAlert(alert: any, userId?: string) {
+  public emitAlert(alert: SocketAlert, userId?: string) {
     if (this.io) {
       if (userId) {
         this.io.to(userId).emit("new_alert", alert);
@@ -80,7 +108,7 @@ class SocketService {
     }
   }
 
-  public emitNotification(notification: any, userId: string) {
+  public emitNotification(notification: SocketNotification, userId: string) {
     if (this.io) {
       this.io.to(userId).emit("notification", notification);
     }

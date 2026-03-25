@@ -32,7 +32,6 @@ export class GoogleLogin {
     refreshToken: string;
     user: { id: string; email: string; role: UserRole; name?: string; profileImage?: string; isBlocked: boolean };
   }> {
-    console.log("GoogleLogin: Exchanging code for tokens...");
     const { tokens } = await this.client.getToken(code);
     const idToken = tokens.id_token;
 
@@ -41,7 +40,6 @@ export class GoogleLogin {
       throw new Error("Failed to retrieve ID token from Google");
     }
 
-    console.log("GoogleLogin: Verifying ID token...");
     const ticket = await this.client.verifyIdToken({
       idToken,
       audience: this.googleClientId,
@@ -53,7 +51,6 @@ export class GoogleLogin {
       throw new Error("Invalid Google token payload");
     }
 
-    console.log("GoogleLogin: Payload verified", { email: payload.email });
     const { email, sub: googleId, name } = payload;
 
     if (!googleId) {
@@ -109,10 +106,6 @@ export class GoogleLogin {
     }
 
     // Role validation
-    console.log("GoogleLogin: Verifying role", {
-      requiredRole,
-      userRole: user.role,
-    });
     if (requiredRole && user.role !== requiredRole) {
       console.warn("GoogleLogin: Role mismatch", {
         requiredRole,

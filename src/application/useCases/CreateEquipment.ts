@@ -18,7 +18,7 @@ export class CreateEquipment {
         nextMaintenance?: Date;
     }, performedBy?: string): Promise<Equipment> {
         const equipment = new Equipment(
-            null as any,
+            null,
             data.name,
             data.type,
             data.status,

@@ -9,15 +9,17 @@ export class DashboardController {
 
     async getKPIs(req: Request, res: Response) {
         try {
-            const user = (req as any).user;
+            const user = req.user;
             const kpis = await this.getDashboardKPIsUseCase.execute(
                 user?.role,
                 user?.companyName || user?.name,
                 user?.id
             );
             return res.status(HttpStatus.OK).json(kpis);
-        } catch (error: any) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+        } catch (error: unknown) {
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                message: error instanceof Error ? error.message : "Internal server error"
+            });
         }
     }
 }

@@ -1,4 +1,5 @@
-import multer from "multer";
+import { Request } from "express";
+import multer, { FileFilterCallback } from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import dotenv from "dotenv";
@@ -14,7 +15,7 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: async (req, file) => {
+    params: async (req: Request, file: Express.Multer.File) => {
         return {
             folder: "profiles",
             allowed_formats: ["jpg", "jpeg", "png", "webp"],
@@ -23,11 +24,11 @@ const storage = new CloudinaryStorage({
     },
 });
 
-const fileFilter = (req: any, file: any, cb: any) => {
+const fileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     if (file.mimetype.startsWith("image/")) {
         cb(null, true);
     } else {
-        cb(new Error("Only images are allowed"), false);
+        cb(new Error("Only images are allowed"));
     }
 };
 

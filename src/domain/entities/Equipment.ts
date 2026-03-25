@@ -3,7 +3,7 @@ export type EquipmentType = "reach-stacker" | "forklift" | "crane";
 
 export class Equipment {
     constructor(
-        public readonly id: string,
+        public readonly id: string | null,
         public readonly name: string,
         public readonly type: EquipmentType,
         public readonly status: EquipmentStatus,

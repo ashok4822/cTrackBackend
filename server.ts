@@ -4,6 +4,7 @@ import path from "path";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { createServer } from "http";
+import helmet from "helmet";
 import { connectDB } from "./src/infrastructure/database/MongoConnection";
 import { createAuthRouter } from "./src/presentation/routes/authRoutes";
 import { userRouter } from "./src/presentation/routes/userRoutes";
@@ -38,6 +39,7 @@ const PORT = process.env.PORT || 5001;
 // Initialize Socket.io
 socketService.initialize(httpServer);
 
+app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -49,11 +51,9 @@ app.use(
         return callback(null, true);
       }
 
-      const allowedOrigins = [
-        "https://www.caryo.store", // Added for production/staging
-      ];
+      const allowedOrigins = ["https://ctrack.site", "https://www.ctrack.site"];
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
         return callback(null, true);
       }
 
@@ -65,12 +65,6 @@ app.use(
 
 app.use(express.json());
 app.use(cookieParser());
-
-// Request logging
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
-});
 
 // Apply global rate limiter to all api routes
 app.use("/api", globalLimiter);
@@ -97,13 +91,17 @@ app.get("/health", (req, res) => {
   res.status(HttpStatus.OK).json({ status: "ok" });
 });
 
+interface HttpError extends Error {
+  status?: number;
+}
+
 // Global Error Handler
 app.use(
   (
-    err: any,
+    err: HttpError,
     req: express.Request,
     res: express.Response,
-    next: express.NextFunction,
+    _next: express.NextFunction,
   ) => {
     console.error("Global Error Handler caught an error:", err);
     res.status(err.status || 500).json({
@@ -113,6 +111,4 @@ app.use(
   },
 );
 
-httpServer.listen(PORT, () =>
-  console.log(`Server is running on http://localhost:${PORT}`),
-);
+httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));

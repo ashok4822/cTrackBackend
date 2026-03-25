@@ -47,10 +47,6 @@ export class Login {
     }
 
     // Role check
-    console.log("LoginUseCase: Verifying role", {
-      requiredRole,
-      userRole: user.role,
-    });
     if (requiredRole && user.role !== requiredRole) {
       console.warn("LoginUseCase: Role mismatch", {
         requiredRole,

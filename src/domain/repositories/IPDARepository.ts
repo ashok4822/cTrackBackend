@@ -8,4 +8,5 @@ export interface IPDARepository {
 
     createTransaction(transaction: Partial<PDATransaction>): Promise<PDATransaction>;
     findTransactionsByPdaId(pdaId: string): Promise<PDATransaction[]>;
+    findOne(filter: Record<string, unknown>): Promise<PDA | null>;
 }

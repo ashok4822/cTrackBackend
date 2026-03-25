@@ -1,4 +1,4 @@
-import { Model, Document } from "mongoose";
+import { Model, Document, UpdateQuery } from "mongoose";
 
 /*
   Abstract Base Repository to provide common database operations.
@@ -23,7 +23,7 @@ export abstract class BaseRepository<TEntity, TModel extends Document> {
   }
 
   // Check if a document exists based on a query.
-  async exists(query: any): Promise<boolean> {
+  async exists(query: UpdateQuery<TModel>): Promise<boolean> {
     const count = await this.model.countDocuments(query).exec();
     return count > 0;
   }
@@ -31,7 +31,7 @@ export abstract class BaseRepository<TEntity, TModel extends Document> {
   // Save (Create or Update) an entity.
   async save(entity: TEntity): Promise<TEntity> {
     const data = this.toModelData(entity);
-    const id = (entity as any).id;
+    const id = (entity as { id?: string | null }).id;
 
     let savedDoc;
     if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
@@ -50,5 +50,5 @@ export abstract class BaseRepository<TEntity, TModel extends Document> {
   protected abstract toEntity(doc: TModel): TEntity;
 
   // Abstract method to map Domain Entity to Mongoose Data object.
-  protected abstract toModelData(entity: TEntity): any;
+  protected abstract toModelData(entity: TEntity): UpdateQuery<TModel>;
 }

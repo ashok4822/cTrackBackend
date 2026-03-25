@@ -13,7 +13,7 @@ export class ShippingLineController {
     ) { }
 
     private getUserContext(req: Request): UserContext {
-        const user = (req as any).user;
+        const user = req.user;
         const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
         return {
             userId: user?.id || 'unknown',
@@ -29,8 +29,9 @@ export class ShippingLineController {
             const userContext = this.getUserContext(req);
             await this.createShippingLineUseCase.execute(name, code, userContext);
             return res.status(HttpStatus.CREATED).json({ message: "Shipping Line created successfully" });
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
         }
     }
 
@@ -38,8 +39,9 @@ export class ShippingLineController {
         try {
             const shippingLines = await this.getAllShippingLinesUseCase.execute();
             return res.status(HttpStatus.OK).json(shippingLines);
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
         }
     }
 
@@ -50,8 +52,9 @@ export class ShippingLineController {
             const userContext = this.getUserContext(req);
             await this.updateShippingLineUseCase.execute(id as string, { name, code }, userContext);
             return res.status(HttpStatus.OK).json({ message: "Shipping Line updated successfully" });
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
         }
     }
 }

@@ -61,14 +61,8 @@ export class VerifyRazorpayPayment {
         const updatedBill = await this.billRepository.update(billId, {
             status: "paid",
             paymentMethod: "online",
-            paymentDetails: {
-                method: "online",
-                transactionId: razorpay_payment_id,
-                orderId: razorpay_order_id,
-                paidAt: new Date()
-            },
             paidAt: new Date()
-        } as any);
+        });
 
         if (!updatedBill) {
             throw new Error("Failed to update bill status");
@@ -108,10 +102,20 @@ export class VerifyRazorpayPayment {
                 message: `Your payment of ₹${updatedBill.totalAmount} for bill ${updatedBill.billNumber} has been received.`,
                 link: "/customer/bills"
             });
-            socketService.emitNotification(notification, userId);
-        } catch (err) {
-            console.error("Failed to create/emit notification for payment success:", err);
+            socketService.emitNotification({
+                id: notification._id.toString(),
+                type: "success",
+                title: "Payment Successful",
+                message: `Your payment of ₹${updatedBill.totalAmount} for bill ${updatedBill.billNumber} has been received.`,
+                link: "/customer/bills",
+                read: false,
+                timestamp: notification.createdAt || new Date()
+            }, userId);
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Unknown error";
+            console.error("Failed to create/emit notification for payment success:", errorMessage);
         }
+
 
         return updatedBill;
     }

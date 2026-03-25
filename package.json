@@ -7,6 +7,8 @@
   "main": "server.ts",
   "scripts": {
     "dev": "nodemon server.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -51,6 +53,7 @@
     "gopd": "^1.2.0",
     "has-symbols": "^1.1.0",
     "hasown": "^2.0.2",
+    "helmet": "^8.1.0",
     "http-errors": "^2.0.1",
     "iconv-lite": "^0.7.2",
     "inherits": "^2.0.4",
@@ -97,6 +100,7 @@
     "wrappy": "^1.0.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
@@ -105,7 +109,10 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^25.2.3",
     "@types/nodemailer": "^7.0.9",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.1"
   }
 }

@@ -1,7 +1,7 @@
 export class ContainerHistory {
     constructor(
         public readonly id: string | null,
-        public readonly containerId: string,
+        public containerId: string | { _id: string; containerNumber: string },
         public readonly activity: string,
         public readonly details?: string,
         public readonly performedBy?: string,

@@ -13,18 +13,18 @@ const CATEGORY_LABELS: Record<ChatCategory, string> = {
     general: "General Yard Overview",
 };
 
+interface ChatMessage {
+    role: "user" | "assistant" | "system";
+    content: string;
+}
+
 export class SupportController {
     async chat(req: Request, res: Response) {
         try {
-            console.log(">>> AI CHAT REQUEST RECEIVED (GROQ) <<<");
-
-            const { messages, category = "general" } = req.body as { messages: any[]; category?: ChatCategory };
-            const user = (req as any).user;
-            const customerId = user?.id || user?._id;
-            const userId = user?.id || user?._id;
-
-            console.log(`[AI Chat] User: ${user?.name || "Unknown"} (${user?.companyName || "No Company"})`);
-            console.log(`[AI Chat] Category: ${category}`);
+            const { messages, category = "general" } = req.body as { messages: ChatMessage[]; category?: ChatCategory };
+            const user = req.user;
+            const customerId = user?.id || "";
+            const userId = user?.id || "";
 
             if (!process.env.GROQ_API_KEY) {
                 console.error("!!! CRITICAL ERROR: GROQ_API_KEY MISSING !!!");
@@ -51,9 +51,9 @@ export class SupportController {
                         contextData = await AIChatContextBuilder.buildGeneralContext(customerId, userId);
                         break;
                 }
-                console.log(`[AI Chat] Context built for category "${category}": ${contextData.length} chars`);
-            } catch (ctxErr: any) {
-                console.error("[AI Chat] Failed to build context:", ctxErr.message);
+            } catch (ctxErr: unknown) {
+                const errorMessage = ctxErr instanceof Error ? ctxErr.message : "Unknown error";
+                console.error("[AI Chat] Failed to build context:", errorMessage);
                 contextData = "(Context data temporarily unavailable. Answer based on general knowledge.)";
             }
 
@@ -78,19 +78,16 @@ GUIDELINES:
 `.trim();
 
             const modelSelected = "llama-3.3-70b-versatile";
-            console.log(`[AI Chat] Initializing Groq stream with model: ${modelSelected}`);
 
             const result = streamText({
                 model: groq(modelSelected),
                 system: systemPrompt,
-                messages: (messages || []).map((m: any) => ({
+                messages: (messages || []).map((m: ChatMessage) => ({
                     role: m.role === "user" ? "user" : "assistant",
                     content: m.content || "",
                 })),
                 maxRetries: 2,
             });
-
-            console.log("[AI Chat] Groq stream initialized successfully.");
 
             res.setHeader("Content-Type", "text/plain; charset=utf-8");
             res.setHeader("Transfer-Encoding", "chunked");
@@ -99,28 +96,29 @@ GUIDELINES:
             try {
                 for await (const chunk of result.textStream) {
                     const line = `0:${JSON.stringify(chunk)}\n`;
-                    process.stdout.write(chunk);
                     res.write(line);
                 }
-            } catch (streamError: any) {
+            } catch (streamError: unknown) {
                 console.error("!!! Error during AI streaming loop !!!", streamError);
 
                 let userErrorMessage = "The AI service is currently unavailable.";
-                if (streamError.message?.includes("429") || streamError.message?.includes("quota")) {
+                const errorMsg = streamError instanceof Error ? streamError.message : "";
+                
+                if (errorMsg.includes("429") || errorMsg.includes("quota")) {
                     userErrorMessage = "AI Quota Exceeded. Please try again in 1 minute.";
-                } else if (streamError.message?.includes("404") || streamError.message?.includes("not found")) {
+                } else if (errorMsg.includes("404") || errorMsg.includes("not found")) {
                     userErrorMessage = "AI Model not available for this API key. Please check configuration.";
-                } else if (streamError.message) {
-                    userErrorMessage = `AI Error: ${streamError.message}`;
+                } else if (errorMsg) {
+                    userErrorMessage = `AI Error: ${errorMsg}`;
                 }
 
                 const errorLine = `3:${JSON.stringify({ message: userErrorMessage })}\n`;
                 res.write(errorLine);
             }
 
-            console.log("\n[AI Chat] Stream completed.");
+
             res.end();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("AI Chat Error:", error);
             if (!res.headersSent) {
                 return res

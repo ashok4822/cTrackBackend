@@ -29,6 +29,9 @@ export class ContainerRequest {
         public readonly cargoCharge?: number,
 
         public readonly createdAt?: Date,
-        public readonly updatedAt?: Date
+        public readonly updatedAt?: Date,
+
+        // Populated via aggregate join (not persisted in DB)
+        public readonly customerName?: string
     ) { }
 }

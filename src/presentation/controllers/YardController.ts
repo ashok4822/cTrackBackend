@@ -14,7 +14,7 @@ export class YardController {
     ) { }
 
     private getUserContext(req: Request): UserContext {
-        const user = (req as any).user;
+        const user = req.user;
         const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
         return {
             userId: user?.id || 'unknown',
@@ -28,9 +28,10 @@ export class YardController {
         try {
             const blocks = await this.getBlocksUseCase.execute();
             return res.status(HttpStatus.OK).json(blocks);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Failed to fetch blocks";
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                message: error.message || "Failed to fetch blocks",
+                message,
             });
         }
     }
@@ -48,12 +49,13 @@ export class YardController {
             return res.status(HttpStatus.OK).json({
                 message: "Block updated successfully",
             });
-        } catch (error: any) {
-            const status = error.message === "Block not found"
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Failed to update block";
+            const status = message === "Block not found"
                 ? HttpStatus.NOT_FOUND
                 : HttpStatus.INTERNAL_SERVER_ERROR;
             return res.status(status).json({
-                message: error.message || "Failed to update block",
+                message,
             });
         }
     }
@@ -70,9 +72,10 @@ export class YardController {
             return res.status(HttpStatus.CREATED).json({
                 message: "Block created successfully",
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Failed to create block";
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                message: error.message || "Failed to create block",
+                message,
             });
         }
     }
