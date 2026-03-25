@@ -42,10 +42,10 @@ export class GateOperationController {
             await this.createGateOperationUseCase.execute(req.body, userContext, performedBy);
 
             // Real-time update
-            console.log(`[Socket] Emitting KPI update for ${req.body.type} operation`);
+            // Real-time update
             socketService.emitKPIUpdate({ type: 'GATE_OPERATION', data: req.body });
             
-            console.log(`[Socket] Emitting activity for ${req.body.type} operation`);
+            
             socketService.emitActivity({
                 type: 'gate',
                 title: 'New Gate Movement',

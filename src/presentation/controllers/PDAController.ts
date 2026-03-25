@@ -26,9 +26,6 @@ export class PDAController {
 
     async createRazorpayOrder(req: Request, res: Response): Promise<void> {
         try {
-            console.log("PDAController: createRazorpayOrder called");
-            console.log("PDAController: User:", req.user);
-            console.log("PDAController: Body:", req.body);
 
             if (!req.user) {
                 console.error("PDAController: No user in request");
@@ -48,8 +45,6 @@ export class PDAController {
 
     async verifyRazorpayPayment(req: Request, res: Response): Promise<void> {
         try {
-            console.log("PDAController: verifyRazorpayPayment called");
-            console.log("PDAController: Body:", req.body);
 
             if (!req.user) {
                 console.error("PDAController: No user in request for verification");

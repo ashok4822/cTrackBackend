@@ -440,9 +440,6 @@ export class UpdateContainerRequest {
         );
 
         await this.billRepository.save(updatedBill);
-        console.log(
-          `Updated existing pending bill: ${pendingBill.billNumber} with ${request.type} charges.`,
-        );
       } else {
         // Create new bill
         const billNumber = `BL-${primaryCode}-${Date.now().toString().slice(-6)}`;
@@ -470,22 +467,8 @@ export class UpdateContainerRequest {
         const savedBill = await this.billRepository.save(bill);
 
         // Notify customer about new bill
-        if (request.customerId && this.notificationService) {
-          await this.notificationService.send(request.customerId, {
-            type: "info",
-            title: "New Bill Generated",
-            message: `A new bill ${billNumber} for ₹${totalAmount} has been generated.`,
-            link: "/customer/bills",
-          });
-        }
-        console.log(
-          `Bill generated successfully: ${savedBill.billNumber} for customer: ${request.customerId} (Request: ${request.id})`,
-        );
       }
     } else {
-      console.log(
-        `Skipped bill generation for request ${request.id}: No billable line items calculated.`,
-      );
     }
   }
 

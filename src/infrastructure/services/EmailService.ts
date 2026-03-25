@@ -24,7 +24,6 @@ export class EmailService implements IEmailService {
         };
 
         await this.transporter.sendMail(mailOptions);
-        console.log(`OTP sent to ${email}`);
     }
 
     async sendPasswordResetOtp(email: string, otp: string): Promise<void> {
@@ -37,7 +36,6 @@ export class EmailService implements IEmailService {
         };
 
         await this.transporter.sendMail(mailOptions);
-        console.log(`Password reset OTP sent to ${email}`);
     }
 
     async sendWelcomeEmail(email: string, password: string, name?: string): Promise<void> {
@@ -62,6 +60,5 @@ export class EmailService implements IEmailService {
         };
 
         await this.transporter.sendMail(mailOptions);
-        console.log(`Welcome email sent to ${email}`);
     }
 }

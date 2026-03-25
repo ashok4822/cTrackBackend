@@ -21,15 +21,10 @@ interface ChatMessage {
 export class SupportController {
     async chat(req: Request, res: Response) {
         try {
-            console.log(">>> AI CHAT REQUEST RECEIVED (GROQ) <<<");
-
             const { messages, category = "general" } = req.body as { messages: ChatMessage[]; category?: ChatCategory };
             const user = req.user;
             const customerId = user?.id || "";
             const userId = user?.id || "";
-
-            console.log(`[AI Chat] User: ${user?.name || "Unknown"} (${user?.companyName || "No Company"})`);
-            console.log(`[AI Chat] Category: ${category}`);
 
             if (!process.env.GROQ_API_KEY) {
                 console.error("!!! CRITICAL ERROR: GROQ_API_KEY MISSING !!!");
@@ -56,7 +51,6 @@ export class SupportController {
                         contextData = await AIChatContextBuilder.buildGeneralContext(customerId, userId);
                         break;
                 }
-                console.log(`[AI Chat] Context built for category "${category}": ${contextData.length} chars`);
             } catch (ctxErr: unknown) {
                 const errorMessage = ctxErr instanceof Error ? ctxErr.message : "Unknown error";
                 console.error("[AI Chat] Failed to build context:", errorMessage);
@@ -84,7 +78,6 @@ GUIDELINES:
 `.trim();
 
             const modelSelected = "llama-3.3-70b-versatile";
-            console.log(`[AI Chat] Initializing Groq stream with model: ${modelSelected}`);
 
             const result = streamText({
                 model: groq(modelSelected),
@@ -96,8 +89,6 @@ GUIDELINES:
                 maxRetries: 2,
             });
 
-            console.log("[AI Chat] Groq stream initialized successfully.");
-
             res.setHeader("Content-Type", "text/plain; charset=utf-8");
             res.setHeader("Transfer-Encoding", "chunked");
             res.setHeader("X-Vercel-AI-Data-Stream", "v1");
@@ -105,7 +96,6 @@ GUIDELINES:
             try {
                 for await (const chunk of result.textStream) {
                     const line = `0:${JSON.stringify(chunk)}\n`;
-                    process.stdout.write(chunk);
                     res.write(line);
                 }
             } catch (streamError: unknown) {
@@ -126,7 +116,7 @@ GUIDELINES:
                 res.write(errorLine);
             }
 
-            console.log("\n[AI Chat] Stream completed.");
+
             res.end();
         } catch (error: unknown) {
             console.error("AI Chat Error:", error);

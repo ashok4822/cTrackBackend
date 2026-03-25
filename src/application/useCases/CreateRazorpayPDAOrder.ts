@@ -31,9 +31,7 @@ export class CreateRazorpayPDAOrder {
         };
 
         try {
-            console.log(`[PDA] Creating Razorpay Order for User: ${userId}, Amount: ${amount}`);
             const order = await this.razorpay.orders.create(options);
-            console.log(`[PDA] Razorpay Order Created Success: ${order.id}`);
             return order;
         } catch (error: unknown) {
             console.error("[PDA] Razorpay Order Creation Error (Full):", error);

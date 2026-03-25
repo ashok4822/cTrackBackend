@@ -8,7 +8,6 @@ import { UserRepository } from "../../infrastructure/repositories/UserRepository
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createPDARouter = () => {
-    console.log("Initializing PDA Routes...");
     const router = Router();
 
     const pdaRepository = new PDARepository();
@@ -18,7 +17,7 @@ export const createPDARouter = () => {
     const createRazorpayOrder = new CreateRazorpayPDAOrder();
     const verifyRazorpayPayment = new VerifyRazorpayPDAPayment(pdaRepository);
 
-    console.log("PDA Use Cases initialized");
+
 
     const pdaController = new PDAController(
         getPDAUseCase,

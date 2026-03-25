@@ -90,7 +90,7 @@ export class AIChatContextBuilder {
       }
     }
 
-    console.log("Container log:\n", lines.join("\n"));
+
 
     return lines.join("\n");
   }

@@ -305,14 +305,12 @@ export class BillingController {
   }
 
   async patchCargoCategory(req: Request, res: Response) {
-    console.log(`PATCH /cargo-categories/${req.params.id}`, req.body);
     try {
       const category = await this.updateCargoCategory.execute(
         req.params.id as string,
         req.body,
       );
       if (!category) {
-        console.log(`Cargo category not found for ID: ${req.params.id}`);
         return res
           .status(HttpStatus.NOT_FOUND)
           .json({ message: "Cargo category not found" });
