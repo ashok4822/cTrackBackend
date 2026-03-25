@@ -18,7 +18,7 @@
     "sourceMap": true,
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "server.ts"],
   "files": ["src/types/express.d.ts"],
   "exclude": ["node_modules"],
   "ts-node": {
