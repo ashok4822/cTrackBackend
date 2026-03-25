@@ -1,9 +1,9 @@
-import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
+import mongoose, { UpdateQuery } from "mongoose";
+import { IContainerRepository, ContainerFilter } from "../../domain/repositories/IContainerRepository";
 import { Container } from "../../domain/entities/Container";
 import { ContainerModel, IContainerDocument } from "../models/ContainerModel";
 import { BaseRepository } from "./base/BaseRepository";
 import { UserModel } from "../models/UserModel";
-import mongoose from "mongoose";
 
 export class ContainerRepository extends BaseRepository<Container, IContainerDocument> implements IContainerRepository {
     constructor() {
@@ -17,16 +17,8 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
         return container;
     }
 
-    async findAll(filters?: {
-        containerNumber?: string;
-        size?: string;
-        type?: string;
-        block?: string;
-        status?: string | string[];
-        customer?: string;
-        empty?: boolean;
-    }): Promise<Container[]> {
-        const query: any = {};
+    async findAll(filters?: ContainerFilter): Promise<Container[]> {
+        const query: Record<string, unknown> = {};
 
         if (filters?.containerNumber) {
             query.containerNumber = { $regex: `^${filters.containerNumber}$`, $options: "i" };
@@ -117,7 +109,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
         );
     }
 
-    protected toModelData(container: Container): any {
+    protected toModelData(container: Container): UpdateQuery<IContainerDocument> {
         return {
             containerNumber: container.containerNumber,
             size: container.size,
@@ -132,8 +124,8 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             dwellTime: container.dwellTime,
             weight: container.weight,
             cargoWeight: container.cargoWeight,
-            cargoDescription: (container as any).cargoDescription,
-            hazardousClassification: (container as any).hazardousClassification,
+            cargoDescription: container.cargoDescription,
+            hazardousClassification: container.hazardousClassification,
             sealNumber: container.sealNumber,
             damaged: container.damaged,
             damageDetails: container.damageDetails,
@@ -141,5 +133,38 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             empty: container.empty,
             cargoCategory: container.cargoCategory,
         };
+    }
+
+    async countByStatus(status: string | string[], filter?: ContainerFilter): Promise<number> {
+        const query: Record<string, unknown> = { ...filter };
+        if (Array.isArray(status)) {
+            query.status = { $in: status };
+        } else {
+            query.status = status;
+        }
+        return await this.model.countDocuments(query).exec();
+    }
+
+    async findInYard(filter?: ContainerFilter): Promise<Container[]> {
+        const query: Record<string, unknown> = {
+            ...filter,
+            status: { $in: ["gate-in", "in-yard", "damaged"] },
+            gateInTime: { $exists: true },
+        };
+        const docs = await this.model.find(query).exec();
+        return this.mapWithCustomers(docs);
+    }
+
+    async getDistinctContainerNumbers(filter?: ContainerFilter): Promise<string[]> {
+        return await this.model.find(filter).distinct("containerNumber").exec() as unknown as string[];
+    }
+
+    async getDistinctContainerIds(filter?: ContainerFilter): Promise<string[]> {
+        return (await this.model.find(filter).distinct("_id").exec()).map(id => id.toString());
+    }
+
+    async findRecent(filter: ContainerFilter, limit: number): Promise<Container[]> {
+        const docs = await this.model.find(filter as Record<string, unknown>).sort({ updatedAt: -1 as const }).limit(limit).exec();
+        return this.mapWithCustomers(docs);
     }
 }

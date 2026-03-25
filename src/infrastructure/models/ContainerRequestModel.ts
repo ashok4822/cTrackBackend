@@ -4,7 +4,7 @@ export interface IContainerRequestDocument extends Document {
     customerId: string;
     type: "stuffing" | "destuffing";
     status: string;
-    cargoCategoryId?: string;
+    cargoCategoryId?: string | mongoose.Types.ObjectId;
 
     // Stuffing specific fields
     containerSize?: string;
@@ -21,7 +21,7 @@ export interface IContainerRequestDocument extends Document {
     packingGroup?: string;
 
     // Destuffing specific fields
-    containerId?: Schema.Types.ObjectId;
+    containerId?: mongoose.Types.ObjectId;
     containerNumber?: string;
     remarks?: string;
     checkpoints?: Array<{ location: string, timestamp: Date, status: string, remarks?: string }>;

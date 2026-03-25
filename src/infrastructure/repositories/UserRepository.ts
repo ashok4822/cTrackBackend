@@ -2,6 +2,7 @@ import { User, UserRole } from "../../domain/entities/User";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { UserModel, IUserDocument } from "../models/UserModel";
 import { BaseRepository } from "./base/BaseRepository";
+import { UpdateQuery } from "mongoose";
 
 export class UserRepository extends BaseRepository<User, IUserDocument> implements IUserRepository {
   constructor() {
@@ -23,8 +24,9 @@ export class UserRepository extends BaseRepository<User, IUserDocument> implemen
     return userDocs.map((doc) => this.toEntity(doc));
   }
 
-  async exists(email: string): Promise<boolean> {
-    return super.exists({ email });
+  async exists(query: UpdateQuery<IUserDocument> | string): Promise<boolean> {
+    const actualQuery = typeof query === "string" ? { email: query } : query;
+    return super.exists(actualQuery);
   }
 
   protected toEntity(userDoc: IUserDocument): User {
@@ -44,7 +46,7 @@ export class UserRepository extends BaseRepository<User, IUserDocument> implemen
     );
   }
 
-  protected toModelData(user: User): any {
+  protected toModelData(user: User): UpdateQuery<IUserDocument> {
     return {
       email: user.email,
       password: user.password,

@@ -16,7 +16,7 @@ export class ContainerRequestController {
 
     async create(req: Request, res: Response): Promise<void> {
         try {
-            const customerId = (req as any).user?.id || req.body.customerId;
+            const customerId = req.user?.id || req.body.customerId;
             if (!customerId) {
                 res.status(401).json({ message: "Unauthorized" });
                 return;
@@ -34,9 +34,9 @@ export class ContainerRequestController {
             }
 
             const userContext = {
-                userId: (req as any).user?.id || customerId,
-                userName: (req as any).user?.name || "Customer",
-                userRole: (req as any).user?.role || "customer",
+                userId: req.user?.id || customerId,
+                userName: req.user?.name || "Customer",
+                userRole: req.user?.role || "customer",
                 ipAddress: req.ip || req.socket.remoteAddress || "unknown"
             };
 
@@ -46,14 +46,14 @@ export class ContainerRequestController {
             }, userContext);
 
             res.status(201).json(result);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
+        } catch (error: unknown) {
+            res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
         }
     }
 
     async getMyRequests(req: Request, res: Response): Promise<void> {
         try {
-            const customerId = (req as any).user?.id;
+            const customerId = req.user?.id;
             if (!customerId) {
                 res.status(401).json({ message: "Unauthorized" });
                 return;
@@ -61,8 +61,8 @@ export class ContainerRequestController {
 
             const results = await this.getCustomerRequests.execute(customerId);
             res.status(200).json(results);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
+        } catch (error: unknown) {
+            res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
         }
     }
 
@@ -72,8 +72,8 @@ export class ContainerRequestController {
             // In a real app we might populate customer names here if relying on pure entities.
             // For now, we return the entities.
             res.status(200).json(results);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
+        } catch (error: unknown) {
+            res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
         }
     }
 
@@ -83,9 +83,9 @@ export class ContainerRequestController {
             const data = req.body;
 
             const userContext = {
-                userId: (req as any).user?.id,
-                userName: (req as any).user?.name,
-                userRole: (req as any).user?.role,
+                userId: req.user?.id || "system",
+                userName: req.user?.name || "System",
+                userRole: req.user?.role || "admin",
                 ipAddress: req.ip || req.socket.remoteAddress || "unknown"
             };
 
@@ -97,8 +97,8 @@ export class ContainerRequestController {
             }
 
             res.status(200).json(updated);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
+        } catch (error: unknown) {
+            res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
         }
     }
 }

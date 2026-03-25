@@ -33,8 +33,8 @@ export const authMiddleware = (
     );
     req.user = payload;
     next();
-  } catch (error: any) {
-    if (error.name === "TokenExpiredError") {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "TokenExpiredError") {
       console.warn("AuthMiddleware: Token expired");
     } else {
       console.error("AuthMiddleware: Token verification failed", error);

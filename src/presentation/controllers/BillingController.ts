@@ -45,10 +45,12 @@ export class BillingController {
     try {
       const activities = await this.getActivities.execute();
       res.status(HttpStatus.OK).json(activities);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: error.message });
+        .json({ message });
     }
   }
 
@@ -56,8 +58,10 @@ export class BillingController {
     try {
       const activity = await this.createActivity.execute(req.body);
       res.status(HttpStatus.CREATED).json(activity);
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -73,8 +77,10 @@ export class BillingController {
           .json({ message: "Activity not found" });
       }
       res.status(HttpStatus.OK).json(activity);
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -82,10 +88,12 @@ export class BillingController {
     try {
       const charges = await this.getCharges.execute();
       res.status(HttpStatus.OK).json(charges);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: error.message });
+        .json({ message });
     }
   }
 
@@ -93,8 +101,10 @@ export class BillingController {
     try {
       const charge = await this.createCharge.execute(req.body);
       res.status(HttpStatus.CREATED).json(charge);
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -110,8 +120,10 @@ export class BillingController {
           .json({ message: "Charge not found" });
       }
       res.status(HttpStatus.OK).json(charge);
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -119,10 +131,12 @@ export class BillingController {
     try {
       const history = await this.getChargeHistory.execute();
       res.status(HttpStatus.OK).json(history);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: error.message });
+        .json({ message });
     }
   }
 
@@ -133,33 +147,35 @@ export class BillingController {
           .status(HttpStatus.INTERNAL_SERVER_ERROR)
           .json({ message: "Bills service not configured" });
       }
-      const user = (req as any).user;
-      const customerId = user?.role === "customer" ? user.id : undefined;
+      const user = req.user;
+      const customerId = user?.role === "customer" ? user?.id : undefined;
 
       const bills = await this.getBillsUseCase.execute(customerId);
       res.status(HttpStatus.OK).json(bills);
-    } catch (error: any) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      return res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
   async getOverdueStatus(req: Request, res: Response) {
     try {
-      const user = (req as any).user;
+      const user = req.user;
       if (!user || user.role !== "customer") {
         return res.status(HttpStatus.OK).json({ hasOverdueBills: false });
       }
 
       //can directly use GetBills use case to check for overdue status
-      const bills = await this.getBillsUseCase?.execute(user.id);
+      const bills = await this.getBillsUseCase?.execute(user?.id);
       const hasOverdue = (bills || []).some((b) => b.status === "overdue");
       res.status(HttpStatus.OK).json({ hasOverdueBills: hasOverdue });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       return res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: error.message });
+        .json({ message });
     }
   }
 
@@ -180,10 +196,12 @@ export class BillingController {
       return res
         .status(HttpStatus.OK)
         .json({ message: "Bill marked as paid", bill });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       return res
         .status(HttpStatus.BAD_REQUEST)
-        .json({ message: error.message });
+        .json({ message });
     }
   }
 
@@ -196,8 +214,10 @@ export class BillingController {
       }
       const bill = await this.createBillUseCase.execute(req.body);
       res.status(HttpStatus.CREATED).json(bill);
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -216,8 +236,10 @@ export class BillingController {
           .json({ message: "Bill not found" });
       }
       res.status(HttpStatus.OK).json(bill);
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -229,7 +251,7 @@ export class BillingController {
           .json({ message: "Payment service not configured" });
       }
       const id = req.params.id as string;
-      const user = (req as any).user;
+      const user = req.user;
       if (!user) {
         return res
           .status(HttpStatus.UNAUTHORIZED)
@@ -251,8 +273,10 @@ export class BillingController {
       res
         .status(HttpStatus.OK)
         .json({ message: "Bill paid successfully", bill });
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -260,10 +284,12 @@ export class BillingController {
     try {
       const categories = await this.getCargoCategories.execute();
       res.status(HttpStatus.OK).json(categories);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: error.message });
+        .json({ message });
     }
   }
 
@@ -271,8 +297,10 @@ export class BillingController {
     try {
       const category = await this.createCargoCategory.execute(req.body);
       res.status(HttpStatus.CREATED).json(category);
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -290,9 +318,11 @@ export class BillingController {
           .json({ message: "Cargo category not found" });
       }
       res.status(HttpStatus.OK).json(category);
-    } catch (error: any) {
-      console.error(`Error patching cargo category: ${error.message}`);
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      console.error(`Error patching cargo category: ${message}`);
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -304,7 +334,7 @@ export class BillingController {
           .json({ message: "Razorpay service not configured" });
       }
       const { id } = req.params;
-      const user = (req as any).user;
+      const user = req.user;
       if (!user) {
         return res
           .status(HttpStatus.UNAUTHORIZED)
@@ -316,8 +346,10 @@ export class BillingController {
         user.id,
       );
       res.status(HttpStatus.OK).json(order);
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -331,7 +363,7 @@ export class BillingController {
       const { id } = req.params;
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
         req.body;
-      const user = (req as any).user;
+      const user = req.user;
 
       if (!user) {
         return res
@@ -358,8 +390,10 @@ export class BillingController {
       res
         .status(HttpStatus.OK)
         .json({ message: "Payment verified and bill marked as paid", bill });
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -371,7 +405,7 @@ export class BillingController {
           .json({ message: "Transaction service not configured" });
       }
       const { id } = req.params;
-      const user = (req as any).user;
+      const user = req.user;
 
       if (!user) {
         return res
@@ -385,8 +419,10 @@ export class BillingController {
         user.role,
       );
       res.status(HttpStatus.OK).json(transactions);
-    } catch (error: any) {
-      res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   }
 }

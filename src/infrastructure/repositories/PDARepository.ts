@@ -48,4 +48,10 @@ export class PDARepository implements IPDARepository {
             doc.timestamp
         ));
     }
+
+    async findOne(filter: Record<string, unknown>): Promise<PDA | null> {
+        const doc = await PDAModel.findOne(filter);
+        if (!doc) return null;
+        return new PDA(doc._id.toString(), doc.userId.toString(), doc.customer, doc.balance, doc.lastUpdated);
+    }
 }

@@ -1,16 +1,16 @@
 import { ICargoCategoryRepository } from "../../domain/repositories/ICargoCategoryRepository";
 import { CargoCategory } from "../../domain/entities/CargoCategory";
-import { CargoCategoryModel } from "../models/CargoCategoryModel";
+import { CargoCategoryModel, ICargoCategoryDocument } from "../models/CargoCategoryModel";
 
 export class CargoCategoryRepository implements ICargoCategoryRepository {
     async findAll(): Promise<CargoCategory[]> {
         const docs = await CargoCategoryModel.find().lean();
-        return docs.map(this.mapToEntity);
+        return (docs as unknown as ICargoCategoryDocument[]).map(this.mapToEntity);
     }
 
     async findById(id: string): Promise<CargoCategory | null> {
         const doc = await CargoCategoryModel.findById(id).lean();
-        return doc ? this.mapToEntity(doc) : null;
+        return doc ? this.mapToEntity(doc as unknown as ICargoCategoryDocument) : null;
     }
 
     async save(category: CargoCategory): Promise<CargoCategory> {
@@ -21,11 +21,11 @@ export class CargoCategoryRepository implements ICargoCategoryRepository {
 
     async update(id: string, category: Partial<CargoCategory>): Promise<CargoCategory | null> {
         const doc = await CargoCategoryModel.findByIdAndUpdate(id, category, { new: true }).lean();
-        return doc ? this.mapToEntity(doc) : null;
+        return doc ? this.mapToEntity(doc as unknown as ICargoCategoryDocument) : null;
     }
 
-    private mapToEntity(doc: any): CargoCategory {
-        const { _id, __v, ...rest } = doc;
+    private mapToEntity(doc: ICargoCategoryDocument): CargoCategory {
+        const { _id, ...rest } = doc;
         return new CargoCategory(
             _id.toString(),
             rest.name,

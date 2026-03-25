@@ -33,7 +33,7 @@ export class RefreshToken {
 
       return { accessToken };
     } catch (error) {
-      throw new Error("Invalid refresh token");
+      throw new Error("Invalid refresh token", { cause: error });
     }
   }
 }

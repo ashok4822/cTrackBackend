@@ -1,9 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { EquipmentStatus, EquipmentType } from "../../domain/entities/Equipment";
 
 export interface IEquipmentDocument extends Document {
     name: string;
-    type: string;
-    status: string;
+    type: EquipmentType;
+    status: EquipmentStatus;
     operator?: string;
     lastMaintenance?: Date;
     nextMaintenance?: Date;

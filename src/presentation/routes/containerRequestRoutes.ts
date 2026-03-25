@@ -15,6 +15,7 @@ import { authMiddleware, roleMiddleware } from "../../infrastructure/services/au
 import { checkOverdueBills } from "../../infrastructure/services/checkOverdueBills";
 import { GetAllContainerRequests } from "../../application/useCases/GetAllContainerRequests";
 import { UpdateContainerRequest } from "../../application/useCases/UpdateContainerRequest";
+import { NotificationService } from "../../infrastructure/services/NotificationService";
 
 const router = Router();
 
@@ -26,10 +27,12 @@ const activityRepository = new ActivityRepository();
 const chargeRepository = new ChargeRepository();
 const equipmentHistoryRepository = new EquipmentHistoryRepository();
 const auditLogRepository = new MongoAuditLogRepository();
+const notificationService = new NotificationService();
 
 const createContainerRequest = new CreateContainerRequest(
     containerRequestRepository,
     userRepository,
+    notificationService,
     auditLogRepository
 );
 const getCustomerRequests = new GetCustomerRequests(containerRequestRepository);
@@ -42,7 +45,8 @@ const updateContainerRequest = new UpdateContainerRequest(
     activityRepository,
     chargeRepository,
     equipmentHistoryRepository,
-    auditLogRepository
+    auditLogRepository,
+    notificationService
 );
 
 const controller = new ContainerRequestController(

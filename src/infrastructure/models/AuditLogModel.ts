@@ -1,11 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { AuditAction, EntityType } from "../../domain/entities/AuditLog";
 
 export interface IAuditLogDocument extends Document {
     userId: string;
     userRole: string;
     userName: string;
-    action: string;
-    entityType: string;
+    action: AuditAction;
+    entityType: EntityType;
     entityId?: string;
     details: string;
     ipAddress: string;

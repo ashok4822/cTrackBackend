@@ -9,4 +9,5 @@ export interface IEquipmentRepository {
     findById(id: string): Promise<Equipment | null>;
     save(equipment: Equipment): Promise<Equipment>;
     delete(id: string): Promise<void>;
+    findByStatus(status: string | string[]): Promise<Equipment[]>;
 }

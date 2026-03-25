@@ -12,11 +12,21 @@ export class GateOperationController {
 
     async getGateOperations(req: Request, res: Response) {
         try {
-            const filters = req.query as any;
-            const operations = await this.getGateOperationsUseCase.execute(filters);
+            const filters = req.query as {
+                type?: "gate-in" | "gate-out";
+                containerNumber?: string;
+                vehicleNumber?: string;
+                limit?: string;
+                status?: string;
+            };
+            const operations = await this.getGateOperationsUseCase.execute({
+                ...filters,
+                limit: filters.limit ? parseInt(filters.limit, 10) : undefined
+            });
             return res.status(HttpStatus.OK).json(operations);
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
         }
     }
 
@@ -44,8 +54,9 @@ export class GateOperationController {
             });
 
             return res.status(HttpStatus.CREATED).json({ message: "Gate operation recorded successfully" });
-        } catch (error: any) {
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
         }
     }
 }

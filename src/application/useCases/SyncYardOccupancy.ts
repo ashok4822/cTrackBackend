@@ -1,10 +1,16 @@
 import { BlockModel } from "../../infrastructure/models/BlockModel";
 import { ContainerModel } from "../../infrastructure/models/ContainerModel";
 
+interface SyncResult {
+    block: string;
+    oldOccupied: number;
+    newOccupied: number;
+}
+
 export class SyncYardOccupancy {
-    async execute(): Promise<{ message: string; results: any[] }> {
+    async execute(): Promise<{ message: string; results: SyncResult[] }> {
         const blocks = await BlockModel.find();
-        const results = [];
+        const results: SyncResult[] = [];
 
         for (const block of blocks) {
             // Count containers that are currently in this block with relevant statuses

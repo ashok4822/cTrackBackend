@@ -1,8 +1,7 @@
 import { ContainerRequest } from "../../domain/entities/ContainerRequest";
 import { IContainerRequestRepository } from "../../domain/repositories/IContainerRequestRepository";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
-import { socketService } from "../../infrastructure/services/socketService";
-import { NotificationModel } from "../../infrastructure/models/NotificationModel";
+import { INotificationService } from "../services/INotificationService";
 import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
 import { AuditLog } from "../../domain/entities/AuditLog";
 
@@ -10,6 +9,7 @@ export class CreateContainerRequest {
   constructor(
     private containerRequestRepository: IContainerRequestRepository,
     private userRepository: IUserRepository,
+    private notificationService: INotificationService,
     private auditLogRepository?: IAuditLogRepository,
   ) {}
 
@@ -126,22 +126,7 @@ export class CreateContainerRequest {
 
       for (const operator of operators) {
         if (operator.id) {
-          // Save to DB
-          const newNotification = await NotificationModel.create({
-            userId: operator.id,
-            ...notificationData,
-          });
-
-          // Emit via Socket
-          socketService.emitNotification(
-            {
-              ...notificationData,
-              id: newNotification._id.toString(),
-              read: false,
-              timestamp: new Date(),
-            },
-            operator.id,
-          );
+          await this.notificationService.send(operator.id, notificationData);
         }
       }
     } catch (error) {

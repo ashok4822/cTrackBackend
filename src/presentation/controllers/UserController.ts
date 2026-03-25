@@ -22,7 +22,7 @@ export class UserController {
   ) { }
 
   private getUserContext(req: Request): UserContext {
-    const user = (req as any).user;
+    const user = req.user;
     const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
     return {
       userId: user?.id || 'unknown',
@@ -49,7 +49,7 @@ export class UserController {
 
   async getProfile(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
 
       if (!userId) {
         return res
@@ -78,7 +78,7 @@ export class UserController {
 
   async updateProfile(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
 
       if (!userId) {
         return res
@@ -115,7 +115,7 @@ export class UserController {
 
   async updatePassword(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
 
       if (!userId) {
         return res
@@ -152,7 +152,7 @@ export class UserController {
 
   async updateProfileImage(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.id;
       if (!userId) {
         return res
           .status(HttpStatus.UNAUTHORIZED)

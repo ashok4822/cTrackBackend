@@ -83,12 +83,12 @@ export class UpdateContainer {
         const updatedContainer = new Container(
             container.id,
             data.containerNumber !== undefined ? data.containerNumber : container.containerNumber,
-            data.size !== undefined ? (data.size as any) : container.size,
-            data.type !== undefined ? (data.type as any) : container.type,
-            data.status !== undefined ? (data.status as any) : container.status,
+            data.size !== undefined ? data.size : container.size,
+            data.type !== undefined ? data.type : container.type,
+            data.status !== undefined ? data.status : container.status,
             data.shippingLine !== undefined ? data.shippingLine : container.shippingLine,
             data.empty !== undefined ? data.empty : container.empty,
-            data.movementType !== undefined ? (data.movementType as any) : container.movementType,
+            data.movementType !== undefined ? data.movementType : container.movementType,
             data.customer !== undefined ? data.customer : container.customer,
             container.customerName,
             data.yardLocation !== undefined ? data.yardLocation : container.yardLocation,
@@ -97,8 +97,8 @@ export class UpdateContainer {
             data.dwellTime !== undefined ? data.dwellTime : container.dwellTime,
             data.weight !== undefined ? data.weight : container.weight,
             data.cargoWeight !== undefined ? data.cargoWeight : container.cargoWeight,
-            data.cargoDescription !== undefined ? data.cargoDescription : (container as any).cargoDescription,
-            data.hazardousClassification !== undefined ? data.hazardousClassification : (container as any).hazardousClassification,
+            data.cargoDescription !== undefined ? data.cargoDescription : container.cargoDescription,
+            data.hazardousClassification !== undefined ? data.hazardousClassification : container.hazardousClassification,
             data.sealNumber !== undefined ? data.sealNumber : container.sealNumber,
             data.damaged !== undefined ? data.damaged : container.damaged,
             data.damageDetails !== undefined ? data.damageDetails : container.damageDetails,
@@ -181,13 +181,15 @@ export class UpdateContainer {
                 const equipmentList = await this.equipmentRepository.findAll({ name: equipmentName });
                 if (equipmentList.length > 0) {
                     const equipment = equipmentList[0];
-                    await this.equipmentHistoryRepository.save(new EquipmentHistory(
-                        null,
-                        equipment.id,
-                        "Shift Operation",
-                        `Shifted container ${container.containerNumber} from ${container.yardLocation?.block || "Gate"} to ${data.yardLocation.block}`,
-                        performedBy
-                    ));
+                    if (equipment.id) {
+                        await this.equipmentHistoryRepository.save(new EquipmentHistory(
+                            null,
+                            equipment.id,
+                            "Shift Operation",
+                            `Shifted container ${container.containerNumber} from ${container.yardLocation?.block || "Gate"} to ${data.yardLocation.block}`,
+                            performedBy
+                        ));
+                    }
                 }
             }
         }

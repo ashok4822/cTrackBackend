@@ -1,6 +1,6 @@
-import { IGateOperationRepository } from "../../domain/repositories/IGateOperationRepository";
+import { IGateOperationRepository, GateOperationFilter, DailyMovement } from "../../domain/repositories/IGateOperationRepository";
 import { GateOperation } from "../../domain/entities/GateOperation";
-import { GateOperationModel } from "../models/GateOperationModel";
+import { GateOperationModel, IGateOperationDocument } from "../models/GateOperationModel";
 
 export class GateOperationRepository implements IGateOperationRepository {
     async findAll(filters?: {
@@ -9,7 +9,7 @@ export class GateOperationRepository implements IGateOperationRepository {
         vehicleNumber?: string;
         limit?: number;
     }): Promise<GateOperation[]> {
-        const query: any = {};
+        const query: GateOperationFilter = {};
 
         if (filters?.type) {
             query.type = filters.type;
@@ -27,7 +27,7 @@ export class GateOperationRepository implements IGateOperationRepository {
         }
 
         const operations = await mQuery;
-        return operations.map(this.toEntity);
+        return operations.map((o) => this.toEntity(o));
     }
 
     async findById(id: string): Promise<GateOperation | null> {
@@ -51,6 +51,7 @@ export class GateOperationRepository implements IGateOperationRepository {
 
         if (operation.id && operation.id.match(/^[0-9a-fA-F]{24}$/)) {
             const updated = await GateOperationModel.findByIdAndUpdate(operation.id, data, { new: true });
+            if (!updated) throw new Error("Operation not found");
             return this.toEntity(updated);
         } else {
             const newOperation = new GateOperationModel(data);
@@ -59,9 +60,9 @@ export class GateOperationRepository implements IGateOperationRepository {
         }
     }
 
-    private toEntity(o: any): GateOperation {
+    private toEntity(o: IGateOperationDocument): GateOperation {
         return new GateOperation(
-            o.id,
+            o.id as string,
             o.type,
             o.containerNumber,
             o.vehicleNumber,
@@ -72,5 +73,31 @@ export class GateOperationRepository implements IGateOperationRepository {
             o.remarks,
             o.cargoCategory
         );
+    }
+
+    async countDocuments(filter: GateOperationFilter): Promise<number> {
+        return await GateOperationModel.countDocuments(filter).exec();
+    }
+
+    async getDailyMovements(filter: GateOperationFilter): Promise<DailyMovement[]> {
+        return await GateOperationModel.aggregate<DailyMovement>([
+            { $match: filter },
+            {
+                $group: {
+                    _id: {
+                        day: {
+                            $dateToString: {
+                                format: "%Y-%m-%d",
+                                date: "$timestamp",
+                                timezone: "Asia/Kolkata",
+                            },
+                        },
+                        type: "$type",
+                    },
+                    count: { $sum: 1 },
+                },
+            },
+            { $sort: { "_id.day": 1 as const } },
+        ]).exec();
     }
 }

@@ -17,13 +17,17 @@ export class EquipmentController {
 
     async fetchAll(req: Request, res: Response) {
         try {
-            const filters = req.query as any;
+            const filters = req.query as {
+                type?: string;
+                status?: string;
+                name?: string;
+            };
             const equipment = await this.getAllEquipment.execute(filters);
             res.status(HttpStatus.OK).json(equipment);
-        } catch (error: any) {
+        } catch (error: unknown) {
             res
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .json({ message: error.message });
+                .json({ message: error instanceof Error ? error.message : "Internal server error" });
         }
     }
 
@@ -32,8 +36,8 @@ export class EquipmentController {
             const performedBy = req.user?.name || req.user?.email || "System";
             const equipment = await this.createEquipment.execute(req.body, performedBy);
             res.status(HttpStatus.CREATED).json(equipment);
-        } catch (error: any) {
-            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error instanceof Error ? error.message : "Bad Request" });
         }
     }
 
@@ -43,8 +47,8 @@ export class EquipmentController {
             const performedBy = req.user?.name || req.user?.email || "System";
             const equipment = await this.updateEquipment.execute(id as string, req.body, performedBy);
             res.status(HttpStatus.OK).json(equipment);
-        } catch (error: any) {
-            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error instanceof Error ? error.message : "Bad Request" });
         }
     }
 
@@ -53,8 +57,8 @@ export class EquipmentController {
             const { id } = req.params;
             await this.deleteEquipment.execute(id as string);
             res.status(HttpStatus.OK).json({ message: "Equipment deleted" });
-        } catch (error: any) {
-            res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        } catch (error: unknown) {
+            res.status(HttpStatus.BAD_REQUEST).json({ message: error instanceof Error ? error.message : "Bad Request" });
         }
     }
 
@@ -63,8 +67,8 @@ export class EquipmentController {
             const { id } = req.params;
             const history = await this.getEquipmentHistory.execute(id as string);
             res.status(HttpStatus.OK).json(history);
-        } catch (error: any) {
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+        } catch (error: unknown) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error instanceof Error ? error.message : "Internal server error" });
         }
     }
 }
