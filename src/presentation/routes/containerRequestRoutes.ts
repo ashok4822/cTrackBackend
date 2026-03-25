@@ -60,6 +60,6 @@ const controller = new ContainerRequestController(
 router.post("/", authMiddleware, checkOverdueBills, (req, res) => controller.create(req, res));
 router.get("/my-requests", authMiddleware, checkOverdueBills, (req, res) => controller.getMyRequests(req, res));
 router.get("/", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) => controller.getAll(req, res));
-router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) => controller.update(req, res));
+router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.update(req, res));
 
 export default router;

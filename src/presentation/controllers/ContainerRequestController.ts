@@ -89,6 +89,30 @@ export class ContainerRequestController {
                 ipAddress: req.ip || req.socket.remoteAddress || "unknown"
             };
 
+            // Customers can only mark their OWN requests as "completed"
+            if (req.user?.role === "customer") {
+                // Only allow status: "completed", nothing else
+                const allowedKeys = ["status"];
+                const hasDisallowedFields = Object.keys(data).some(k => !allowedKeys.includes(k));
+                if (hasDisallowedFields || data.status !== "completed") {
+                    res.status(403).json({ message: "Customers can only mark requests as completed." });
+                    return;
+                }
+
+                // Verify ownership by fetching the request first
+                const { ContainerRequestRepository } = await import("../../infrastructure/repositories/ContainerRequestRepository");
+                const repo = new ContainerRequestRepository();
+                const existing = await repo.findById(id as string);
+                if (!existing) {
+                    res.status(404).json({ message: "Container request not found" });
+                    return;
+                }
+                if (existing.customerId !== req.user.id) {
+                    res.status(403).json({ message: "You can only update your own requests." });
+                    return;
+                }
+            }
+
             const updated = await this.updateContainerRequest.execute(id as string, data, userContext);
 
             if (!updated) {

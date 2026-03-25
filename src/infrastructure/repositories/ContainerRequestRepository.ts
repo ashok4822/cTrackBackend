@@ -50,6 +50,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
       d.cargoCharge,
       d.createdAt,
       d.updatedAt,
+      d.customerName,
     );
   }
 
