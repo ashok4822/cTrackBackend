@@ -51,11 +51,9 @@ app.use(
         return callback(null, true);
       }
 
-      const allowedOrigins = [
-        "https://www.caryo.store", // Added for production/staging
-      ];
+      const allowedOrigins = ["https://ctrack.site", "https://www.ctrack.site"];
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
         return callback(null, true);
       }
 
