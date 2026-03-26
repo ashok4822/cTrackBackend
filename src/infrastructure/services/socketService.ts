@@ -53,10 +53,9 @@ class SocketService {
           if (!origin || origin.startsWith("http://localhost:")) {
             return callback(null, true);
           }
-          const allowedOrigins = [
-            "https://ctrack.site",
-            "https://www.ctrack.site",
-          ];
+          const allowedOrigins = process.env.CORS_ORIGIN
+            ? process.env.CORS_ORIGIN.split(",")
+            : [];
           if (
             allowedOrigins.includes(origin) ||
             origin.endsWith(".vercel.app")
