@@ -53,8 +53,13 @@ class SocketService {
           if (!origin || origin.startsWith("http://localhost:")) {
             return callback(null, true);
           }
-          const allowedOrigins = ["https://www.caryo.store"];
-          if (allowedOrigins.includes(origin)) {
+          const allowedOrigins = process.env.CORS_ORIGIN
+            ? process.env.CORS_ORIGIN.split(",")
+            : [];
+          if (
+            allowedOrigins.includes(origin) ||
+            origin.endsWith(".vercel.app")
+          ) {
             return callback(null, true);
           }
           callback(new Error("Not allowed by CORS"));
@@ -64,7 +69,6 @@ class SocketService {
     });
 
     this.io.on("connection", (socket) => {
-
       // Join a private room for the user
       socket.on("join", (userId: string) => {
         if (userId) {
@@ -72,8 +76,7 @@ class SocketService {
         }
       });
 
-      socket.on("disconnect", () => {
-      });
+      socket.on("disconnect", () => {});
     });
 
     return this.io;
