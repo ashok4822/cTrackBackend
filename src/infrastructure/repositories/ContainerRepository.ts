@@ -110,7 +110,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
     }
 
     protected toModelData(container: Container): UpdateQuery<IContainerDocument> {
-        return {
+        const data: UpdateQuery<IContainerDocument> = {
             containerNumber: container.containerNumber,
             size: container.size,
             type: container.type,
@@ -118,7 +118,6 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             status: container.status,
             shippingLine: container.shippingLine,
             customer: container.customer,
-            yardLocation: container.yardLocation,
             gateInTime: container.gateInTime,
             gateOutTime: container.gateOutTime,
             dwellTime: container.dwellTime,
@@ -133,6 +132,14 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             empty: container.empty,
             cargoCategory: container.cargoCategory,
         };
+
+        if (container.yardLocation) {
+            data.yardLocation = container.yardLocation;
+        } else {
+            data.$unset = { yardLocation: "" };
+        }
+
+        return data;
     }
 
     async countByStatus(status: string | string[], filter?: ContainerFilter): Promise<number> {
