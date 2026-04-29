@@ -1,49 +1,39 @@
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
-import { User, UserRole } from "../../domain/entities/User";
-import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog } from "../../domain/entities/AuditLog";
-import { UserContext } from "./AdminCreateUser";
+import { IAdminUpdateUser } from "../ports/IAdminUpdateUser";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { UpdateUserRequestDto, UserResponseDto } from "../dto/UserDto";
+import { UserMapper } from "../mappers/UserMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-interface AdminUpdateData {
-    name?: string;
-    role?: UserRole;
-    companyName?: string;
-}
-
-export class AdminUpdateUser {
+export class AdminUpdateUser implements IAdminUpdateUser {
     constructor(
         private userRepository: IUserRepository,
-        private auditLogRepository: IAuditLogRepository
+        private eventBus: IEventBus
     ) { }
 
-    async execute(userId: string, data: AdminUpdateData, userContext: UserContext): Promise<User> {
+
+    async execute(userId: string, data: UpdateUserRequestDto): Promise<UserResponseDto> {
+        const { userContext } = data;
+        
+        let nameToUse: string | undefined = undefined;
         if (data.name !== undefined) {
             const trimmedName = data.name.trim();
             if (trimmedName.length < 3 || trimmedName.length > 50) {
-                throw new Error("Name must be between 3 and 50 characters");
+                throw new AppError(ResponseMessage.INVALID_NAME_LENGTH, HttpStatus.BAD_REQUEST);
             }
-            data.name = trimmedName;
+            nameToUse = trimmedName;
         }
 
         const user = await this.userRepository.findById(userId);
 
         if (!user) {
-            throw new Error("User not found");
+            throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        // Create updated user with new data
-        const updatedUser = new User(
-            user.id,
-            user.email,
-            data.role !== undefined ? data.role : user.role,
-            user.password,
-            data.name !== undefined ? data.name : user.name,
-            user.phone,
-            user.googleId,
-            user.profileImage,
-            data.companyName !== undefined ? data.companyName : user.companyName,
-            user.isBlocked
-        );
+        // Create updated user via mapper (using validated trimmed name)
+        const updatedUser = UserMapper.applyAdminUpdate(user, { ...data, name: nameToUse });
 
         await this.userRepository.save(updatedUser);
 
@@ -52,19 +42,21 @@ export class AdminUpdateUser {
         if (data.name !== undefined) changes.push(`name: ${data.name}`);
         if (data.role !== undefined) changes.push(`role: ${data.role}`);
         if (data.companyName !== undefined) changes.push(`companyName: ${data.companyName}`);
+        if (data.isBlocked !== undefined) changes.push(`isBlocked: ${data.isBlocked}`);
 
-        await this.auditLogRepository.save(new AuditLog(
-            null,
-            userContext.userId,
-            userContext.userRole,
-            userContext.userName,
-            "USER_UPDATED",
-            "User",
-            userId,
-            JSON.stringify({ changes }),
-            userContext.ipAddress
-        ));
+        // Log audit event (Event-driven)
+        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+            userId: userContext.userId,
+            userRole: userContext.userRole,
+            userName: userContext.userName,
+            action: ResponseMessage.AUDIT_USER_UPDATED,
+            resourceType: ResponseMessage.RESOURCE_USER,
+            resourceId: userId,
+            details: { changes },
+            ipAddress: userContext.ipAddress
+        });
 
-        return updatedUser;
+        return UserMapper.toResponseDto(updatedUser);
     }
 }
+

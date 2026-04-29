@@ -5,4 +5,5 @@ export interface IBlockRepository {
     findById(id: string): Promise<Block | null>;
     findByName(name: string): Promise<Block | null>;
     save(block: Block): Promise<Block>;
+    updateOccupied(id: string, count: number): Promise<void>;
 }

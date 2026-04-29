@@ -1,25 +1,38 @@
 import { IGateOperationRepository, GateOperationFilter, DailyMovement } from "../../domain/repositories/IGateOperationRepository";
 import { GateOperation } from "../../domain/entities/GateOperation";
 import { GateOperationModel, IGateOperationDocument } from "../models/GateOperationModel";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class GateOperationRepository implements IGateOperationRepository {
+    private applyFilters(filters: GateOperationFilter): Record<string, unknown> {
+        const query: Record<string, unknown> = {};
+
+        if (filters.type) {
+            query.type = filters.type;
+        }
+        if (filters.containerNumber) {
+            query.containerNumber = Array.isArray(filters.containerNumber) ? { $in: filters.containerNumber } : filters.containerNumber;
+        }
+        if (filters.vehicleNumber) {
+            query.vehicleNumber = { $regex: `^${filters.vehicleNumber}$`, $options: "i" };
+        }
+        if (filters.startDate || filters.endDate) {
+            const timestampFilter: Record<string, Date> = {};
+            if (filters.startDate) timestampFilter.$gte = filters.startDate;
+            if (filters.endDate) timestampFilter.$lte = filters.endDate;
+            query.timestamp = timestampFilter;
+        }
+
+        return query;
+    }
+
     async findAll(filters?: {
         type?: "gate-in" | "gate-out";
         containerNumber?: string;
         vehicleNumber?: string;
         limit?: number;
     }): Promise<GateOperation[]> {
-        const query: GateOperationFilter = {};
-
-        if (filters?.type) {
-            query.type = filters.type;
-        }
-        if (filters?.containerNumber) {
-            query.containerNumber = filters.containerNumber;
-        }
-        if (filters?.vehicleNumber) {
-            query.vehicleNumber = { $regex: `^${filters.vehicleNumber}$`, $options: "i" };
-        }
+        const query = filters ? this.applyFilters(filters as GateOperationFilter) : {};
 
         let mQuery = GateOperationModel.find(query).sort({ timestamp: -1 });
         if (filters?.limit) {
@@ -51,7 +64,7 @@ export class GateOperationRepository implements IGateOperationRepository {
 
         if (operation.id && operation.id.match(/^[0-9a-fA-F]{24}$/)) {
             const updated = await GateOperationModel.findByIdAndUpdate(operation.id, data, { new: true });
-            if (!updated) throw new Error("Operation not found");
+            if (!updated) throw new Error(ResponseMessage.GATE_OPERATION_NOT_FOUND);
             return this.toEntity(updated);
         } else {
             const newOperation = new GateOperationModel(data);
@@ -75,13 +88,15 @@ export class GateOperationRepository implements IGateOperationRepository {
         );
     }
 
-    async countDocuments(filter: GateOperationFilter): Promise<number> {
-        return await GateOperationModel.countDocuments(filter).exec();
+    async count(filter: GateOperationFilter): Promise<number> {
+        const query = this.applyFilters(filter);
+        return await GateOperationModel.countDocuments(query).exec();
     }
 
     async getDailyMovements(filter: GateOperationFilter): Promise<DailyMovement[]> {
-        return await GateOperationModel.aggregate<DailyMovement>([
-            { $match: filter },
+        const query = this.applyFilters(filter);
+        const results = await GateOperationModel.aggregate([
+            { $match: query },
             {
                 $group: {
                     _id: {
@@ -99,5 +114,11 @@ export class GateOperationRepository implements IGateOperationRepository {
             },
             { $sort: { "_id.day": 1 as const } },
         ]).exec();
+
+        return results.map(r => ({
+            day: r._id.day,
+            type: r._id.type,
+            count: r.count
+        }));
     }
 }

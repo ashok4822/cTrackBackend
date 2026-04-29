@@ -1,7 +1,9 @@
+import { IGetGateOperations } from "../ports/IGetGateOperations";
 import { IGateOperationRepository } from "../../domain/repositories/IGateOperationRepository";
-import { GateOperation } from "../../domain/entities/GateOperation";
+import { GateOperationCollectionResponseDto } from "../dto/GateDto";
+import { GateMapper } from "../mappers/GateMapper";
 
-export class GetGateOperations {
+export class GetGateOperations implements IGetGateOperations {
     constructor(private gateOperationRepository: IGateOperationRepository) { }
 
     async execute(filters?: {
@@ -10,7 +12,8 @@ export class GetGateOperations {
         vehicleNumber?: string;
         limit?: number;
         status?: string;
-    }): Promise<GateOperation[]> {
-        return await this.gateOperationRepository.findAll(filters);
+    }): Promise<GateOperationCollectionResponseDto> {
+        const operations = await this.gateOperationRepository.findAll(filters);
+        return GateMapper.toCollectionResponseDto(operations);
     }
 }

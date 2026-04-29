@@ -1,75 +1,49 @@
 import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
-import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
-import { ContainerHistory } from "../../domain/entities/ContainerHistory";
-import { Container } from "../../domain/entities/Container";
-import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog } from "../../domain/entities/AuditLog";
-import { UserContext } from "./AdminCreateUser";
 
-export class UnblacklistContainer {
+import { UserContextDto } from "../dto/CommonDto";
+import { IUnblacklistContainer } from "../ports/IUnblacklistContainer";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+
+export class UnblacklistContainer implements IUnblacklistContainer {
     constructor(
         private containerRepository: IContainerRepository,
-        private historyRepository: IContainerHistoryRepository,
-        private auditLogRepository?: IAuditLogRepository
+        private eventBus: IEventBus
     ) { }
 
-    async execute(id: string, userContext?: UserContext): Promise<void> {
+
+    async execute(id: string, userContext?: UserContextDto): Promise<void> {
         const container = await this.containerRepository.findById(id);
         if (!container) {
-            throw new Error("Container not found");
+            throw new AppError(ResponseMessage.CONTAINER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        const updatedContainer = new Container(
-            container.id,
-            container.containerNumber,
-            container.size,
-            container.type,
-            container.status,
-            container.shippingLine,
-            container.empty,
-            container.movementType,
-            container.customer,
-            container.customerName,
-            container.yardLocation,
-            container.gateInTime,
-            container.gateOutTime,
-            container.dwellTime,
-            container.weight,
-            container.cargoWeight,
-            container.cargoDescription,
-            container.hazardousClassification,
-            container.sealNumber,
-            container.damaged,
-            container.damageDetails,
-            false, // blacklisted
-            container.cargoCategory,
-            container.createdAt,
-            container.updatedAt
-        );
+        const updatedContainer = container.update({ blacklisted: false });
 
         await this.containerRepository.save(updatedContainer);
 
-        await this.historyRepository.save(new ContainerHistory(
-            null,
-            id,
-            "Unblacklisted",
-            "Container has been unblacklisted",
-            userContext?.userName || "Admin"
-        ));
+        this.eventBus.emit(DomainEvents.CONTAINER_HISTORY_CREATED, {
+            containerId: id,
+            action: ResponseMessage.ACTION_UNBLACKLISTED,
+            details: ResponseMessage.DETAILS_UNBLACKLISTED,
+            performedBy: userContext?.userName || "Admin"
+        });
 
-        // Audit Log
-        if (this.auditLogRepository && userContext) {
-            await this.auditLogRepository.save(new AuditLog(
-                null,
-                userContext.userId,
-                userContext.userRole,
-                userContext.userName,
-                "CONTAINER_UNBLACKLISTED",
-                "Container",
-                id,
-                JSON.stringify({ containerNumber: updatedContainer.containerNumber }),
-                userContext.ipAddress
-            ));
+        // Audit Log (Event-driven)
+        if (userContext) {
+            this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+                userId: userContext.userId,
+                userRole: userContext.userRole,
+                userName: userContext.userName,
+                action: ResponseMessage.AUDIT_UNBLACKLISTED,
+                resourceType: ResponseMessage.RESOURCE_CONTAINER,
+                resourceId: id,
+                details: { containerNumber: updatedContainer.containerNumber },
+                ipAddress: userContext.ipAddress
+            });
         }
     }
 }
+

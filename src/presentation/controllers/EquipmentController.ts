@@ -1,74 +1,57 @@
 import { Request, Response } from "express";
-import { CreateEquipment } from "../../application/useCases/CreateEquipment";
-import { UpdateEquipment } from "../../application/useCases/UpdateEquipment";
-import { DeleteEquipment } from "../../application/useCases/DeleteEquipment";
-import { GetAllEquipment } from "../../application/useCases/GetAllEquipment";
-import { GetEquipmentHistory } from "../../application/useCases/GetEquipmentHistory";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
+import { ICreateEquipment } from "../../application/ports/ICreateEquipment";
+import { IUpdateEquipment } from "../../application/ports/IUpdateEquipment";
+import { IDeleteEquipment } from "../../application/ports/IDeleteEquipment";
+import { IGetAllEquipment } from "../../application/ports/IGetAllEquipment";
+import { IGetEquipmentHistory } from "../../application/ports/IGetEquipmentHistory";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class EquipmentController {
     constructor(
-        private createEquipment: CreateEquipment,
-        private updateEquipment: UpdateEquipment,
-        private deleteEquipment: DeleteEquipment,
-        private getAllEquipment: GetAllEquipment,
-        private getEquipmentHistory: GetEquipmentHistory
+        private createEquipment: ICreateEquipment,
+        private updateEquipment: IUpdateEquipment,
+        private deleteEquipment: IDeleteEquipment,
+        private getAllEquipment: IGetAllEquipment,
+        private getEquipmentHistory: IGetEquipmentHistory
     ) { }
 
-    async fetchAll(req: Request, res: Response) {
-        try {
-            const filters = req.query as {
-                type?: string;
-                status?: string;
-                name?: string;
-            };
-            const equipment = await this.getAllEquipment.execute(filters);
-            res.status(HttpStatus.OK).json(equipment);
-        } catch (error: unknown) {
-            res
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .json({ message: error instanceof Error ? error.message : "Internal server error" });
-        }
-    }
+    fetchAll = asyncHandler(async (req: Request, res: Response) => {
+        const filters = req.query as {
+            type?: string;
+            status?: string;
+            name?: string;
+        };
+        const equipment = await this.getAllEquipment.execute(filters);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(equipment));
+    });
 
-    async create(req: Request, res: Response) {
-        try {
-            const performedBy = req.user?.name || req.user?.email || "System";
-            const equipment = await this.createEquipment.execute(req.body, performedBy);
-            res.status(HttpStatus.CREATED).json(equipment);
-        } catch (error: unknown) {
-            res.status(HttpStatus.BAD_REQUEST).json({ message: error instanceof Error ? error.message : "Bad Request" });
-        }
-    }
+    create = asyncHandler(async (req: Request, res: Response) => {
+        const performedBy = req.user?.name || req.user?.email || "System";
+        const equipment = await this.createEquipment.execute(req.body, performedBy);
+        return res.status(HttpStatus.CREATED).json(ApiResponse.success(equipment, ResponseMessage.EQUIPMENT_CREATED));
+    });
 
-    async update(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const performedBy = req.user?.name || req.user?.email || "System";
-            const equipment = await this.updateEquipment.execute(id as string, req.body, performedBy);
-            res.status(HttpStatus.OK).json(equipment);
-        } catch (error: unknown) {
-            res.status(HttpStatus.BAD_REQUEST).json({ message: error instanceof Error ? error.message : "Bad Request" });
-        }
-    }
+    update = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const performedBy = req.user?.name || req.user?.email || "System";
+        const equipment = await this.updateEquipment.execute(id as string, req.body, performedBy);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(equipment, ResponseMessage.EQUIPMENT_UPDATED));
+    });
 
-    async delete(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            await this.deleteEquipment.execute(id as string);
-            res.status(HttpStatus.OK).json({ message: "Equipment deleted" });
-        } catch (error: unknown) {
-            res.status(HttpStatus.BAD_REQUEST).json({ message: error instanceof Error ? error.message : "Bad Request" });
-        }
-    }
+    delete = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        await this.deleteEquipment.execute(id as string);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.EQUIPMENT_DELETED));
+    });
 
-    async fetchHistory(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const history = await this.getEquipmentHistory.execute(id as string);
-            res.status(HttpStatus.OK).json(history);
-        } catch (error: unknown) {
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error instanceof Error ? error.message : "Internal server error" });
-        }
-    }
+    fetchHistory = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const history = await this.getEquipmentHistory.execute(id as string);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(history));
+    });
 }
+
+

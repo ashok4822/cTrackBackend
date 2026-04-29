@@ -1,18 +1,21 @@
 import { Request, Response } from "express";
-import { CreateShippingLine } from "../../application/useCases/CreateShippingLine";
-import { GetAllShippingLines } from "../../application/useCases/GetAllShippingLines";
-import { UpdateShippingLine } from "../../application/useCases/UpdateShippingLine";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
-import { UserContext } from "../../application/useCases/AdminCreateUser";
+import { ICreateShippingLine } from "../../application/ports/ICreateShippingLine";
+import { IGetAllShippingLines } from "../../application/ports/IGetAllShippingLines";
+import { IUpdateShippingLine } from "../../application/ports/IUpdateShippingLine";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { UserContextDto } from "../../application/dto/CommonDto";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class ShippingLineController {
     constructor(
-        private createShippingLineUseCase: CreateShippingLine,
-        private getAllShippingLinesUseCase: GetAllShippingLines,
-        private updateShippingLineUseCase: UpdateShippingLine
+        private createShippingLineUseCase: ICreateShippingLine,
+        private getAllShippingLinesUseCase: IGetAllShippingLines,
+        private updateShippingLineUseCase: IUpdateShippingLine
     ) { }
 
-    private getUserContext(req: Request): UserContext {
+    private getUserContext(req: Request): UserContextDto {
         const user = req.user;
         const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
         return {
@@ -23,38 +26,24 @@ export class ShippingLineController {
         };
     }
 
-    async createShippingLine(req: Request, res: Response) {
-        try {
-            const { name, code } = req.body;
-            const userContext = this.getUserContext(req);
-            await this.createShippingLineUseCase.execute(name, code, userContext);
-            return res.status(HttpStatus.CREATED).json({ message: "Shipping Line created successfully" });
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
-        }
-    }
+    createShippingLine = asyncHandler(async (req: Request, res: Response) => {
+        const { name, code } = req.body;
+        const userContext = this.getUserContext(req);
+        const result = await this.createShippingLineUseCase.execute({ name, code }, userContext);
+        return res.status(HttpStatus.CREATED).json(ApiResponse.success(result, ResponseMessage.SHIPPING_LINE_CREATED));
+    });
 
-    async getAllShippingLines(req: Request, res: Response) {
-        try {
-            const shippingLines = await this.getAllShippingLinesUseCase.execute();
-            return res.status(HttpStatus.OK).json(shippingLines);
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
-        }
-    }
+    getAllShippingLines = asyncHandler(async (req: Request, res: Response) => {
+        const shippingLines = await this.getAllShippingLinesUseCase.execute();
+        return res.status(HttpStatus.OK).json(ApiResponse.success(shippingLines));
+    });
 
-    async updateShippingLine(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const { name, code } = req.body;
-            const userContext = this.getUserContext(req);
-            await this.updateShippingLineUseCase.execute(id as string, { name, code }, userContext);
-            return res.status(HttpStatus.OK).json({ message: "Shipping Line updated successfully" });
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
-        }
-    }
+    updateShippingLine = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const { name, code } = req.body;
+        const userContext = this.getUserContext(req);
+        const result = await this.updateShippingLineUseCase.execute(id as string, { name, code }, userContext);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(result, ResponseMessage.SHIPPING_LINE_UPDATED));
+    });
 }
+

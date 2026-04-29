@@ -1,10 +1,13 @@
 import { IChargeHistoryRepository } from "../../domain/repositories/IChargeHistoryRepository";
-import { ChargeHistory } from "../../domain/entities/ChargeHistory";
-
-export class GetChargeHistory {
+import { IGetChargeHistory } from "../ports/IGetChargeHistory";
+import { ChargeHistoryCollectionResponseDto } from "../dto/ChargeDto";
+import { ChargeMapper } from "../mappers/ChargeMapper";
+ 
+export class GetChargeHistory implements IGetChargeHistory {
     constructor(private chargeHistoryRepository: IChargeHistoryRepository) { }
-
-    async execute(): Promise<ChargeHistory[]> {
-        return this.chargeHistoryRepository.findAll();
+ 
+    async execute(): Promise<ChargeHistoryCollectionResponseDto> {
+        const history = await this.chargeHistoryRepository.findAll();
+        return ChargeMapper.toHistoryCollectionResponseDto(history);
     }
 }

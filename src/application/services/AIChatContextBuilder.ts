@@ -1,7 +1,8 @@
-import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
-import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
-import { BillRepository } from "../../infrastructure/repositories/BillRepository";
-import { PDARepository } from "../../infrastructure/repositories/PDARepository";
+import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
+import { IContainerRequestRepository } from "../../domain/repositories/IContainerRequestRepository";
+import { IBillRepository } from "../../domain/repositories/IBillRepository";
+import { IPDARepository } from "../../domain/repositories/IPDARepository";
+import { IAIChatContextBuilder } from "../ports/IAIChatContextBuilder";
 
 const fmt = (d?: Date) =>
   d
@@ -14,17 +15,21 @@ const fmt = (d?: Date) =>
 
 const inr = (n?: number) => `₹${(n || 0).toLocaleString("en-IN")}`;
 
-export class AIChatContextBuilder {
+export class AIChatContextBuilder implements IAIChatContextBuilder {
+  constructor(
+    private containerRepository: IContainerRepository,
+    private containerRequestRepository: IContainerRequestRepository,
+    private billRepository: IBillRepository,
+    private pdaRepository: IPDARepository
+  ) {}
+
   // ─────────────────────────────────────────
   // CONTAINERS category
   // ─────────────────────────────────────────
-  static async buildContainerContext(customerId: string): Promise<string> {
-    const containerRepo = new ContainerRepository();
-    const requestRepo = new ContainerRequestRepository();
-
+  async buildContainerContext(customerId: string): Promise<string> {
     const [containers, requests] = await Promise.all([
-      containerRepo.findAll({ customer: customerId }),
-      requestRepo.findByCustomerId(customerId),
+      this.containerRepository.findAll({ customer: customerId }),
+      this.containerRequestRepository.findByCustomerId(customerId),
     ]);
 
     const lines: string[] = [];
@@ -90,17 +95,14 @@ export class AIChatContextBuilder {
       }
     }
 
-
-
     return lines.join("\n");
   }
 
   // ─────────────────────────────────────────
   // BILLS category
   // ─────────────────────────────────────────
-  static async buildBillContext(customerId: string): Promise<string> {
-    const billRepo = new BillRepository();
-    const bills = await billRepo.findAll(customerId);
+  async buildBillContext(customerId: string): Promise<string> {
+    const bills = await this.billRepository.findAll(customerId);
 
     const lines: string[] = [];
     lines.push(`=== CUSTOMER BILLING OVERVIEW ===`);
@@ -151,9 +153,8 @@ export class AIChatContextBuilder {
   // ─────────────────────────────────────────
   // PDA category
   // ─────────────────────────────────────────
-  static async buildPDAContext(userId: string): Promise<string> {
-    const pdaRepo = new PDARepository();
-    const pda = await pdaRepo.findByUserId(userId);
+  async buildPDAContext(userId: string): Promise<string> {
+    const pda = await this.pdaRepository.findByUserId(userId);
 
     const lines: string[] = [];
     lines.push(`=== CUSTOMER PDA (PRE-DEPOSIT ACCOUNT) OVERVIEW ===`);
@@ -163,7 +164,7 @@ export class AIChatContextBuilder {
       return lines.join("\n");
     }
 
-    const transactions = await pdaRepo.findTransactionsByPdaId(pda.id);
+    const transactions = await this.pdaRepository.findTransactionsByPdaId(pda.id);
     const credits = transactions.filter((t) => t.type === "credit");
     const debits = transactions.filter((t) => t.type === "debit");
     const totalCredited = credits.reduce((s, t) => s + t.amount, 0);
@@ -204,20 +205,15 @@ export class AIChatContextBuilder {
   // ─────────────────────────────────────────
   // GENERAL / CROSS-QUERY category
   // ─────────────────────────────────────────
-  static async buildGeneralContext(
+  async buildGeneralContext(
     customerId: string,
     userId: string,
   ): Promise<string> {
-    const containerRepo = new ContainerRepository();
-    const requestRepo = new ContainerRequestRepository();
-    const billRepo = new BillRepository();
-    const pdaRepo = new PDARepository();
-
     const [containers, requests, bills, pda] = await Promise.all([
-      containerRepo.findAll({ customer: customerId }),
-      requestRepo.findByCustomerId(customerId),
-      billRepo.findAll(customerId),
-      pdaRepo.findByUserId(userId),
+      this.containerRepository.findAll({ customer: customerId }),
+      this.containerRequestRepository.findByCustomerId(customerId),
+      this.billRepository.findAll(customerId),
+      this.pdaRepository.findByUserId(userId),
     ]);
 
     const activeContainers = containers.filter((c) =>

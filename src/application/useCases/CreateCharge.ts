@@ -1,10 +1,17 @@
 import { IChargeRepository } from "../../domain/repositories/IChargeRepository";
-import { Charge } from "../../domain/entities/Charge";
+import { ICreateCharge } from "../ports/ICreateCharge";
+import { CreateChargeRequestDto, ChargeResponseDto } from "../dto/ChargeDto";
+import { ChargeMapper } from "../mappers/ChargeMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class CreateCharge {
+export class CreateCharge implements ICreateCharge {
     constructor(private chargeRepository: IChargeRepository) { }
 
-    async execute(chargeData: Charge): Promise<Charge> {
+    async execute(chargeDto: CreateChargeRequestDto): Promise<ChargeResponseDto> {
+        const chargeData = ChargeMapper.toEntity(chargeDto);
+        
         const existing = await this.chargeRepository.findByCriteria(
             chargeData.activityId,
             chargeData.containerSize,
@@ -12,9 +19,10 @@ export class CreateCharge {
         );
 
         if (existing) {
-            throw new Error(`Charge rate already exists for this activity (${chargeData.containerSize}, ${chargeData.containerType})`);
+            throw new AppError(`${ResponseMessage.CHARGE_ALREADY_EXISTS_ERROR} (${chargeData.containerSize}, ${chargeData.containerType})`, HttpStatus.CONFLICT);
         }
 
-        return this.chargeRepository.save(chargeData);
+        const savedCharge = await this.chargeRepository.save(chargeData);
+        return ChargeMapper.toResponseDto(savedCharge);
     }
 }

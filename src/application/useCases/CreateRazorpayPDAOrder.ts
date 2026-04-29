@@ -1,55 +1,32 @@
-import Razorpay from "razorpay";
-import { Orders } from "razorpay/dist/types/orders";
+import { ICreateRazorpayPDAOrder } from "../ports/ICreateRazorpayPDAOrder";
+import { IPaymentService, PaymentOrder } from "../services/IPaymentService";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class CreateRazorpayPDAOrder {
-    private razorpay: Razorpay;
+export class CreateRazorpayPDAOrder implements ICreateRazorpayPDAOrder {
+    constructor(private paymentService: IPaymentService) { }
 
-    constructor() {
-        this.razorpay = new Razorpay({
-            key_id: process.env.RAZOR_KEY_ID || "",
-            key_secret: process.env.RAZOR_SECRET_ID || "",
-        });
-    }
-
-    async execute(amount: number, userId: string): Promise<Orders.RazorpayOrder> {
+    async execute(amount: number, userId: string): Promise<PaymentOrder> {
         if (!amount || isNaN(amount) || amount <= 0) {
-            throw new Error(`Invalid amount: ${amount}`);
+            throw new AppError(`${ResponseMessage.INVALID_AMOUNT}: ${amount}`, HttpStatus.BAD_REQUEST);
         }
 
-        const key_id = process.env.RAZOR_KEY_ID;
-        const key_secret = process.env.RAZOR_SECRET_ID;
-
-        if (!key_id || !key_secret) {
-            console.error("Razorpay Credentials Missing: RAZOR_KEY_ID or RAZOR_SECRET_ID");
-            throw new Error("Razorpay configuration error");
-        }
-
-        const options = {
-            amount: Math.round(amount * 100), // Razorpay expects amount in paise
-            currency: "INR",
-            receipt: `pda_${userId.substring(userId.length - 10)}_${Date.now()}`,
-        };
+        const receipt = `pda_${userId.substring(userId.length - 10)}_${Date.now()}`;
 
         try {
-            const order = await this.razorpay.orders.create(options);
+            const order = await this.paymentService.createOrder(amount, receipt);
             return order;
         } catch (error: unknown) {
-            console.error("[PDA] Razorpay Order Creation Error (Full):", error);
+            console.error("[PDA] Razorpay Order Creation Error:", error);
             
             let errorMessage = "Unknown error";
             if (error instanceof Error) {
                 errorMessage = error.message;
-            } else if (typeof error === 'object' && error !== null && 'error' in error) {
-                // Razorpay sometimes returns error object with details
-                const razorpayError = (error as { error: { description?: string } }).error;
-                console.error("[PDA] Razorpay API Error Details:", JSON.stringify(razorpayError, null, 2));
-                errorMessage = razorpayError.description || errorMessage;
             }
-
             
-            throw new Error(`Razorpay PDA Order Creation Failed: ${errorMessage}`, { cause: error });
+            throw new AppError(`${ResponseMessage.PDA_ORDER_FAILED}: ${errorMessage}`, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 }
 

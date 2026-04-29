@@ -1,7 +1,9 @@
 import { Server as SocketServer } from "socket.io";
 import { Server as HttpServer } from "http";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 interface SocketKPIUpdate {
+// ... rest of file (using replace_file_content with TargetContent)
   type: string;
   action?: string;
   id?: string | string[];
@@ -33,20 +35,20 @@ interface SocketNotification {
 }
 
 class SocketService {
-  private static instance: SocketService;
-  private io: SocketServer | null = null;
+  private static _instance: SocketService;
+  private _io: SocketServer | null = null;
 
   private constructor() {}
 
   public static getInstance(): SocketService {
-    if (!SocketService.instance) {
-      SocketService.instance = new SocketService();
+    if (!SocketService._instance) {
+      SocketService._instance = new SocketService();
     }
-    return SocketService.instance;
+    return SocketService._instance;
   }
 
   public initialize(httpServer: HttpServer): SocketServer {
-    this.io = new SocketServer(httpServer, {
+    this._io = new SocketServer(httpServer, {
       cors: {
         origin: (origin, callback) => {
           // Allow any localhost origin
@@ -62,13 +64,13 @@ class SocketService {
           ) {
             return callback(null, true);
           }
-          callback(new Error("Not allowed by CORS"));
+          callback(new Error(ResponseMessage.NOT_ALLOWED_BY_CORS));
         },
         credentials: true,
       },
     });
 
-    this.io.on("connection", (socket) => {
+    this._io.on("connection", (socket) => {
       // Join a private room for the user
       socket.on("join", (userId: string) => {
         if (userId) {
@@ -79,41 +81,41 @@ class SocketService {
       socket.on("disconnect", () => {});
     });
 
-    return this.io;
+    return this._io;
   }
 
   public getIO(): SocketServer {
-    if (!this.io) {
-      throw new Error("Socket.io not initialized!");
+    if (!this._io) {
+      throw new Error(ResponseMessage.SOCKET_NOT_INITIALIZED);
     }
-    return this.io;
+    return this._io;
   }
 
   public emitKPIUpdate(data: SocketKPIUpdate) {
-    if (this.io) {
-      this.io.emit("kpi_update", data);
+    if (this._io) {
+      this._io.emit("kpi_update", data);
     }
   }
 
   public emitActivity(activity: SocketActivity) {
-    if (this.io) {
-      this.io.emit("new_activity", activity);
+    if (this._io) {
+      this._io.emit("new_activity", activity);
     }
   }
 
   public emitAlert(alert: SocketAlert, userId?: string) {
-    if (this.io) {
+    if (this._io) {
       if (userId) {
-        this.io.to(userId).emit("new_alert", alert);
+        this._io.to(userId).emit("new_alert", alert);
       } else {
-        this.io.emit("new_alert", alert);
+        this._io.emit("new_alert", alert);
       }
     }
   }
 
   public emitNotification(notification: SocketNotification, userId: string) {
-    if (this.io) {
-      this.io.to(userId).emit("notification", notification);
+    if (this._io) {
+      this._io.to(userId).emit("notification", notification);
     }
   }
 }

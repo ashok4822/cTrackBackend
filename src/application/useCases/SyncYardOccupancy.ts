@@ -1,27 +1,27 @@
-import { BlockModel } from "../../infrastructure/models/BlockModel";
-import { ContainerModel } from "../../infrastructure/models/ContainerModel";
+import { IBlockRepository } from "../../domain/repositories/IBlockRepository";
+import { IContainerRepository } from "../../domain/repositories/IContainerRepository";
+import { ISyncYardOccupancy } from "../ports/ISyncYardOccupancy";
+import { SyncYardOccupancyResponseDto, SyncResultDto } from "../dto/YardDto";
+import { YardMapper } from "../mappers/YardMapper";
 
-interface SyncResult {
-    block: string;
-    oldOccupied: number;
-    newOccupied: number;
-}
+export class SyncYardOccupancy implements ISyncYardOccupancy {
+    constructor(
+        private blockRepository: IBlockRepository,
+        private containerRepository: IContainerRepository
+    ) { }
 
-export class SyncYardOccupancy {
-    async execute(): Promise<{ message: string; results: SyncResult[] }> {
-        const blocks = await BlockModel.find();
-        const results: SyncResult[] = [];
+    async execute(): Promise<SyncYardOccupancyResponseDto> {
+        const blocks = await this.blockRepository.findAll();
+        const results: SyncResultDto[] = [];
 
         for (const block of blocks) {
-            // Count containers that are currently in this block with relevant statuses
-            const containerCount = await ContainerModel.countDocuments({
-                'yardLocation.block': block.name,
-                status: { $in: ['gate-in', 'in-yard', 'damaged'] }
-            });
+            const containerCount = await this.containerRepository.countByBlockNameAndStatuses(
+                block.name,
+                ['gate-in', 'in-yard', 'damaged']
+            );
 
             const oldOccupied = block.occupied;
-            block.occupied = containerCount;
-            await block.save();
+            await this.blockRepository.updateOccupied(block.id!, containerCount);
 
             results.push({
                 block: block.name,
@@ -30,9 +30,6 @@ export class SyncYardOccupancy {
             });
         }
 
-        return {
-            message: "Yard occupancy synchronized successfully",
-            results
-        };
+        return YardMapper.toSyncResponseDto("Yard occupancy synchronized successfully", results);
     }
 }

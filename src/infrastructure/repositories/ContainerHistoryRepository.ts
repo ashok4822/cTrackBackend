@@ -20,7 +20,7 @@ export class ContainerHistoryRepository implements IContainerHistoryRepository {
 
     async save(history: ContainerHistory): Promise<void> {
         const historyData = {
-            containerId: typeof history.containerId === 'object' ? history.containerId._id : history.containerId,
+            containerId: typeof history.containerId === 'object' ? history.containerId.id : history.containerId,
             activity: history.activity,
             details: history.details,
             performedBy: history.performedBy,
@@ -39,13 +39,13 @@ export class ContainerHistoryRepository implements IContainerHistoryRepository {
         const containerId = h.containerId as unknown;
         
         let containerIdStr = "";
-        let populatedData: { _id: string; containerNumber: string } | undefined;
+        let populatedData: { id: string; containerNumber: string } | undefined;
 
         if (containerId && typeof containerId === 'object' && 'containerNumber' in containerId) {
             const pc = containerId as { _id: mongoose.Types.ObjectId | string; containerNumber: string };
             containerIdStr = pc._id.toString();
             populatedData = {
-                _id: pc._id.toString(),
+                id: pc._id.toString(),
                 containerNumber: pc.containerNumber
             };
         } else if (containerId) {
@@ -70,8 +70,25 @@ export class ContainerHistoryRepository implements IContainerHistoryRepository {
         return entity;
     }
 
+    private applyFilters(filters: ContainerHistoryFilter): Record<string, unknown> {
+        const query: Record<string, unknown> = {};
+
+        if (filters.containerId) {
+            query.containerId = Array.isArray(filters.containerId) ? { $in: filters.containerId } : filters.containerId;
+        }
+        if (filters.activity) {
+            query.activity = Array.isArray(filters.activity) ? { $in: filters.activity } : filters.activity;
+        }
+        if (filters.performedBy) {
+            query.performedBy = Array.isArray(filters.performedBy) ? { $in: filters.performedBy } : filters.performedBy;
+        }
+
+        return query;
+    }
+
     async findRecent(filter: ContainerHistoryFilter, limit: number): Promise<ContainerHistory[]> {
-        const histories = await ContainerHistoryModel.find(filter)
+        const query = this.applyFilters(filter);
+        const histories = await ContainerHistoryModel.find(query)
             .sort({ timestamp: -1 as const })
             .limit(limit)
             .populate("containerId", "containerNumber");

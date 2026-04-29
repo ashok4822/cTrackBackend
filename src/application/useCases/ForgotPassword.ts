@@ -1,8 +1,12 @@
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { IOtpRepository } from "../../domain/repositories/IOtpRepository";
 import { IEmailService } from "../services/IEmailService";
+import { IForgotPassword } from "../ports/IForgotPassword";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class ForgotPassword {
+export class ForgotPassword implements IForgotPassword {
     constructor(
         private userRepository: IUserRepository,
         private otpRepository: IOtpRepository,
@@ -13,7 +17,7 @@ export class ForgotPassword {
         const userExists = await this.userRepository.exists(email);
         if (!userExists) {
             
-            throw new Error("User with this email does not exist");
+            throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -21,3 +25,4 @@ export class ForgotPassword {
         await this.emailService.sendPasswordResetOtp(email, otp);
     }
 }
+

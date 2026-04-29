@@ -1,11 +1,11 @@
 import { ContainerRequest } from "../entities/ContainerRequest";
 
 export type ContainerRequestFilter = {
-    customerId?: string;
-    type?: "stuffing" | "destuffing";
-    status?: string | string[] | { $in: string[] };
-    containerNumber?: string;
-    [key: string]: unknown;
+    customerId?: string | string[];
+    type?: ("stuffing" | "destuffing") | ("stuffing" | "destuffing")[];
+    status?: string | string[];
+    containerNumber?: string | string[];
+    isHazardous?: boolean;
 };
 
 export interface IContainerRequestRepository {

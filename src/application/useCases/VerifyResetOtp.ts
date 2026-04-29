@@ -1,13 +1,17 @@
+import { IVerifyResetOtp } from "../ports/IVerifyResetOtp";
 import { IOtpRepository } from "../../domain/repositories/IOtpRepository";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class VerifyResetOtp {
+export class VerifyResetOtp implements IVerifyResetOtp {
     constructor(private otpRepository: IOtpRepository) { }
 
     async execute(email: string, otp: string): Promise<void> {
         const savedOtpData = await this.otpRepository.findOtp(email);
 
         if (!savedOtpData || savedOtpData.otp !== otp) {
-            throw new Error("Invalid OTP");
+            throw new AppError(ResponseMessage.INVALID_OTP, HttpStatus.BAD_REQUEST);
         }
 
         const currentTime = new Date().getTime();
@@ -17,7 +21,8 @@ export class VerifyResetOtp {
         // 5 minute expiration (matching ResetPassword.ts)
         if (timeDifference > 300 * 1000) {
             await this.otpRepository.deleteOtp(email);
-            throw new Error("OTP has expired");
+            throw new AppError(ResponseMessage.OTP_EXPIRED, HttpStatus.BAD_REQUEST);
         }
     }
 }
+

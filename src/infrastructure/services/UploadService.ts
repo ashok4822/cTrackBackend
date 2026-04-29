@@ -3,6 +3,7 @@ import multer, { FileFilterCallback } from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import dotenv from "dotenv";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 dotenv.config();
 
@@ -28,7 +29,7 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallb
     if (file.mimetype.startsWith("image/")) {
         cb(null, true);
     } else {
-        cb(new Error("Only images are allowed"));
+        cb(new Error(ResponseMessage.ONLY_IMAGES_ALLOWED));
     }
 };
 

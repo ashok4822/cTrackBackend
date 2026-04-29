@@ -1,18 +1,25 @@
-import crypto from "crypto";
 import { IBillRepository } from "../../domain/repositories/IBillRepository";
-import { Bill } from "../../domain/entities/Bill";
-import { NotificationModel } from "../../infrastructure/models/NotificationModel";
-import { socketService } from "../../infrastructure/services/socketService";
-import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog } from "../../domain/entities/AuditLog";
 import { IBillTransactionRepository } from "../../domain/repositories/IBillTransactionRepository";
+import { IVerifyRazorpayPayment } from "../ports/IVerifyRazorpayPayment";
+import { IPaymentService } from "../services/IPaymentService";
+import { INotificationService } from "../services/INotificationService";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { BillResponseDto } from "../dto/BillingDto";
+import { UserContextDto } from "../dto/CommonDto";
+import { BillingMapper } from "../mappers/BillingMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class VerifyRazorpayPayment {
+export class VerifyRazorpayPayment implements IVerifyRazorpayPayment {
     constructor(
         private billRepository: IBillRepository,
-        private auditLogRepository?: IAuditLogRepository,
+        private paymentService: IPaymentService,
+        private notificationService: INotificationService,
+        private eventBus: IEventBus,
         private transactionRepository?: IBillTransactionRepository
     ) { }
+
 
     async execute(
         billId: string,
@@ -20,41 +27,33 @@ export class VerifyRazorpayPayment {
         razorpay_order_id: string,
         razorpay_payment_id: string,
         razorpay_signature: string,
-        userContext?: {
-            userId: string;
-            userName: string;
-            userRole: string;
-            ipAddress: string;
-        }
-    ): Promise<Bill> {
+        userContext?: UserContextDto
+    ): Promise<BillResponseDto> {
         const bill = await this.billRepository.findById(billId);
 
         if (!bill) {
-            throw new Error("Bill not found");
+            throw new AppError(ResponseMessage.BILL_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         if (!bill.customer || bill.customer.toString() !== userId) {
-            throw new Error("Unauthorized: This bill does not belong to you");
+            throw new AppError(ResponseMessage.BILL_OWNERSHIP_ERROR, HttpStatus.FORBIDDEN);
         }
 
         // Verify signature
-        const secret = process.env.RAZOR_SECRET_ID || "";
-        const hmac = crypto.createHmac("sha256", secret);
-        hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
-        const generated_signature = hmac.digest("hex");
+        const isValid = this.paymentService.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
 
-        if (generated_signature !== razorpay_signature) {
+        if (!isValid) {
             // Log failed transaction
             if (this.transactionRepository) {
                 const transaction = await this.transactionRepository.findByOrderId(razorpay_order_id);
                 if (transaction && transaction.id) {
                     await this.transactionRepository.updateStatus(transaction.id, "failed", {
                         transactionId: razorpay_payment_id,
-                        errorDetails: "Invalid payment signature"
+                        errorDetails: ResponseMessage.INVALID_PAYMENT_SIGNATURE
                     });
                 }
             }
-            throw new Error("Invalid payment signature");
+            throw new AppError(ResponseMessage.INVALID_PAYMENT_SIGNATURE, HttpStatus.BAD_REQUEST);
         }
 
         // Update bill status
@@ -65,7 +64,7 @@ export class VerifyRazorpayPayment {
         });
 
         if (!updatedBill) {
-            throw new Error("Failed to update bill status");
+            throw new AppError(ResponseMessage.BILL_STATUS_UPDATE_FAILED, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         // Update transaction to success
@@ -78,45 +77,28 @@ export class VerifyRazorpayPayment {
             }
         }
 
-        // Audit Log
-        if (this.auditLogRepository && userContext) {
-            await this.auditLogRepository.save(new AuditLog(
-                null,
-                userContext.userId,
-                userContext.userRole,
-                userContext.userName,
-                "BILL_PAID",
-                "Bill",
-                updatedBill.id,
-                JSON.stringify({ billNumber: updatedBill.billNumber, totalAmount: updatedBill.totalAmount, method: "Razorpay" }),
-                userContext.ipAddress
-            ));
+        // Audit Log (Event-driven)
+        if (userContext) {
+            this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+                userId: userContext.userId,
+                userRole: userContext.userRole,
+                userName: userContext.userName,
+                action: ResponseMessage.AUDIT_BILL_PAID,
+                resourceType: ResponseMessage.RESOURCE_BILL,
+                resourceId: updatedBill.id,
+                details: { billNumber: updatedBill.billNumber, totalAmount: updatedBill.totalAmount, method: "Razorpay" },
+                ipAddress: userContext.ipAddress
+            });
         }
 
         // Notify customer about successful payment
-        try {
-            const notification = await NotificationModel.create({
-                userId: userId,
-                type: "success",
-                title: "Payment Successful",
-                message: `Your payment of ₹${updatedBill.totalAmount} for bill ${updatedBill.billNumber} has been received.`,
-                link: "/customer/bills"
-            });
-            socketService.emitNotification({
-                id: notification._id.toString(),
-                type: "success",
-                title: "Payment Successful",
-                message: `Your payment of ₹${updatedBill.totalAmount} for bill ${updatedBill.billNumber} has been received.`,
-                link: "/customer/bills",
-                read: false,
-                timestamp: notification.createdAt || new Date()
-            }, userId);
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Unknown error";
-            console.error("Failed to create/emit notification for payment success:", errorMessage);
-        }
+        await this.notificationService.send(userId, {
+            type: "success",
+            title: ResponseMessage.PAYMENT_SUCCESSFUL_TITLE,
+            message: `${ResponseMessage.PAYMENT_RECEIVED_MESSAGE} for bill ${updatedBill.billNumber}. Amount: ₹${updatedBill.totalAmount}`,
+            link: "/customer/bills"
+        });
 
-
-        return updatedBill;
+        return BillingMapper.toResponseDto(updatedBill);
     }
 }

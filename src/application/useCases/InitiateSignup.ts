@@ -1,8 +1,12 @@
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { IOtpRepository } from "../../domain/repositories/IOtpRepository";
 import { IEmailService } from "../services/IEmailService";
+import { IInitiateSignup } from "../ports/IInitiateSignup";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class InitiateSignup {
+export class InitiateSignup implements IInitiateSignup {
     constructor(
         private userRepository: IUserRepository,
         private otpRepository: IOtpRepository,
@@ -12,7 +16,7 @@ export class InitiateSignup {
     async execute(email: string): Promise<void> {
         const userExists = await this.userRepository.exists(email);
         if (userExists) {
-            throw new Error("User already exists");
+            throw new AppError(ResponseMessage.USER_ALREADY_EXISTS, HttpStatus.CONFLICT);
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -20,3 +24,4 @@ export class InitiateSignup {
         await this.emailService.sendOtp(email, otp);
     }
 }
+

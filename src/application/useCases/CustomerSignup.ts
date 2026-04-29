@@ -1,6 +1,9 @@
-import { User } from "../../domain/entities/User";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { IHashService } from "../services/IHashService";
+import { UserMapper } from "../mappers/UserMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CustomerSignup {
   constructor(
@@ -12,12 +15,13 @@ export class CustomerSignup {
     const userExists = await this.userRepository.exists(email);
 
     if (userExists) {
-      throw new Error("User already exists");
+      throw new AppError(ResponseMessage.USER_ALREADY_EXISTS, HttpStatus.CONFLICT);
     }
 
     const hashedPassword = await this.hashService.hash(password);
-    const user = new User("", email, "customer", hashedPassword, name, undefined, undefined, undefined);
+    const user = UserMapper.createNew(email, "customer", hashedPassword, name);
 
     await this.userRepository.save(user);
   }
 }
+

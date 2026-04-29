@@ -30,29 +30,27 @@ export const createVehicleRouter = () => {
         "/",
         authMiddleware,
         roleMiddleware(["admin", "operator"]),
-        (req, res) => controller.fetchAll(req, res)
+        controller.fetchAll
     );
     router.post(
         "/",
         authMiddleware,
         roleMiddleware(["admin", "operator"]),
-        (req, res) => controller.create(req, res)
+        controller.create
     );
     router.put(
         "/:id",
         authMiddleware,
         roleMiddleware(["admin", "operator"]),
-        (req, res) => controller.update(req, res)
+        controller.update
     );
     router.patch(
         "/:id",
         authMiddleware,
         roleMiddleware(["admin", "operator"]),
-        (req, res) => controller.update(req, res)
+        controller.update
     );
-    router.delete("/:id", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        controller.delete(req, res)
-    );
+    router.delete("/:id", authMiddleware, roleMiddleware(["admin"]), controller.delete);
 
     return router;
 };

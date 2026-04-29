@@ -1,10 +1,13 @@
-import { CargoCategory } from "../../domain/entities/CargoCategory";
 import { ICargoCategoryRepository } from "../../domain/repositories/ICargoCategoryRepository";
+import { IUpdateCargoCategory } from "../ports/IUpdateCargoCategory";
+import { UpdateCargoCategoryRequestDto, CargoCategoryResponseDto } from "../dto/CargoDto";
+import { CargoMapper } from "../mappers/CargoMapper";
 
-export class UpdateCargoCategory {
+export class UpdateCargoCategory implements IUpdateCargoCategory {
     constructor(private cargoCategoryRepository: ICargoCategoryRepository) { }
 
-    async execute(id: string, data: Partial<CargoCategory>): Promise<CargoCategory | null> {
-        return await this.cargoCategoryRepository.update(id, data);
+    async execute(id: string, data: UpdateCargoCategoryRequestDto): Promise<CargoCategoryResponseDto | null> {
+        const updated = await this.cargoCategoryRepository.update(id, data);
+        return updated ? CargoMapper.toResponseDto(updated) : null;
     }
 }

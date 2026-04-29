@@ -1,33 +1,14 @@
 import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog, AuditAction, EntityType } from "../../domain/entities/AuditLog";
+import { ICreateAuditLog } from "../ports/ICreateAuditLog";
+import { CreateAuditLogRequestDto } from "../dto/AuditLogDto";
+import { AuditMapper } from "../mappers/AuditMapper";
 
-export interface CreateAuditLogData {
-    userId: string;
-    userRole: string;
-    userName: string;
-    action: AuditAction;
-    entityType: EntityType;
-    entityId?: string;
-    details: string;
-    ipAddress: string;
-}
-
-export class CreateAuditLog {
+export class CreateAuditLog implements ICreateAuditLog {
     constructor(private auditLogRepository: IAuditLogRepository) { }
 
-    async execute(data: CreateAuditLogData): Promise<void> {
-        const auditLog = new AuditLog(
-            null,
-            data.userId,
-            data.userRole,
-            data.userName,
-            data.action,
-            data.entityType,
-            data.entityId || null,
-            data.details,
-            data.ipAddress
-        );
-
+    async execute(data: CreateAuditLogRequestDto): Promise<void> {
+        const auditLog = AuditMapper.toEntity(data);
         await this.auditLogRepository.save(auditLog);
     }
 }
+

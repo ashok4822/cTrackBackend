@@ -1,168 +1,94 @@
 import { Request, Response } from "express";
-import { CreateContainer } from "../../application/useCases/CreateContainer";
-import { GetAllContainers } from "../../application/useCases/GetAllContainers";
-import { GetContainerById } from "../../application/useCases/GetContainerById";
-import { UpdateContainer } from "../../application/useCases/UpdateContainer";
-import { BlacklistContainer } from "../../application/useCases/BlacklistContainer";
-import { UnblacklistContainer } from "../../application/useCases/UnblacklistContainer";
-import { GetContainerHistory } from "../../application/useCases/GetContainerHistory";
-import { GetCustomerContainers } from "../../application/useCases/GetCustomerContainers";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
-import { socketService } from "../../infrastructure/services/socketService";
-import { ContainerFilter } from "../../domain/repositories/IContainerRepository";
+import { ICreateContainer } from "../../application/ports/ICreateContainer";
+import { IGetAllContainers } from "../../application/ports/IGetAllContainers";
+import { ContainerFiltersDto } from "../../application/dto/ContainerDto";
+import { IGetContainerById } from "../../application/ports/IGetContainerById";
+import { IUpdateContainer } from "../../application/ports/IUpdateContainer";
+import { IBlacklistContainer } from "../../application/ports/IBlacklistContainer";
+import { IUnblacklistContainer } from "../../application/ports/IUnblacklistContainer";
+import { IGetContainerHistory } from "../../application/ports/IGetContainerHistory";
+import { IGetCustomerContainers } from "../../application/ports/IGetCustomerContainers";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { AppError } from "../../domain/exceptions/AppError";
+import { extractUserContext } from "../utils/userContext";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class ContainerController {
     constructor(
-        private createContainerUseCase: CreateContainer,
-        private getAllContainersUseCase: GetAllContainers,
-        private getContainerByIdUseCase: GetContainerById,
-        private updateContainerUseCase: UpdateContainer,
-        private blacklistContainerUseCase: BlacklistContainer,
-        private unblacklistContainerUseCase: UnblacklistContainer,
-        private getContainerHistoryUseCase: GetContainerHistory,
-        private getCustomerContainersUseCase: GetCustomerContainers
+        private createContainerUseCase: ICreateContainer,
+        private getAllContainersUseCase: IGetAllContainers,
+        private getContainerByIdUseCase: IGetContainerById,
+        private updateContainerUseCase: IUpdateContainer,
+        private blacklistContainerUseCase: IBlacklistContainer,
+        private unblacklistContainerUseCase: IUnblacklistContainer,
+        private getContainerHistoryUseCase: IGetContainerHistory,
+        private getCustomerContainersUseCase: IGetCustomerContainers
     ) { }
 
-    async createContainer(req: Request, res: Response) {
-        try {
-            const userContext = {
-                userId: req.user?.id || 'unknown',
-                userName: req.user?.name || req.user?.email || 'unknown',
-                userRole: req.user?.role || 'unknown',
-                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
-            };
-            await this.createContainerUseCase.execute(req.body, userContext);
+    createContainer = asyncHandler(async (req: Request, res: Response) => {
+        const userContext = extractUserContext(req);
+        await this.createContainerUseCase.execute(req.body, userContext);
+        
+        return res.status(HttpStatus.CREATED).json(ApiResponse.success(null, ResponseMessage.CONTAINER_CREATED));
+    });
 
-            // Real-time update
-            socketService.emitKPIUpdate({ type: 'CONTAINER_CREATED', data: req.body });
-            socketService.emitActivity({
-                type: 'CONTAINER',
-                title: 'New Container Added',
-                description: `${req.body.containerNumber} added to yard`,
-                timestamp: new Date()
-            });
+    getAllContainers = asyncHandler(async (req: Request, res: Response) => {
+        const filters = req.query as unknown as ContainerFiltersDto;
+        const containers = await this.getAllContainersUseCase.execute(filters);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(containers));
+    });
 
-            return res.status(HttpStatus.CREATED).json({ message: "Container created successfully" });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message });
+    getContainerById = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const container = await this.getContainerByIdUseCase.execute(id as string);
+        if (!container) {
+            throw new AppError(ResponseMessage.CONTAINER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
-    }
+        return res.status(HttpStatus.OK).json(ApiResponse.success(container));
+    });
 
-    async getAllContainers(req: Request, res: Response) {
-        try {
-            const filters = req.query as ContainerFilter;
-            const containers = await this.getAllContainersUseCase.execute(filters);
-            return res.status(HttpStatus.OK).json(containers);
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message });
+    updateContainer = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const { equipment: equipmentName, ...data } = req.body;
+        const performedBy = req.user?.name || req.user?.email || "System";
+        const userContext = extractUserContext(req);
+        await this.updateContainerUseCase.execute({ id, equipmentName, performedBy, ...data }, userContext);
+        
+        return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.CONTAINER_UPDATED));
+    });
+
+    blacklistContainer = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const userContext = extractUserContext(req);
+        await this.blacklistContainerUseCase.execute(id as string, userContext);
+        
+        return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.CONTAINER_BLACKLISTED));
+    });
+
+    unblacklistContainer = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const userContext = extractUserContext(req);
+        await this.unblacklistContainerUseCase.execute(id as string, userContext);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.CONTAINER_UNBLACKLISTED));
+    });
+
+    getContainerHistory = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const history = await this.getContainerHistoryUseCase.execute(id as string);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(history));
+    });
+
+    getCustomerContainers = asyncHandler(async (req: Request, res: Response) => {
+        const customerName = req.user?.name;
+        const customerId = req.user?.id;
+        if (!customerName || !customerId) {
+            throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-    }
-
-    async getContainerById(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const container = await this.getContainerByIdUseCase.execute(id as string);
-            if (!container) {
-                return res.status(HttpStatus.NOT_FOUND).json({ message: "Container not found" });
-            }
-            return res.status(HttpStatus.OK).json(container);
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message });
-        }
-    }
-
-    async updateContainer(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const { equipment: equipmentName, ...data } = req.body;
-            const performedBy = req.user?.name || req.user?.email || "System";
-            const userContext = {
-                userId: req.user?.id || 'unknown',
-                userName: req.user?.name || req.user?.email || 'unknown',
-                userRole: req.user?.role || 'unknown',
-                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
-            };
-            await this.updateContainerUseCase.execute(id as string, data, userContext, equipmentName, performedBy);
-
-            // Real-time update
-            socketService.emitKPIUpdate({ type: 'CONTAINER_UPDATED', id: id as string, data });
-
-            return res.status(HttpStatus.OK).json({ message: "Container updated successfully" });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message });
-        }
-    }
-
-    async blacklistContainer(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const userContext = {
-                userId: req.user?.id || 'unknown',
-                userName: req.user?.name || req.user?.email || 'unknown',
-                userRole: req.user?.role || 'unknown',
-                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
-            };
-            await this.blacklistContainerUseCase.execute(id as string, userContext);
-
-            // Real-time update
-            socketService.emitAlert({
-                type: 'warning',
-                title: 'Container Blacklisted',
-                message: `Container ${id} has been moved to blacklist`,
-                id: `bl-${Date.now()}`
-            });
-
-            return res.status(HttpStatus.OK).json({ message: "Container blacklisted successfully" });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message });
-        }
-    }
-
-    async unblacklistContainer(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const userContext = {
-                userId: req.user?.id || 'unknown',
-                userName: req.user?.name || req.user?.email || 'unknown',
-                userRole: req.user?.role || 'unknown',
-                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
-            };
-            await this.unblacklistContainerUseCase.execute(id as string, userContext);
-            return res.status(HttpStatus.OK).json({ message: "Container unblacklisted successfully" });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message });
-        }
-    }
-
-    async getContainerHistory(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const history = await this.getContainerHistoryUseCase.execute(id as string);
-            return res.status(HttpStatus.OK).json(history);
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message });
-        }
-    }
-
-    async getCustomerContainers(req: Request, res: Response) {
-        try {
-            const customerName = req.user?.name;
-            const customerId = req.user?.id;
-            if (!customerName || !customerId) {
-                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "Unauthorized" });
-            }
-            const containers = await this.getCustomerContainersUseCase.execute(customerName, customerId);
-            return res.status(HttpStatus.OK).json(containers);
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message });
-        }
-    }
+        const containers = await this.getCustomerContainersUseCase.execute(customerName, customerId);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(containers));
+    });
 }
+
+

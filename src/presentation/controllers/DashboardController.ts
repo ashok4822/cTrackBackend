@@ -1,25 +1,22 @@
 import { Request, Response } from "express";
-import { GetDashboardKPIs } from "../../application/useCases/GetDashboardKPIs";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
+import { IGetDashboardKPIs } from "../../application/ports/IGetDashboardKPIs";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class DashboardController {
     constructor(
-        private getDashboardKPIsUseCase: GetDashboardKPIs
+        private getDashboardKPIsUseCase: IGetDashboardKPIs
     ) { }
 
-    async getKPIs(req: Request, res: Response) {
-        try {
-            const user = req.user;
-            const kpis = await this.getDashboardKPIsUseCase.execute(
-                user?.role,
-                user?.companyName || user?.name,
-                user?.id
-            );
-            return res.status(HttpStatus.OK).json(kpis);
-        } catch (error: unknown) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                message: error instanceof Error ? error.message : "Internal server error"
-            });
-        }
-    }
+    getKPIs = asyncHandler(async (req: Request, res: Response) => {
+        const user = req.user;
+        const kpis = await this.getDashboardKPIsUseCase.execute({
+            role: user?.role,
+            customerName: user?.companyName || user?.name,
+            userId: user?.id
+        });
+        return res.status(HttpStatus.OK).json(ApiResponse.success(kpis));
+    });
 }
+

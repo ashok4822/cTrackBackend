@@ -1,4 +1,5 @@
 import { Model, Document, UpdateQuery } from "mongoose";
+import { ResponseMessage } from "../../../shared/constants/ResponseMessage";
 
 /*
   Abstract Base Repository to provide common database operations.
@@ -38,7 +39,7 @@ export abstract class BaseRepository<TEntity, TModel extends Document> {
       savedDoc = await this.model
         .findByIdAndUpdate(id, data, { new: true })
         .exec();
-      if (!savedDoc) throw new Error("Entity not found for update");
+      if (!savedDoc) throw new Error(ResponseMessage.ENTITY_NOT_FOUND_UPDATE);
     } else {
       savedDoc = await this.model.create(data);
     }

@@ -10,6 +10,48 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
         super(ContainerModel);
     }
 
+    private applyFilters(filters: ContainerFilter): Record<string, unknown> {
+        const query: Record<string, unknown> = {};
+
+        if (filters.containerNumber) {
+            if (Array.isArray(filters.containerNumber)) {
+                query.containerNumber = { $in: filters.containerNumber };
+            } else {
+                query.containerNumber = { $regex: `^${filters.containerNumber}$`, $options: "i" };
+            }
+        }
+        if (filters.size) {
+            query.size = Array.isArray(filters.size) ? { $in: filters.size } : filters.size;
+        }
+        if (filters.type) {
+            const types = Array.isArray(filters.type) ? filters.type : [filters.type];
+            query.type = { $in: types.map(t => t.toLowerCase()) };
+        }
+        if (filters.block) {
+            query["yardLocation.block"] = Array.isArray(filters.block) ? { $in: filters.block } : filters.block;
+        }
+        if (filters.status) {
+            query.status = Array.isArray(filters.status) ? { $in: filters.status } : filters.status;
+        }
+        if (filters.customer) {
+            query.customer = Array.isArray(filters.customer) ? { $in: filters.customer } : filters.customer;
+        }
+        if (filters.empty !== undefined) {
+            query.empty = filters.empty;
+        }
+        if (filters.isHazardous !== undefined) {
+            query.hazardousClassification = filters.isHazardous;
+        }
+        if (filters.damaged !== undefined) {
+            query.damaged = filters.damaged;
+        }
+        if (filters.blacklisted !== undefined) {
+            query.blacklisted = filters.blacklisted;
+        }
+
+        return query;
+    }
+
     async findById(id: string): Promise<Container | null> {
         const doc = await this.model.findById(id).exec();
         if (!doc) return null;
@@ -18,34 +60,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
     }
 
     async findAll(filters?: ContainerFilter): Promise<Container[]> {
-        const query: Record<string, unknown> = {};
-
-        if (filters?.containerNumber) {
-            query.containerNumber = { $regex: `^${filters.containerNumber}$`, $options: "i" };
-        }
-        if (filters?.size) {
-            query.size = filters.size;
-        }
-        if (filters?.type) {
-            query.type = filters.type.toLowerCase();
-        }
-        if (filters?.block) {
-            query["yardLocation.block"] = filters.block;
-        }
-        if (filters?.status) {
-            if (Array.isArray(filters.status)) {
-                query.status = { $in: filters.status };
-            } else {
-                query.status = filters.status;
-            }
-        }
-        if (filters?.customer) {
-            query.customer = filters.customer;
-        }
-        if (filters?.empty !== undefined) {
-            query.empty = filters.empty;
-        }
-
+        const query = filters ? this.applyFilters(filters) : {};
         const containers = await this.model.find(query).exec();
         return this.mapWithCustomers(containers);
     }
@@ -77,7 +92,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             const outTime = c.gateOutTime ? new Date(c.gateOutTime) : new Date();
             const inTime = new Date(c.gateInTime);
             const diffMs = outTime.getTime() - inTime.getTime();
-            dwellTime = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+            dwellTime = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
         }
 
         return new Container(
@@ -143,7 +158,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
     }
 
     async countByStatus(status: string | string[], filter?: ContainerFilter): Promise<number> {
-        const query: Record<string, unknown> = { ...filter };
+        const query = filter ? this.applyFilters(filter) : {};
         if (Array.isArray(status)) {
             query.status = { $in: status };
         } else {
@@ -152,26 +167,35 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
         return await this.model.countDocuments(query).exec();
     }
 
+    async countByBlockNameAndStatuses(blockName: string, statuses: string[]): Promise<number> {
+        return await this.model.countDocuments({
+            'yardLocation.block': blockName,
+            status: { $in: statuses },
+        }).exec();
+    }
+
     async findInYard(filter?: ContainerFilter): Promise<Container[]> {
-        const query: Record<string, unknown> = {
-            ...filter,
-            status: { $in: ["gate-in", "in-yard", "damaged"] },
-            gateInTime: { $exists: true },
-        };
+        const query = filter ? this.applyFilters(filter) : {};
+        query.status = { $in: ["gate-in", "in-yard", "damaged"] };
+        query.gateInTime = { $exists: true };
+        
         const docs = await this.model.find(query).exec();
         return this.mapWithCustomers(docs);
     }
 
     async getDistinctContainerNumbers(filter?: ContainerFilter): Promise<string[]> {
-        return await this.model.find(filter).distinct("containerNumber").exec() as unknown as string[];
+        const query = filter ? this.applyFilters(filter) : {};
+        return await this.model.find(query).distinct("containerNumber").exec() as unknown as string[];
     }
 
     async getDistinctContainerIds(filter?: ContainerFilter): Promise<string[]> {
-        return (await this.model.find(filter).distinct("_id").exec()).map(id => id.toString());
+        const query = filter ? this.applyFilters(filter) : {};
+        return (await this.model.find(query).distinct("_id").exec()).map(id => id.toString());
     }
 
     async findRecent(filter: ContainerFilter, limit: number): Promise<Container[]> {
-        const docs = await this.model.find(filter as Record<string, unknown>).sort({ updatedAt: -1 as const }).limit(limit).exec();
+        const query = this.applyFilters(filter);
+        const docs = await this.model.find(query).sort({ updatedAt: -1 as const }).limit(limit).exec();
         return this.mapWithCustomers(docs);
     }
 }

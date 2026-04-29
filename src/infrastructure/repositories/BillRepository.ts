@@ -23,16 +23,19 @@ interface BillLeanDoc {
 }
 
 export class BillRepository implements IBillRepository {
-  async findAll(customerId?: string): Promise<Bill[]> {
-    const query = customerId ? { customer: customerId } : {};
+  async findAll(customerId?: string, status?: string): Promise<Bill[]> {
+    const query: any = {};
+    if (customerId) query.customer = customerId;
+    if (status) query.status = status;
+    
     const docs = await BillModel.find(query).sort({ createdAt: -1 }).lean();
-    return this.mapWithCustomers(docs as BillLeanDoc[]);
+    return this._mapWithCustomers(docs as BillLeanDoc[]);
   }
 
   async findById(id: string): Promise<Bill | null> {
     const doc = await BillModel.findById(id).lean();
     if (!doc) return null;
-    const [mapped] = await this.mapWithCustomers([doc as BillLeanDoc]);
+    const [mapped] = await this._mapWithCustomers([doc as BillLeanDoc]);
     return mapped;
   }
 
@@ -40,7 +43,7 @@ export class BillRepository implements IBillRepository {
     const docs = await BillModel.find({ containerId })
       .sort({ createdAt: -1 })
       .lean();
-    return this.mapWithCustomers(docs as BillLeanDoc[]);
+    return this._mapWithCustomers(docs as BillLeanDoc[]);
   }
 
   async save(bill: Bill): Promise<Bill> {
@@ -84,7 +87,7 @@ export class BillRepository implements IBillRepository {
       leanDoc = created.toObject() as BillLeanDoc;
     }
 
-    const [mapped] = await this.mapWithCustomers([leanDoc]);
+    const [mapped] = await this._mapWithCustomers([leanDoc]);
     return mapped;
   }
 
@@ -93,12 +96,12 @@ export class BillRepository implements IBillRepository {
       new: true,
     }).lean();
     if (!doc) return null;
-    const [mapped] = await this.mapWithCustomers([doc as BillLeanDoc]);
+    const [mapped] = await this._mapWithCustomers([doc as BillLeanDoc]);
     return mapped;
   }
 
   // Helper to fetch user company names in bulk
-  private async mapWithCustomers(docs: BillLeanDoc[]): Promise<Bill[]> {
+  private async _mapWithCustomers(docs: BillLeanDoc[]): Promise<Bill[]> {
     if (!docs.length) return [];
 
     // Collect unique customer IDs
@@ -129,10 +132,10 @@ export class BillRepository implements IBillRepository {
       }
     }
 
-    return docs.map((doc) => this.mapToEntity(doc, userMap));
+    return docs.map((doc) => this._mapToEntity(doc, userMap));
   }
 
-  private mapToEntity(doc: BillLeanDoc, userMap: Record<string, string> = {}): Bill {
+  private _mapToEntity(doc: BillLeanDoc, userMap: Record<string, string> = {}): Bill {
     const { _id, ...rest } = doc;
     return new Bill(
       _id.toString(),
@@ -154,10 +157,47 @@ export class BillRepository implements IBillRepository {
     );
   }
 
+  private _applyAggregateFilters(filters: BillAggregateFilter): Record<string, unknown> {
+    const query: Record<string, unknown> = {};
+
+    if (filters.customerId || filters.customerName) {
+      const condition: Array<Record<string, unknown>> = [];
+      if (filters.customerId) {
+        condition.push({ customer: Array.isArray(filters.customerId) ? { $in: filters.customerId } : filters.customerId });
+      }
+      if (filters.customerName) {
+        condition.push({ customerName: Array.isArray(filters.customerName) ? { $in: filters.customerName } : filters.customerName });
+      }
+      if (condition.length > 1) {
+        query.$or = condition;
+      } else if (condition.length === 1) {
+        Object.assign(query, condition[0]);
+      }
+    }
+
+    if (filters.status) {
+      query.status = Array.isArray(filters.status) ? { $in: filters.status } : filters.status;
+    }
+
+    if (filters.excludeStatus) {
+      query.status = { $nin: Array.isArray(filters.excludeStatus) ? filters.excludeStatus : [filters.excludeStatus] };
+    }
+
+    return query;
+  }
+
   async aggregateUnpaidAmount(filter: BillAggregateFilter): Promise<BillAggregateResult[]> {
-    return await BillModel.aggregate<BillAggregateResult>([
-      { $match: filter },
+    const query = this._applyAggregateFilters(filter);
+    const results = await BillModel.aggregate([
+      { $match: query },
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]).exec();
+
+    return results.map(r => ({ total: r.total || 0 }));
+  }
+
+  async hasOverdueBills(customerId: string): Promise<boolean> {
+    const doc = await BillModel.findOne({ customer: customerId, status: "overdue" }).lean();
+    return doc !== null;
   }
 }

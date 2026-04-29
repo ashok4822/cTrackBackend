@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { JwtTokenService } from "./JwtTokenService";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { UserRole } from "../../domain/entities/User";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 const tokenService = new JwtTokenService();
 
@@ -22,7 +23,7 @@ export const authMiddleware = (
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res
       .status(HttpStatus.UNAUTHORIZED)
-      .json({ message: "No token provided" });
+      .json({ message: ResponseMessage.NO_TOKEN });
   }
 
   const token = authHeader.split(" ")[1];
@@ -41,7 +42,7 @@ export const authMiddleware = (
     }
     return res
       .status(HttpStatus.UNAUTHORIZED)
-      .json({ message: "Invalid or expired token" });
+      .json({ message: ResponseMessage.INVALID_TOKEN });
   }
 };
 
@@ -51,7 +52,7 @@ export const roleMiddleware = (allowedRoles: string[]) => {
     if (!userRole || !allowedRoles.includes(userRole)) {
       return res
         .status(HttpStatus.FORBIDDEN)
-        .json({ message: "Access denied: Insufficient permissions" });
+        .json({ message: ResponseMessage.INSUFFICIENT_PERMISSIONS });
     }
     next();
   };

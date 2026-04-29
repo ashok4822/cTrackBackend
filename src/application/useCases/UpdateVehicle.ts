@@ -1,36 +1,27 @@
+import { IUpdateVehicle } from "../ports/IUpdateVehicle";
 import { IVehicleRepository } from "../../domain/repositories/IVehicleRepository";
-import { Vehicle, VehicleType } from "../../domain/entities/Vehicle";
+import { UpdateVehicleRequestDto, VehicleResponseDto } from "../dto/VehicleDto";
+import { VehicleMapper } from "../mappers/VehicleMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class UpdateVehicle {
+export class UpdateVehicle implements IUpdateVehicle {
     constructor(private vehicleRepository: IVehicleRepository) { }
 
     async execute(
         id: string,
-        data: Partial<{
-            vehicleNumber: string;
-            driverName: string;
-            driverPhone: string;
-            type: VehicleType;
-            gpsDeviceId: string;
-            currentLocation: string;
-        }>
-    ): Promise<Vehicle> {
+        data: UpdateVehicleRequestDto
+    ): Promise<VehicleResponseDto> {
         const existingVehicle = await this.vehicleRepository.findById(id);
         if (!existingVehicle) {
-            throw new Error("Vehicle not found");
+            throw new AppError(ResponseMessage.VEHICLE_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        const updatedVehicle = new Vehicle(
-            id,
-            data.vehicleNumber ?? existingVehicle.vehicleNumber,
-            data.driverName ?? existingVehicle.driverName,
-            data.driverPhone ?? existingVehicle.driverPhone,
-            data.type ?? existingVehicle.type,
-            existingVehicle.status,
-            data.gpsDeviceId ?? existingVehicle.gpsDeviceId,
-            data.currentLocation ?? existingVehicle.currentLocation
-        );
+        const updatedVehicle = VehicleMapper.applyUpdate(existingVehicle, data);
 
-        return await this.vehicleRepository.save(updatedVehicle);
+        const saved = await this.vehicleRepository.save(updatedVehicle);
+        return VehicleMapper.toResponseDto(saved);
     }
 }
+

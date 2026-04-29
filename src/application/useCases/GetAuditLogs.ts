@@ -1,17 +1,20 @@
+import { IGetAuditLogs } from "../ports/IGetAuditLogs";
 import { IAuditLogRepository, AuditLogFilters } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog } from "../../domain/entities/AuditLog";
+import { AuditLogCollectionResponseDto, AuditLogFiltersDto } from "../dto/AuditLogDto";
+import { AuditMapper } from "../mappers/AuditMapper";
 
-export class GetAuditLogs {
+export class GetAuditLogs implements IGetAuditLogs {
     constructor(private auditLogRepository: IAuditLogRepository) { }
 
-    async execute(filters?: AuditLogFilters): Promise<{ logs: AuditLog[]; total: number; page: number; limit: number }> {
-        const result = await this.auditLogRepository.findAll(filters);
+    async execute(filters?: AuditLogFiltersDto): Promise<AuditLogCollectionResponseDto> {
+        // AuditLogFiltersDto is structurally compatible with AuditLogFilters
+        const result = await this.auditLogRepository.findAll(filters as AuditLogFilters | undefined);
 
-        return {
-            logs: result.logs,
-            total: result.total,
-            page: filters?.page || 1,
-            limit: filters?.limit || 50,
-        };
+        return AuditMapper.toCollectionResponseDto(
+            result.logs,
+            result.total,
+            filters?.page ?? 1,
+            filters?.limit ?? 50
+        );
     }
 }

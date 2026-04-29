@@ -11,41 +11,36 @@ import { GetCustomerContainers } from "../../application/useCases/GetCustomerCon
 import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
 import { ContainerHistoryRepository } from "../../infrastructure/repositories/ContainerHistoryRepository";
 import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
-import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
-import { BillRepository } from "../../infrastructure/repositories/BillRepository";
-import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
-import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
-import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
-import { checkOverdueBills } from "../../infrastructure/services/checkOverdueBills";
-
 import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
+import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
+import { eventBus } from "../../infrastructure/events/EventEmitterBus";
+import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { createCheckOverdueBillsMiddleware } from "../../infrastructure/services/checkOverdueBills";
+import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 
 export const createContainerRouter = () => {
     const router = Router();
     const repository = new ContainerRepository();
     const historyRepository = new ContainerHistoryRepository();
     const equipmentRepository = new EquipmentRepository();
-    const equipmentHistoryRepository = new EquipmentHistoryRepository();
-    const billRepository = new BillRepository();
     const blockRepository = new BlockRepository();
-    const auditLogRepository = new MongoAuditLogRepository();
+    const containerRequestRepository = new ContainerRequestRepository();
+    const billRepository = new BillRepository();
 
-    const createUseCase = new CreateContainer(repository, historyRepository, auditLogRepository);
+    const checkOverdueBills = createCheckOverdueBillsMiddleware(billRepository);
+
+    const createUseCase = new CreateContainer(repository, eventBus);
     const getAllUseCase = new GetAllContainers(repository);
     const getByIdUseCase = new GetContainerById(repository);
     const updateUseCase = new UpdateContainer(
         repository,
-        historyRepository,
         equipmentRepository,
-        equipmentHistoryRepository,
         blockRepository,
-        auditLogRepository,
-        billRepository
+        eventBus
     );
-    const blacklistUseCase = new BlacklistContainer(repository, historyRepository, auditLogRepository);
-    const unblacklistUseCase = new UnblacklistContainer(repository, historyRepository, auditLogRepository);
+    const blacklistUseCase = new BlacklistContainer(repository, eventBus);
+    const unblacklistUseCase = new UnblacklistContainer(repository, eventBus);
     const getHistoryUseCase = new GetContainerHistory(historyRepository);
-    const containerRequestRepository = new ContainerRequestRepository();
     const getCustomerContainersUseCase = new GetCustomerContainers(repository, containerRequestRepository);
 
     const controller = new ContainerController(
@@ -59,37 +54,14 @@ export const createContainerRouter = () => {
         getCustomerContainersUseCase
     );
 
-    router.get("/", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), (req, res) =>
-        controller.getAllContainers(req, res)
-    );
-
-    router.get("/my-containers", authMiddleware, roleMiddleware(["customer"]), checkOverdueBills, (req, res) =>
-        controller.getCustomerContainers(req, res)
-    );
-
-    router.get("/:id", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), (req, res) =>
-        controller.getContainerById(req, res)
-    );
-
-    router.get("/:id/history", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), (req, res) =>
-        controller.getContainerHistory(req, res)
-    );
-
-    router.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        controller.createContainer(req, res)
-    );
-
-    router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) =>
-        controller.updateContainer(req, res)
-    );
-
-    router.patch("/:id/blacklist", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        controller.blacklistContainer(req, res)
-    );
-
-    router.patch("/:id/unblacklist", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        controller.unblacklistContainer(req, res)
-    );
+    router.get("/", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), controller.getAllContainers);
+    router.get("/my-containers", authMiddleware, roleMiddleware(["customer"]), checkOverdueBills, controller.getCustomerContainers);
+    router.get("/:id/history", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), controller.getContainerHistory);
+    router.get("/:id", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), controller.getContainerById);
+    router.post("/", authMiddleware, roleMiddleware(["admin"]), controller.createContainer);
+    router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator"]), controller.updateContainer);
+    router.patch("/:id/blacklist", authMiddleware, roleMiddleware(["admin"]), controller.blacklistContainer);
+    router.patch("/:id/unblacklist", authMiddleware, roleMiddleware(["admin"]), controller.unblacklistContainer);
 
     return router;
 };

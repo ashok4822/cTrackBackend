@@ -8,6 +8,8 @@ import { GetEquipmentHistory } from "../../application/useCases/GetEquipmentHist
 import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
 import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
 import { UserRepository } from "../../infrastructure/repositories/UserRepository";
+import { SocketNotificationService } from "../../infrastructure/services/SocketNotificationService";
+import { eventBus } from "../../infrastructure/events/EventEmitterBus";
 import {
     authMiddleware,
     roleMiddleware,
@@ -18,9 +20,11 @@ export const createEquipmentRouter = () => {
     const repository = new EquipmentRepository();
     const historyRepository = new EquipmentHistoryRepository();
     const userRepository = new UserRepository();
+    const notificationService = new SocketNotificationService();
 
-    const createUseCase = new CreateEquipment(repository, historyRepository);
-    const updateUseCase = new UpdateEquipment(repository, historyRepository, userRepository);
+    const createUseCase = new CreateEquipment(repository, eventBus);
+    const updateUseCase = new UpdateEquipment(repository, userRepository, eventBus, notificationService);
+
     const deleteUseCase = new DeleteEquipment(repository);
     const getAllUseCase = new GetAllEquipment(repository);
     const getHistoryUseCase = new GetEquipmentHistory(historyRepository);
@@ -37,29 +41,12 @@ export const createEquipmentRouter = () => {
         "/",
         authMiddleware,
         roleMiddleware(["admin", "operator"]),
-        (req, res) => controller.fetchAll(req, res)
+        controller.fetchAll
     );
-    router.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        controller.create(req, res)
-    );
-    router.put(
-        "/:id",
-        authMiddleware,
-        roleMiddleware(["admin", "operator"]),
-        (req, res) => controller.update(req, res)
-    );
-    router.patch(
-        "/:id",
-        authMiddleware,
-        roleMiddleware(["admin", "operator"]),
-        (req, res) => controller.update(req, res)
-    );
-    router.delete("/:id", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        controller.delete(req, res)
-    );
-    router.get("/:id/history", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) =>
-        controller.fetchHistory(req, res)
-    );
+    router.post("/", authMiddleware, roleMiddleware(["admin"]), controller.create);
+    router.get("/:id/history", authMiddleware, controller.fetchHistory);
+    router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator"]), controller.update);
+    router.delete("/:id", authMiddleware, roleMiddleware(["admin"]), controller.delete);
 
     return router;
 };

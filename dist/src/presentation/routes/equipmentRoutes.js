@@ -1,0 +1,37 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createEquipmentRouter = void 0;
+const express_1 = require("express");
+const EquipmentController_1 = require("../controllers/EquipmentController");
+const CreateEquipment_1 = require("../../application/useCases/CreateEquipment");
+const UpdateEquipment_1 = require("../../application/useCases/UpdateEquipment");
+const DeleteEquipment_1 = require("../../application/useCases/DeleteEquipment");
+const GetAllEquipment_1 = require("../../application/useCases/GetAllEquipment");
+const GetEquipmentHistory_1 = require("../../application/useCases/GetEquipmentHistory");
+const EquipmentRepository_1 = require("../../infrastructure/repositories/EquipmentRepository");
+const EquipmentHistoryRepository_1 = require("../../infrastructure/repositories/EquipmentHistoryRepository");
+const UserRepository_1 = require("../../infrastructure/repositories/UserRepository");
+const SocketNotificationService_1 = require("../../infrastructure/services/SocketNotificationService");
+const EventEmitterBus_1 = require("../../infrastructure/events/EventEmitterBus");
+const authMiddleWare_1 = require("../../infrastructure/services/authMiddleWare");
+const createEquipmentRouter = () => {
+    const router = (0, express_1.Router)();
+    const repository = new EquipmentRepository_1.EquipmentRepository();
+    const historyRepository = new EquipmentHistoryRepository_1.EquipmentHistoryRepository();
+    const userRepository = new UserRepository_1.UserRepository();
+    const notificationService = new SocketNotificationService_1.SocketNotificationService();
+    const createUseCase = new CreateEquipment_1.CreateEquipment(repository, EventEmitterBus_1.eventBus);
+    const updateUseCase = new UpdateEquipment_1.UpdateEquipment(repository, userRepository, EventEmitterBus_1.eventBus, notificationService);
+    const deleteUseCase = new DeleteEquipment_1.DeleteEquipment(repository);
+    const getAllUseCase = new GetAllEquipment_1.GetAllEquipment(repository);
+    const getHistoryUseCase = new GetEquipmentHistory_1.GetEquipmentHistory(historyRepository);
+    const controller = new EquipmentController_1.EquipmentController(createUseCase, updateUseCase, deleteUseCase, getAllUseCase, getHistoryUseCase);
+    router.get("/", authMiddleWare_1.authMiddleware, (0, authMiddleWare_1.roleMiddleware)(["admin", "operator"]), controller.fetchAll);
+    router.post("/", authMiddleWare_1.authMiddleware, (0, authMiddleWare_1.roleMiddleware)(["admin"]), controller.create);
+    router.get("/:id/history", authMiddleWare_1.authMiddleware, controller.fetchHistory);
+    router.put("/:id", authMiddleWare_1.authMiddleware, (0, authMiddleWare_1.roleMiddleware)(["admin", "operator"]), controller.update);
+    router.delete("/:id", authMiddleWare_1.authMiddleware, (0, authMiddleWare_1.roleMiddleware)(["admin"]), controller.delete);
+    return router;
+};
+exports.createEquipmentRouter = createEquipmentRouter;
+//# sourceMappingURL=equipmentRoutes.js.map

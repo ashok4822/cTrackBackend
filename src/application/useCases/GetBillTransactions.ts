@@ -1,19 +1,23 @@
+import { IGetBillTransactions } from "../ports/IGetBillTransactions";
 import { IBillTransactionRepository } from "../../domain/repositories/IBillTransactionRepository";
-import { BillTransaction } from "../../domain/entities/BillTransaction";
+import { BillTransactionCollectionResponseDto, GetBillTransactionsRequestDto } from "../dto/BillingDto";
+import { BillingMapper } from "../mappers/BillingMapper";
+import { UserContextDto } from "../dto/CommonDto";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class GetBillTransactions {
-  constructor(private transactionRepository: IBillTransactionRepository) {}
+export class GetBillTransactions implements IGetBillTransactions {
+    constructor(private transactionRepository: IBillTransactionRepository) {}
 
   async execute(
-    billId: string,
-    _userId: string,
-    _userRole: string,
-  ): Promise<BillTransaction[]> {
-    // If customer, ensure they only see their own bill's transactions
-    // Note: We could fetch the bill here to verify ownership, but for simplicity
-    // and efficiency, we'll assume the controller handles basic access control
-    // or we can add it here if we pass the bill object/ID.
-
-    return await this.transactionRepository.findByBillId(billId);
+    request: GetBillTransactionsRequestDto,
+    _userContext: UserContextDto
+  ): Promise<BillTransactionCollectionResponseDto> {
+    const { billId } = request;
+    if (!billId) throw new AppError(ResponseMessage.BILL_ID_REQUIRED, HttpStatus.BAD_REQUEST);
+    const transactions = await this.transactionRepository.findByBillId(billId);
+    return BillingMapper.toTransactionCollectionResponseDto(transactions);
   }
 }
+

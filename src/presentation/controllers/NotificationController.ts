@@ -1,63 +1,59 @@
 import { Request, Response } from "express";
-import { NotificationModel } from "../../infrastructure/models/NotificationModel";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
+import { IGetNotifications } from "../../application/ports/IGetNotifications";
+import { IMarkNotificationRead } from "../../application/ports/IMarkNotificationRead";
+import { IMarkAllNotificationsRead } from "../../application/ports/IMarkAllNotificationsRead";
+import { IDeleteNotification } from "../../application/ports/IDeleteNotification";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
+import { AppError } from "../../domain/exceptions/AppError";
 
 export class NotificationController {
-    async getNotifications(req: Request, res: Response) {
-        try {
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
-            }
-            const notifications = await NotificationModel.find({ userId }).sort({ createdAt: -1 }).limit(50);
-            return res.status(HttpStatus.OK).json(notifications);
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Internal Server Error";
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message });
-        }
-    }
+    constructor(
+        private getNotificationsUseCase: IGetNotifications,
+        private markAsReadUseCase: IMarkNotificationRead,
+        private markAllAsReadUseCase: IMarkAllNotificationsRead,
+        private deleteNotificationUseCase: IDeleteNotification
+    ) { }
 
-    async markAsRead(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
-            }
-            await NotificationModel.findOneAndUpdate({ _id: id, userId }, { read: true });
-            return res.status(HttpStatus.OK).json({ message: "Notification marked as read" });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Internal Server Error";
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    getNotifications = asyncHandler(async (req: Request, res: Response) => {
+        const userId = req.user?.id;
+        if (!userId) {
+            throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-    }
+        const notifications = await this.getNotificationsUseCase.execute(userId);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(notifications));
+    });
 
-    async markAllAsRead(req: Request, res: Response) {
-        try {
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
-            }
-            await NotificationModel.updateMany({ userId, read: false }, { read: true });
-            return res.status(HttpStatus.OK).json({ message: "All notifications marked as read" });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Internal Server Error";
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    markAsRead = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const userId = req.user?.id;
+        if (!userId) {
+            throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-    }
+        await this.markAsReadUseCase.execute(id as string, userId as string);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.NOTIFICATION_READ));
+    });
 
-    async deleteNotification(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const userId = req.user?.id;
-            if (!userId) {
-                return res.status(HttpStatus.UNAUTHORIZED).json({ message: "User not authenticated" });
-            }
-            await NotificationModel.findOneAndDelete({ _id: id, userId });
-            return res.status(HttpStatus.OK).json({ message: "Notification deleted" });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Internal Server Error";
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    markAllAsRead = asyncHandler(async (req: Request, res: Response) => {
+        const userId = req.user?.id;
+        if (!userId) {
+            throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-    }
+        await this.markAllAsReadUseCase.execute(userId);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.NOTIFICATION_ALL_READ));
+    });
+
+    deleteNotification = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const userId = req.user?.id;
+        if (!userId) {
+            throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+        }
+        await this.deleteNotificationUseCase.execute(id as string, userId as string);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.NOTIFICATION_DELETED));
+    });
 }
+
+

@@ -1,10 +1,13 @@
 import { IShippingLineRepository } from "../../domain/repositories/IShippingLineRepository";
-import { ShippingLine } from "../../domain/entities/ShippingLine";
+import { IGetAllShippingLines } from "../ports/IGetAllShippingLines";
+import { ShippingLineCollectionResponseDto } from "../dto/ShippingLineDto";
+import { ShippingLineMapper } from "../mappers/ShippingLineMapper";
 
-export class GetAllShippingLines {
+export class GetAllShippingLines implements IGetAllShippingLines {
     constructor(private shippingLineRepository: IShippingLineRepository) { }
 
-    async execute(): Promise<ShippingLine[]> {
-        return await this.shippingLineRepository.findAll();
+    async execute(): Promise<ShippingLineCollectionResponseDto> {
+        const shippingLines = await this.shippingLineRepository.findAll();
+        return ShippingLineMapper.toCollectionResponseDto(shippingLines);
     }
 }

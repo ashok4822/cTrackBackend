@@ -1,21 +1,22 @@
 import { Bill } from "../entities/Bill";
 
 export interface BillAggregateFilter {
-    $or?: Array<Record<string, string>>;
-    status?: { $ne: string };
-    customer?: string;
+    customerId?: string | string[];
+    customerName?: string | string[];
+    status?: string | string[];
+    excludeStatus?: string | string[];
 }
 
 export interface BillAggregateResult {
-    _id: null;
     total: number;
 }
 
 export interface IBillRepository {
-    findAll(customerId?: string): Promise<Bill[]>;
+    findAll(customerId?: string, status?: string): Promise<Bill[]>;
     findById(id: string): Promise<Bill | null>;
     findByContainerId(containerId: string): Promise<Bill[]>;
     save(bill: Bill): Promise<Bill>;
     update(id: string, data: Partial<Bill>): Promise<Bill | null>;
     aggregateUnpaidAmount(filter: BillAggregateFilter): Promise<BillAggregateResult[]>;
+    hasOverdueBills(customerId: string): Promise<boolean>;
 }

@@ -10,9 +10,13 @@ import { ContainerRequestRepository } from "../../infrastructure/repositories/Co
 import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { PDARepository } from "../../infrastructure/repositories/PDARepository";
+import { MongooseIdValidator } from "../../infrastructure/services/MongooseIdValidator";
+import { appConfig } from "../../infrastructure/config/appConfig";
 
 export const createDashboardRouter = () => {
     const router = Router();
+
+    const configService = appConfig;
 
     const getDashboardKPIsUseCase = new GetDashboardKPIs(
         new ContainerRepository(),
@@ -22,11 +26,13 @@ export const createDashboardRouter = () => {
         new ContainerRequestRepository(),
         new EquipmentRepository(),
         new BillRepository(),
-        new PDARepository()
+        new PDARepository(),
+        new MongooseIdValidator(),
+        configService
     );
     const controller = new DashboardController(getDashboardKPIsUseCase);
 
-    router.get("/kpi", authMiddleware, (req: Request, res: Response) => controller.getKPIs(req, res));
+    router.get("/kpi", authMiddleware, controller.getKPIs);
 
     return router;
 };

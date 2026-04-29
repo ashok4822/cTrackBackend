@@ -1,40 +1,39 @@
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { IHashService } from "../services/IHashService";
-import { UserRole } from "../../domain/entities/User";
 import { ITokenService } from "../services/ITokenService";
-import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog } from "../../domain/entities/AuditLog";
+import { ILogin } from "../ports/ILogin";
+import { IConfigService } from "../services/IConfigService";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { AppError } from "../../domain/exceptions/AppError";
+import { LoginRequestDto, LoginResponseDto } from "../dto/AuthDto";
+import { AuthMapper } from "../mappers/AuthMapper";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class Login {
+export class Login implements ILogin {
   constructor(
     private userRepository: IUserRepository,
     private hashService: IHashService,
     private tokenService: ITokenService,
-    private auditLogRepository: IAuditLogRepository,
+    private configService: IConfigService,
+    private eventBus: IEventBus
   ) { }
 
-  async execute(
-    email: string,
-    password: string,
-    requiredRole?: UserRole,
-    ipAddress?: string,
-  ): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    user: { id: string; email: string; role: UserRole; name?: string; profileImage?: string; isBlocked: boolean };
-  }> {
+
+  async execute(request: LoginRequestDto): Promise<LoginResponseDto> {
+    const { email, password, requiredRole, ipAddress } = request;
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new Error("Invalid credentials");
+      throw new AppError(ResponseMessage.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
 
     if (user.isBlocked) {
-      throw new Error("Your account has been blocked. Please contact admin.");
+      throw new AppError(ResponseMessage.USER_ACCOUNT_BLOCKED, HttpStatus.FORBIDDEN);
     }
 
     if (!user.password) {
-      throw new Error("Invalid credentials");
+      throw new AppError(ResponseMessage.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
 
     const isPasswordValid = await this.hashService.compare(
@@ -43,7 +42,7 @@ export class Login {
     );
 
     if (!isPasswordValid) {
-      throw new Error("Invalid credentials");
+      throw new AppError(ResponseMessage.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
 
     // Role check
@@ -52,7 +51,7 @@ export class Login {
         requiredRole,
         userRole: user.role,
       });
-      throw new Error("Access denied: Unauthorized role for this portal");
+      throw new AppError(ResponseMessage.UNAUTHORIZED_ROLE, HttpStatus.FORBIDDEN);
     }
 
     //Access Token (short-lived)
@@ -64,43 +63,32 @@ export class Login {
         name: user.name,
         companyName: user.companyName
       },
-      process.env.JWT_ACCESS_SECRET || "access_fallback",
-      "15m",
+      this.configService.get("JWT_ACCESS_SECRET") || "access_fallback",
+      this.configService.get("JWT_ACCESS_EXPIRY") || "15m",
     );
 
     //Refresh Token (long-lived)
     const refreshToken = this.tokenService.generate(
       { id: user.id },
-      process.env.JWT_REFRESH_SECRET || "refresh_fallback",
-      "7d",
+      this.configService.get("JWT_REFRESH_SECRET") || "refresh_fallback",
+      this.configService.get("JWT_REFRESH_EXPIRY") || "7d",
     );
 
-    // Log successful login
+    // Event-driven Audit
     if (ipAddress) {
-      await this.auditLogRepository.save(new AuditLog(
-        null,
-        user.id,
-        user.role,
-        user.name || user.email,
-        "USER_LOGIN",
-        "Auth",
-        user.id,
-        JSON.stringify({ email: user.email, role: user.role }),
+      this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        userId: user.id,
+        userRole: user.role,
+        userName: user.name || user.email,
+        action: ResponseMessage.AUDIT_USER_LOGIN,
+        resourceType: ResponseMessage.RESOURCE_AUTH,
+        resourceId: user.id,
+        details: { email: user.email, role: user.role },
         ipAddress
-      ));
+      });
     }
 
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        name: user.name,
-        profileImage: user.profileImage,
-        isBlocked: user.isBlocked,
-      },
-    };
+    return AuthMapper.toLoginResponseDto(user, accessToken, refreshToken);
   }
 }
+

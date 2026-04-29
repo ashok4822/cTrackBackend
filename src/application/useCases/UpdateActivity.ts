@@ -1,10 +1,14 @@
 import { IActivityRepository } from "../../domain/repositories/IActivityRepository";
-import { Activity } from "../../domain/entities/Activity";
+import { IUpdateActivity } from "../ports/IUpdateActivity";
+import { UpdateActivityRequestDto, ActivityResponseDto } from "../dto/ActivityDto";
+import { ActivityMapper } from "../mappers/ActivityMapper";
 
-export class UpdateActivity {
-    constructor(private activityRepository: IActivityRepository) { }
+export class UpdateActivity implements IUpdateActivity {
+    constructor(private _activityRepository: IActivityRepository) { }
 
-    async execute(id: string, activityData: Partial<Activity>): Promise<Activity | null> {
-        return this.activityRepository.update(id, activityData);
+    async execute(id: string, activityData: UpdateActivityRequestDto): Promise<ActivityResponseDto | null> {
+        const updated = await this._activityRepository.update(id, activityData);
+        if (!updated) return null;
+        return ActivityMapper.toResponseDto(updated);
     }
 }

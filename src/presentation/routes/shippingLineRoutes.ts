@@ -5,28 +5,21 @@ import { GetAllShippingLines } from "../../application/useCases/GetAllShippingLi
 import { UpdateShippingLine } from "../../application/useCases/UpdateShippingLine";
 import { ShippingLineRepository } from "../../infrastructure/repositories/ShippingLineRepository";
 import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
+import { eventBus } from "../../infrastructure/events/EventEmitterBus";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createShippingLineRouter = () => {
     const router = Router();
     const repository = new ShippingLineRepository();
-    const auditLogRepository = new MongoAuditLogRepository();
-    const createUseCase = new CreateShippingLine(repository, auditLogRepository);
+    const createUseCase = new CreateShippingLine(repository, eventBus);
     const getAllUseCase = new GetAllShippingLines(repository);
-    const updateUseCase = new UpdateShippingLine(repository, auditLogRepository);
+    const updateUseCase = new UpdateShippingLine(repository, eventBus);
+
     const controller = new ShippingLineController(createUseCase, getAllUseCase, updateUseCase);
 
-    router.get("/", authMiddleware, roleMiddleware(["admin", "operator"]), (req, res) =>
-        controller.getAllShippingLines(req, res)
-    );
-
-    router.post("/", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        controller.createShippingLine(req, res)
-    );
-
-    router.put("/:id", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-        controller.updateShippingLine(req, res)
-    );
+    router.get("/", authMiddleware, roleMiddleware(["admin", "operator"]), controller.getAllShippingLines);
+    router.post("/", authMiddleware, roleMiddleware(["admin"]), controller.createShippingLine);
+    router.put("/:id", authMiddleware, roleMiddleware(["admin"]), controller.updateShippingLine);
 
     return router;
 };

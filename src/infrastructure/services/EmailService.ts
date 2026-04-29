@@ -2,10 +2,10 @@ import nodemailer from "nodemailer";
 import { IEmailService } from "../../application/services/IEmailService";
 
 export class EmailService implements IEmailService {
-    private transporter: nodemailer.Transporter;
+    private _transporter: nodemailer.Transporter;
 
     constructor() {
-        this.transporter = nodemailer.createTransport({
+        this._transporter = nodemailer.createTransport({
             service: "gmail", // Or use host/port for other providers
             auth: {
                 user: process.env.EMAIL_USER,
@@ -23,7 +23,7 @@ export class EmailService implements IEmailService {
             html: `<p>Your OTP is <b>${otp}</b>. It is valid for 1 minute.</p>`,
         };
 
-        await this.transporter.sendMail(mailOptions);
+        await this._transporter.sendMail(mailOptions);
     }
 
     async sendPasswordResetOtp(email: string, otp: string): Promise<void> {
@@ -35,7 +35,7 @@ export class EmailService implements IEmailService {
             html: `<p>Your OTP for password reset is <b>${otp}</b>. It is valid for 1 minute.</p>`,
         };
 
-        await this.transporter.sendMail(mailOptions);
+        await this._transporter.sendMail(mailOptions);
     }
 
     async sendWelcomeEmail(email: string, password: string, name?: string): Promise<void> {
@@ -59,6 +59,6 @@ export class EmailService implements IEmailService {
             `,
         };
 
-        await this.transporter.sendMail(mailOptions);
+        await this._transporter.sendMail(mailOptions);
     }
 }

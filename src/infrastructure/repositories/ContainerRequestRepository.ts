@@ -381,21 +381,41 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
     return docs.map((doc) => this.mapToEntity(doc));
   }
 
+  private applyFilters(filters: ContainerRequestFilter): Record<string, unknown> {
+    const query: Record<string, unknown> = {};
+
+    if (filters.customerId) {
+      query.customerId = Array.isArray(filters.customerId) ? { $in: filters.customerId } : filters.customerId;
+    }
+    if (filters.type) {
+      query.type = Array.isArray(filters.type) ? { $in: filters.type } : filters.type;
+    }
+    if (filters.status) {
+      query.status = Array.isArray(filters.status) ? { $in: filters.status } : filters.status;
+    }
+    if (filters.containerNumber) {
+      query.containerNumber = Array.isArray(filters.containerNumber) ? { $in: filters.containerNumber } : filters.containerNumber;
+    }
+    if (filters.isHazardous !== undefined) {
+      query.isHazardous = filters.isHazardous;
+    }
+
+    return query;
+  }
+
   async countPending(filter: ContainerRequestFilter): Promise<number> {
-    return await ContainerRequestModel.countDocuments({
-      ...filter,
-      status: "pending",
-    } as Record<string, unknown>);
+    const query = this.applyFilters(filter);
+    query.status = "pending";
+    return await ContainerRequestModel.countDocuments(query);
   }
 
   async findRecent(
     filter: ContainerRequestFilter,
     limit: number,
   ): Promise<ContainerRequest[]> {
-    // Find documents with the given filter
-    const queryFilter = filter as Record<string, unknown>;
-    const docs = await ContainerRequestModel.find(queryFilter)
-      .sort({ createdAt: -1 as const }) // explicitly type the -1 to satisfy TS if needed
+    const query = this.applyFilters(filter);
+    const docs = await ContainerRequestModel.find(query)
+      .sort({ createdAt: -1 as const })
       .limit(limit);
     return docs.map((doc) => this.mapToEntity(doc));
   }

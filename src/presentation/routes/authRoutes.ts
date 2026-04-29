@@ -1,97 +1,70 @@
 import { Router } from "express";
-import { UserRepository } from "../../infrastructure/repositories/UserRepository";
-import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
-import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
-import { JwtTokenService } from "../../infrastructure/services/JwtTokenService";
-import { Login } from "../../application/useCases/Login";
-import { CustomerSignup } from "../../application/useCases/CustomerSignup";
-import { RefreshToken } from "../../application/useCases/RefreshToken";
 import { AuthController } from "../controllers/AuthController";
+import { SignupController } from "../controllers/SignupController";
+import { PasswordController } from "../controllers/PasswordController";
+import { Login } from "../../application/useCases/Login";
+import { RefreshToken } from "../../application/useCases/RefreshToken";
 import { GoogleLogin } from "../../application/useCases/GoogleLogin";
 import { InitiateSignup } from "../../application/useCases/InitiateSignup";
 import { VerifyOtpAndSignup } from "../../application/useCases/VerifyOtpAndSignup";
-import { EmailService } from "../../infrastructure/services/EmailService";
-import { OtpRepository } from "../../infrastructure/repositories/OtpRepository";
 import { ForgotPassword } from "../../application/useCases/ForgotPassword";
 import { ResetPassword } from "../../application/useCases/ResetPassword";
 import { VerifyResetOtp } from "../../application/useCases/VerifyResetOtp";
+import { GetUserProfile } from "../../application/useCases/GetUserProfile";
+import { UserRepository } from "../../infrastructure/repositories/UserRepository";
+import { OtpRepository } from "../../infrastructure/repositories/OtpRepository";
+import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
+import { JwtTokenService } from "../../infrastructure/services/JwtTokenService";
+import { EmailService } from "../../infrastructure/services/EmailService";
+import { appConfig } from "../../infrastructure/config/appConfig";
+import { GoogleAuthService } from "../../infrastructure/services/GoogleAuthService";
+import { validate } from "../middlewares/validate";
+import { loginSchema, signupSchema } from "../../domain/validators/auth.schema";
+import { eventBus } from "../../infrastructure/events/EventEmitterBus";
+import { authMiddleware } from "../../infrastructure/services/authMiddleWare";
 
 export const createAuthRouter = () => {
-  const authRouter = Router();
+    const authRouter = Router();
 
-  //DI
-  const userRepository = new UserRepository();
-  const auditLogRepository = new MongoAuditLogRepository();
-  const otpRepository = new OtpRepository();
-  const hashService = new BcryptHashService();
-  const tokenService = new JwtTokenService();
-  const emailService = new EmailService();
+    // Dependencies
+    const userRepository = new UserRepository();
+    const otpRepository = new OtpRepository();
+    const hashService = new BcryptHashService();
+    const tokenService = new JwtTokenService();
+    const emailService = new EmailService();
+    const googleAuthService = new GoogleAuthService(appConfig);
 
-  const loginUseCase = new Login(userRepository, hashService, tokenService, auditLogRepository);
-  const signupUseCase = new CustomerSignup(userRepository, hashService);
-  const refreshUseCase = new RefreshToken(userRepository, tokenService);
-  const googleLoginUseCase = new GoogleLogin(
-    userRepository,
-    tokenService,
-    process.env.GOOGLE_CLIENT_ID || "fallback",
-    process.env.GOOGLE_CLIENT_SECRET || "fallback",
-  );
-  const initiateSignupUseCase = new InitiateSignup(
-    userRepository,
-    otpRepository,
-    emailService,
-  );
-  const verifyOtpAndSignupUseCase = new VerifyOtpAndSignup(
-    userRepository,
-    otpRepository,
-    hashService,
-    auditLogRepository
-  );
-  const forgotPasswordUseCase = new ForgotPassword(
-    userRepository,
-    otpRepository,
-    emailService,
-  );
-  const resetPasswordUseCase = new ResetPassword(
-    userRepository,
-    otpRepository,
-    hashService,
-  );
-  const verifyResetOtpUseCase = new VerifyResetOtp(
-    otpRepository,
-  );
+    // Use Cases
+    const loginUseCase = new Login(userRepository, hashService, tokenService, appConfig, eventBus);
+    const refreshUseCase = new RefreshToken(userRepository, tokenService, appConfig);
+    const googleLoginUseCase = new GoogleLogin(userRepository, tokenService, googleAuthService, appConfig, eventBus);
+    const initiateSignupUseCase = new InitiateSignup(userRepository, otpRepository, emailService);
+    const signupUseCase = new VerifyOtpAndSignup(userRepository, otpRepository, hashService, eventBus);
+    const forgotPasswordUseCase = new ForgotPassword(userRepository, otpRepository, emailService);
+    const verifyResetOtpUseCase = new VerifyResetOtp(otpRepository);
+    const resetPasswordUseCase = new ResetPassword(userRepository, otpRepository, hashService);
+    const getUserProfileUseCase = new GetUserProfile(userRepository);
 
-  const authController = new AuthController(
-    loginUseCase,
-    signupUseCase,
-    refreshUseCase,
-    googleLoginUseCase,
-    initiateSignupUseCase,
-    verifyOtpAndSignupUseCase,
-    forgotPasswordUseCase,
-    resetPasswordUseCase,
-    verifyResetOtpUseCase,
-  );
+    // Controllers
+    const authController = new AuthController(loginUseCase, refreshUseCase, googleLoginUseCase, getUserProfileUseCase);
+    const signupController = new SignupController(initiateSignupUseCase, signupUseCase);
+    const passwordController = new PasswordController(forgotPasswordUseCase, resetPasswordUseCase, verifyResetOtpUseCase);
 
-  authRouter.post("/login", (req, res) => authController.login(req, res));
-  authRouter.post("/initiate-signup", (req, res) =>
-    authController.initiateSignup(req, res),
-  );
-  authRouter.post("/signup", (req, res) => authController.signup(req, res));
-  authRouter.post("/refresh-token", (req, res) =>
-    authController.refresh(req, res),
-  );
-  authRouter.post("/google", (req, res) => authController.googleLogin(req, res));
-  authRouter.post("/logout", (req, res) => authController.logout(req, res));
-  authRouter.post("/forgot-password", (req, res) =>
-    authController.forgotPassword(req, res),
-  );
-  authRouter.post("/reset-password", (req, res) =>
-    authController.resetPassword(req, res),
-  );
-  authRouter.post("/verify-reset-otp", (req, res) =>
-    authController.verifyResetOtp(req, res),
-  );
+    // Auth Routes
+    authRouter.post("/login", validate(loginSchema), authController.login);
+    authRouter.post("/google", authController.googleLogin);
+    authRouter.post("/logout", authController.logout);
+    authRouter.post("/refresh-token", authController.refresh);
+    authRouter.get("/me", authMiddleware, authController.getMe);
 
-  return authRouter;
+    // Signup Routes
+    authRouter.post("/initiate-signup", signupController.initiateSignup);
+    authRouter.post("/signup", validate(signupSchema), signupController.signup);
+
+    // Password Reset Routes
+    authRouter.post("/forgot-password", passwordController.forgotPassword);
+    authRouter.post("/verify-reset-otp", passwordController.verifyResetOtp);
+    authRouter.post("/reset-password", passwordController.resetPassword);
+
+    return authRouter;
 };
