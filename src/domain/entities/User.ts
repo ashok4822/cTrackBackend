@@ -15,4 +15,38 @@ export class User {
     public readonly createdAt?: Date,
     public readonly updatedAt?: Date,
   ) {}
+
+  updatePassword(hashedPassword: string): User {
+    return new User(
+      this.id,
+      this.email,
+      this.role,
+      hashedPassword,
+      this.name,
+      this.phone,
+      this.googleId,
+      this.profileImage,
+      this.companyName,
+      this.isBlocked,
+      this.createdAt,
+      new Date(),
+    );
+  }
+
+  updateProfile(data: { name?: string; phone?: string; profileImage?: string; companyName?: string }): User {
+    return new User(
+      this.id,
+      this.email,
+      this.role,
+      this.password,
+      data.name !== undefined ? data.name : this.name,
+      data.phone !== undefined ? data.phone : this.phone,
+      this.googleId,
+      data.profileImage !== undefined ? data.profileImage : this.profileImage,
+      data.companyName !== undefined ? data.companyName : this.companyName,
+      this.isBlocked,
+      this.createdAt,
+      new Date(),
+    );
+  }
 }

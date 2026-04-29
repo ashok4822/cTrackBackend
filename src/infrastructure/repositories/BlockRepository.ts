@@ -40,4 +40,8 @@ export class BlockRepository implements IBlockRepository {
         }
         return new Block(savedDoc!.id, savedDoc!.name, savedDoc!.capacity, savedDoc!.occupied, savedDoc!.createdAt, savedDoc!.updatedAt);
     }
+
+    async updateOccupied(id: string, count: number): Promise<void> {
+        await BlockModel.findByIdAndUpdate(id, { occupied: count });
+    }
 }

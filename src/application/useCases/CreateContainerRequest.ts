@@ -1,49 +1,35 @@
-import { ContainerRequest } from "../../domain/entities/ContainerRequest";
 import { IContainerRequestRepository } from "../../domain/repositories/IContainerRequestRepository";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { INotificationService } from "../services/INotificationService";
-import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog } from "../../domain/entities/AuditLog";
+import { ICreateContainerRequest } from "../ports/ICreateContainerRequest";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { CreateContainerRequestDto, ContainerRequestResponseDto } from "../dto/RequestDto";
+import { UserContextDto } from "../dto/CommonDto";
+import { RequestMapper } from "../mappers/RequestMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class CreateContainerRequest {
+export class CreateContainerRequest implements ICreateContainerRequest {
   constructor(
     private containerRequestRepository: IContainerRequestRepository,
     private userRepository: IUserRepository,
     private notificationService: INotificationService,
-    private auditLogRepository?: IAuditLogRepository,
+    private eventBus: IEventBus,
   ) {}
 
+
   async execute(
-    requestData: {
-      customerId: string;
-      type: "stuffing" | "destuffing";
-      cargoCategoryId?: string;
-      containerSize?: string;
-      containerType?: string;
-      cargoDescription?: string;
-      cargoWeight?: number;
-      preferredDate?: string;
-      specialInstructions?: string;
-      isHazardous?: boolean;
-      hazardClass?: string;
-      unNumber?: string;
-      packingGroup?: string;
-      containerId?: string;
-      containerNumber?: string;
-      remarks?: string;
-    },
-    userContext?: {
-      userId: string;
-      userName: string;
-      userRole: string;
-      ipAddress: string;
-    },
-  ): Promise<ContainerRequest> {
+    requestData: CreateContainerRequestDto,
+    userContext?: UserContextDto,
+  ): Promise<ContainerRequestResponseDto> {
+    const customerId = requestData.customerId || userContext?.userId || "";
+    
     // Validation: Prevent duplicate destuffing requests for the same container
     if (requestData.type === "destuffing" && requestData.containerId) {
       const activeRequests =
         await this.containerRequestRepository.findActiveRequestsByCustomerId(
-          requestData.customerId,
+          customerId
         );
       const hasExistingRequest = activeRequests.some(
         (r) =>
@@ -51,67 +37,35 @@ export class CreateContainerRequest {
       );
 
       if (hasExistingRequest) {
-        throw new Error(
-          "An active destuffing request already exists for this container.",
+        throw new AppError(
+          ResponseMessage.DUPLICATE_DESTUFF_REQUEST,
+          HttpStatus.CONFLICT
         );
       }
     }
 
-    const request = new ContainerRequest(
-      null,
-      requestData.customerId,
-      requestData.type,
-      "pending",
-      requestData.cargoCategoryId,
-      undefined, // cargoCategoryName (optional, usually set on fetch)
-      requestData.containerSize,
-      requestData.containerType,
-      requestData.cargoDescription,
-      requestData.cargoWeight,
-      requestData.preferredDate
-        ? new Date(requestData.preferredDate)
-        : undefined,
-      requestData.specialInstructions || requestData.remarks,
-      requestData.isHazardous,
-      requestData.hazardClass,
-      requestData.unNumber,
-      requestData.packingGroup,
-      requestData.containerId,
-      requestData.containerNumber,
-      requestData.remarks,
-      [
-        {
-          location: "Customer Portal",
-          timestamp: new Date(),
-          status: "pending",
-          remarks: `Initial ${requestData.type} request submitted`,
-        },
-      ], // checkpoints
-      undefined, // cargoCharge (calculated during allocation)
-      new Date(),
-      new Date(),
+    const request = RequestMapper.toEntity(
+      { ...requestData, preferredDate: requestData.preferredDate ? new Date(requestData.preferredDate) : undefined },
+      customerId
     );
 
     const savedRequest = await this.containerRequestRepository.create(request);
 
-    // Audit Log
-    if (this.auditLogRepository && userContext) {
-      await this.auditLogRepository.save(
-        new AuditLog(
-          null,
-          userContext.userId,
-          userContext.userRole,
-          userContext.userName,
-          "REQUEST_CREATED",
-          "Request",
-          savedRequest.id,
-          JSON.stringify({
-            type: savedRequest.type,
-            containerNumber: savedRequest.containerNumber,
-          }),
-          userContext.ipAddress,
-        ),
-      );
+    // Audit Log (Event-driven)
+    if (userContext) {
+      this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        userId: userContext.userId,
+        userRole: userContext.userRole,
+        userName: userContext.userName,
+        action: ResponseMessage.AUDIT_REQUEST_CREATED,
+        resourceType: ResponseMessage.RESOURCE_REQUEST,
+        resourceId: savedRequest.id,
+        details: {
+          type: savedRequest.type,
+          containerNumber: savedRequest.containerNumber,
+        },
+        ipAddress: userContext.ipAddress,
+      });
     }
 
     // Notify Operators
@@ -119,8 +73,8 @@ export class CreateContainerRequest {
       const operators = await this.userRepository.findByRole("operator");
       const notificationData = {
         type: "info" as const,
-        title: "New Container Request",
-        message: `A new ${requestData.type} request has been submitted by a customer.`,
+        title: ResponseMessage.NEW_CONTAINER_REQUEST_TITLE,
+        message: `${ResponseMessage.NEW_CONTAINER_REQUEST_MESSAGE} (Type: ${requestData.type})`,
         link: "/operator/cargo-requests",
       };
 
@@ -133,6 +87,6 @@ export class CreateContainerRequest {
       console.error("Failed to send operator notifications:", error);
     }
 
-    return savedRequest;
+    return RequestMapper.toResponseDto(savedRequest);
   }
 }

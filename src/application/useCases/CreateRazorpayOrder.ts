@@ -1,67 +1,50 @@
-import Razorpay from "razorpay";
 import { IBillRepository } from "../../domain/repositories/IBillRepository";
 import { IBillTransactionRepository } from "../../domain/repositories/IBillTransactionRepository";
-import { BillTransaction } from "../../domain/entities/BillTransaction";
-import { Orders } from "razorpay/dist/types/orders";
+import { ICreateRazorpayOrder } from "../ports/ICreateRazorpayOrder";
+import { IPaymentService, PaymentOrder } from "../services/IPaymentService";
+import { BillingMapper } from "../mappers/BillingMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class CreateRazorpayOrder {
-  private razorpay: Razorpay;
-
+export class CreateRazorpayOrder implements ICreateRazorpayOrder {
   constructor(
     private billRepository: IBillRepository,
     private transactionRepository: IBillTransactionRepository,
-  ) {
-    this.razorpay = new Razorpay({
-      key_id: process.env.RAZOR_KEY_ID || "",
-      key_secret: process.env.RAZOR_SECRET_ID || "",
-    });
-  }
+    private paymentService: IPaymentService,
+  ) { }
 
-  async execute(billId: string, userId: string): Promise<Orders.RazorpayOrder> {
+  async execute(billId: string, userId: string): Promise<PaymentOrder> {
     const bill = await this.billRepository.findById(billId);
 
     if (!bill) {
-      throw new Error("Bill not found");
+      throw new AppError(ResponseMessage.BILL_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
     if (!bill.customer || bill.customer.toString() !== userId) {
-      throw new Error("Unauthorized: This bill does not belong to you");
+      throw new AppError(ResponseMessage.BILL_OWNERSHIP_ERROR, HttpStatus.FORBIDDEN);
     }
 
     if (bill.status === "paid") {
-      throw new Error("Bill is already paid");
+      throw new AppError(ResponseMessage.BILL_ALREADY_PAID, HttpStatus.CONFLICT);
     }
 
-    const options = {
-      amount: Math.round(bill.totalAmount * 100), // Razorpay expects amount in paise
-      currency: "INR",
-      receipt: `receipt_bill_${billId}`,
-    };
+    const receipt = `receipt_bill_${billId}`;
 
     try {
-      const order = await this.razorpay.orders.create(options);
+      const order = await this.paymentService.createOrder(bill.totalAmount, receipt);
 
       // Log pending transaction
       await this.transactionRepository.save(
-        new BillTransaction(
-          null,
-          billId,
-          userId,
-          bill.totalAmount,
-          "online",
-          "pending",
-          undefined,
-          order.id,
-        ),
+        BillingMapper.toTransactionEntity(billId, userId, bill.totalAmount, "online", "pending", undefined, order.id)
       );
 
       return order;
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      throw new Error(`Razorpay Order Creation Failed: ${errorMessage}`, {
-        cause: error,
-      });
+      throw new AppError(`${ResponseMessage.RAZORPAY_ORDER_FAILED}: ${errorMessage}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
+

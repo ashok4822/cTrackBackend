@@ -1,4 +1,7 @@
 import { rateLimit } from "express-rate-limit";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+
 
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -6,9 +9,8 @@ export const globalLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
   message: {
-    status: 429,
-    message:
-      "Too many requests from this IP, please try again after 15 minutes",
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    message: ResponseMessage.TOO_MANY_REQUESTS,
   },
 });
 
@@ -18,8 +20,7 @@ export const authLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: {
-    status: 429,
-    message:
-      "Too many login attempts from this IP, please try again after an hour",
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    message: ResponseMessage.TOO_MANY_LOGIN_ATTEMPTS,
   },
 });

@@ -1,88 +1,63 @@
 import { IEquipmentRepository } from "../../domain/repositories/IEquipmentRepository";
-import { Equipment, EquipmentStatus, EquipmentType } from "../../domain/entities/Equipment";
-import { IEquipmentHistoryRepository } from "../../domain/repositories/IEquipmentHistoryRepository";
-import { EquipmentHistory } from "../../domain/entities/EquipmentHistory";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
-import { socketService } from "../../infrastructure/services/socketService";
-import { NotificationModel } from "../../infrastructure/models/NotificationModel";
+import { IUpdateEquipment } from "../ports/IUpdateEquipment";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { INotificationService } from "../services/INotificationService";
+import { UpdateEquipmentRequestDto, EquipmentResponseDto } from "../dto/EquipmentDto";
+import { EquipmentMapper } from "../mappers/EquipmentMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class UpdateEquipment {
+export class UpdateEquipment implements IUpdateEquipment {
     constructor(
         private equipmentRepository: IEquipmentRepository,
-        private historyRepository: IEquipmentHistoryRepository,
-        private userRepository: IUserRepository
+        private userRepository: IUserRepository,
+        private eventBus: IEventBus,
+        private notificationService: INotificationService
     ) { }
 
     async execute(
         id: string,
-        data: Partial<{
-            name: string;
-            type: EquipmentType;
-            status: EquipmentStatus;
-            operator: string;
-            lastMaintenance: Date;
-            nextMaintenance: Date;
-        }>,
+        data: UpdateEquipmentRequestDto,
         performedBy?: string
-    ): Promise<Equipment> {
+    ): Promise<EquipmentResponseDto> {
         const existingEquipment = await this.equipmentRepository.findById(id);
         if (!existingEquipment) {
-            throw new Error("Equipment not found");
+            throw new AppError(ResponseMessage.EQUIPMENT_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         const isStatusChanged = data.status && data.status !== existingEquipment.status;
 
-        const updatedEquipment = new Equipment(
-            id,
-            data.name ?? existingEquipment.name,
-            data.type ?? existingEquipment.type,
-            data.status ?? existingEquipment.status,
-            data.operator ?? existingEquipment.operator,
-            data.lastMaintenance ?? existingEquipment.lastMaintenance,
-            data.nextMaintenance ?? existingEquipment.nextMaintenance
-        );
+        const updatedEquipment = EquipmentMapper.applyUpdate(existingEquipment, data);
 
         const savedEquipment = await this.equipmentRepository.save(updatedEquipment);
 
-        // Record History
+        // Record History (Event-driven)
         const historyDetails = Object.entries(data)
             .map(([key, value]) => `${key}: ${value}`)
             .join(", ");
 
-        await this.historyRepository.save(new EquipmentHistory(
-            null,
-            id,
-            "Updated",
-            historyDetails || "No changes specified",
-            performedBy || "System"
-        ));
+        this.eventBus.emit(DomainEvents.EQUIPMENT_HISTORY_CREATED, {
+            equipmentId: id,
+            action: ResponseMessage.ACTION_UPDATED,
+            details: historyDetails || ResponseMessage.DETAILS_NO_CHANGES,
+            performedBy: performedBy || "System"
+        });
+
 
         // Notify Admins if status changed
         if (isStatusChanged) {
             try {
                 const admins = await this.userRepository.findByRole("admin");
-                const notificationData = {
-                    type: "info" as const,
-                    title: "Equipment Status Updated",
-                    message: `Equipment "${savedEquipment.name}" status has been updated to ${savedEquipment.status} by ${performedBy || "System"}.`,
-                    link: "/admin/vehicles",
-                };
-
                 for (const admin of admins) {
                     if (admin.id) {
-                        // Save to DB
-                        const newNotification = await NotificationModel.create({
-                            userId: admin.id,
-                            ...notificationData,
+                        await this.notificationService.send(admin.id, {
+                            type: "info",
+                            title: ResponseMessage.EQUIPMENT_STATUS_UPDATED_TITLE,
+                            message: `Equipment "${savedEquipment.name}" status has been updated to ${savedEquipment.status} by ${performedBy || "System"}.`,
+                            link: "/admin/vehicles",
                         });
-
-                        // Emit via Socket
-                        socketService.emitNotification({
-                            ...notificationData,
-                            id: newNotification._id.toString(),
-                            read: false,
-                            timestamp: new Date(),
-                        }, admin.id);
                     }
                 }
             } catch (error) {
@@ -90,6 +65,7 @@ export class UpdateEquipment {
             }
         }
 
-        return savedEquipment;
+        return EquipmentMapper.toResponseDto(savedEquipment);
     }
 }
+

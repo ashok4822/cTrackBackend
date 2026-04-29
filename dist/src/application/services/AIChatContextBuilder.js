@@ -1,0 +1,208 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AIChatContextBuilder = void 0;
+const fmt = (d) => d
+    ? new Date(d).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    })
+    : "N/A";
+const inr = (n) => `₹${(n || 0).toLocaleString("en-IN")}`;
+class AIChatContextBuilder {
+    containerRepository;
+    containerRequestRepository;
+    billRepository;
+    pdaRepository;
+    constructor(containerRepository, containerRequestRepository, billRepository, pdaRepository) {
+        this.containerRepository = containerRepository;
+        this.containerRequestRepository = containerRequestRepository;
+        this.billRepository = billRepository;
+        this.pdaRepository = pdaRepository;
+    }
+    // ─────────────────────────────────────────
+    // CONTAINERS category
+    // ─────────────────────────────────────────
+    async buildContainerContext(customerId) {
+        const [containers, requests] = await Promise.all([
+            this.containerRepository.findAll({ customer: customerId }),
+            this.containerRequestRepository.findByCustomerId(customerId),
+        ]);
+        const lines = [];
+        lines.push(`=== CUSTOMER CONTAINER OVERVIEW ===`);
+        lines.push(`Total Containers on Record: ${containers.length}`);
+        lines.push(``);
+        if (containers.length === 0) {
+            lines.push("No containers found for this customer.");
+        }
+        else {
+            lines.push(`--- CONTAINER DETAILS ---`);
+            for (const c of containers) {
+                lines.push(`• ${c.containerNumber} | ${c.size} ${c.type} | Movement: ${c.movementType || "N/A"} | Status: ${c.status}` +
+                    ` | Shipping Line: ${c.shippingLine}` +
+                    (c.yardLocation?.block ? ` | Block: ${c.yardLocation.block}` : "") +
+                    (c.gateInTime ? ` | Gate-In: ${fmt(c.gateInTime)}` : "") +
+                    (c.gateOutTime ? ` | Gate-Out: ${fmt(c.gateOutTime)}` : "") +
+                    (c.dwellTime ? ` | Dwell: ${c.dwellTime} days` : "") +
+                    (c.cargoDescription ? ` | Cargo: ${c.cargoDescription}` : "") +
+                    (c.cargoWeight ? ` | Cargo Weight: ${c.cargoWeight} MT` : "") +
+                    (c.cargoCategory ? ` | Category: ${c.cargoCategory}` : "") +
+                    (c.hazardousClassification ? ` | ⚠ HAZARDOUS` : "") +
+                    (c.damaged
+                        ? ` | ⚠ DAMAGED${c.damageDetails ? `: ${c.damageDetails}` : ""}`
+                        : "") +
+                    (c.blacklisted ? ` | 🚫 BLACKLISTED` : "") +
+                    (c.empty ? ` | Empty` : " | Loaded"));
+            }
+        }
+        lines.push(``);
+        lines.push(`--- CONTAINER REQUESTS (Stuffing / Destuffing) ---`);
+        if (requests.length === 0) {
+            lines.push("No container requests found for this customer.");
+        }
+        else {
+            for (const r of requests) {
+                const line = [
+                    `• Request ${r.id || ""}`,
+                    `  Type: ${r.type} | Status: ${r.status}`,
+                    r.containerNumber ? `  Container: ${r.containerNumber}` : "",
+                    r.containerSize
+                        ? `  Size: ${r.containerSize} ${r.containerType || ""}`
+                        : "",
+                    r.cargoDescription ? `  Cargo: ${r.cargoDescription}` : "",
+                    r.cargoWeight ? `  Cargo Weight: ${r.cargoWeight} MT` : "",
+                    r.preferredDate ? `  Preferred Date: ${fmt(r.preferredDate)}` : "",
+                    r.specialInstructions
+                        ? `  Instructions: ${r.specialInstructions}`
+                        : "",
+                    r.isHazardous ? `  ⚠ Hazardous Material` : "",
+                    r.createdAt ? `  Submitted: ${fmt(r.createdAt)}` : "",
+                    r.checkpoints && r.checkpoints.length > 0
+                        ? `  Checkpoints: ${r.checkpoints.map((cp) => `${cp.location} (${cp.status})`).join(" → ")}`
+                        : "",
+                ]
+                    .filter(Boolean)
+                    .join("\n");
+                lines.push(line);
+            }
+        }
+        return lines.join("\n");
+    }
+    // ─────────────────────────────────────────
+    // BILLS category
+    // ─────────────────────────────────────────
+    async buildBillContext(customerId) {
+        const bills = await this.billRepository.findAll(customerId);
+        const lines = [];
+        lines.push(`=== CUSTOMER BILLING OVERVIEW ===`);
+        const paid = bills.filter((b) => b.status === "paid");
+        const pending = bills.filter((b) => b.status === "pending");
+        const overdue = bills.filter((b) => b.status === "overdue");
+        const totalUnpaid = [...pending, ...overdue].reduce((s, b) => s + (b.totalAmount || 0), 0);
+        const totalPaid = paid.reduce((s, b) => s + (b.totalAmount || 0), 0);
+        lines.push(`Total Bills: ${bills.length}`);
+        lines.push(`Paid: ${paid.length} (${inr(totalPaid)})`);
+        lines.push(`Pending: ${pending.length}`);
+        lines.push(`Overdue: ${overdue.length}`);
+        lines.push(`Total Unpaid Amount: ${inr(totalUnpaid)}`);
+        lines.push(``);
+        if (bills.length === 0) {
+            lines.push("No bills found for this customer.");
+        }
+        else {
+            lines.push(`--- BILL DETAILS ---`);
+            for (const b of bills) {
+                lines.push(`• Bill #${b.billNumber} | Container: ${b.containerNumber} | Amount: ${inr(b.totalAmount)} | Status: ${b.status.toUpperCase()}` +
+                    ` | Due: ${fmt(b.dueDate)}` +
+                    (b.paidAt
+                        ? ` | Paid On: ${fmt(b.paidAt)} via ${b.paymentMethod || "N/A"}`
+                        : "") +
+                    (b.remarks ? ` | Remarks: ${b.remarks}` : ""));
+                if (b.lineItems && b.lineItems.length > 0) {
+                    for (const li of b.lineItems) {
+                        lines.push(`    - ${li.activityName} (${li.activityCode}): ${li.quantity} × ${inr(li.unitPrice)} = ${inr(li.amount)}`);
+                    }
+                }
+            }
+        }
+        return lines.join("\n");
+    }
+    // ─────────────────────────────────────────
+    // PDA category
+    // ─────────────────────────────────────────
+    async buildPDAContext(userId) {
+        const pda = await this.pdaRepository.findByUserId(userId);
+        const lines = [];
+        lines.push(`=== CUSTOMER PDA (PRE-DEPOSIT ACCOUNT) OVERVIEW ===`);
+        if (!pda) {
+            lines.push("No PDA account found for this customer.");
+            return lines.join("\n");
+        }
+        const transactions = await this.pdaRepository.findTransactionsByPdaId(pda.id);
+        const credits = transactions.filter((t) => t.type === "credit");
+        const debits = transactions.filter((t) => t.type === "debit");
+        const totalCredited = credits.reduce((s, t) => s + t.amount, 0);
+        const totalDebited = debits.reduce((s, t) => s + t.amount, 0);
+        lines.push(`PDA Account Holder: ${pda.customer}`);
+        lines.push(`Current Balance: ${inr(pda.balance)}`);
+        lines.push(`Total Credited: ${inr(totalCredited)} (${credits.length} recharges)`);
+        lines.push(`Total Debited: ${inr(totalDebited)} (${debits.length} deductions)`);
+        lines.push(`Last Updated: ${fmt(pda.lastUpdated)}`);
+        lines.push(``);
+        const recent = [...transactions]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 50);
+        if (recent.length === 0) {
+            lines.push("No transactions found.");
+        }
+        else {
+            lines.push(`--- TRANSACTION HISTORY (Most Recent 50) ---`);
+            for (const t of recent) {
+                lines.push(`• ${fmt(t.timestamp)} | ${t.type.toUpperCase()} | ${inr(t.amount)} | Balance After: ${inr(t.balanceAfter)} | ${t.description}`);
+            }
+        }
+        return lines.join("\n");
+    }
+    // ─────────────────────────────────────────
+    // GENERAL / CROSS-QUERY category
+    // ─────────────────────────────────────────
+    async buildGeneralContext(customerId, userId) {
+        const [containers, requests, bills, pda] = await Promise.all([
+            this.containerRepository.findAll({ customer: customerId }),
+            this.containerRequestRepository.findByCustomerId(customerId),
+            this.billRepository.findAll(customerId),
+            this.pdaRepository.findByUserId(userId),
+        ]);
+        const activeContainers = containers.filter((c) => ["gate-in", "in-yard", "in-transit", "at-port", "at-factory"].includes(c.status));
+        const pendingRequests = requests.filter((r) => ["pending", "approved"].includes(r.status));
+        const overdueOrPendingBills = bills.filter((b) => b.status === "pending" || b.status === "overdue");
+        const totalUnpaid = overdueOrPendingBills.reduce((s, b) => s + (b.totalAmount || 0), 0);
+        const lines = [];
+        lines.push(`=== GENERAL CUSTOMER OVERVIEW ===`);
+        lines.push(``);
+        lines.push(`── CONTAINERS ──`);
+        lines.push(`Total Containers: ${containers.length}`);
+        lines.push(`Active (In Yard / Transit): ${activeContainers.length}`);
+        lines.push(`Damaged: ${containers.filter((c) => c.damaged).length}`);
+        lines.push(`Blacklisted: ${containers.filter((c) => c.blacklisted).length}`);
+        lines.push(``);
+        lines.push(`── REQUESTS ──`);
+        lines.push(`Total Requests: ${requests.length}`);
+        lines.push(`Active (Pending/Approved): ${pendingRequests.length}`);
+        lines.push(`Stuffing Requests: ${requests.filter((r) => r.type === "stuffing").length}`);
+        lines.push(`Destuffing Requests: ${requests.filter((r) => r.type === "destuffing").length}`);
+        lines.push(``);
+        lines.push(`── BILLING ──`);
+        lines.push(`Total Bills: ${bills.length}`);
+        lines.push(`Paid: ${bills.filter((b) => b.status === "paid").length}`);
+        lines.push(`Pending: ${bills.filter((b) => b.status === "pending").length}`);
+        lines.push(`Overdue: ${bills.filter((b) => b.status === "overdue").length}`);
+        lines.push(`Total Unpaid: ${inr(totalUnpaid)}`);
+        lines.push(``);
+        lines.push(`── PDA WALLET ──`);
+        lines.push(`Current Balance: ${pda ? inr(pda.balance) : "No PDA account"}`);
+        return lines.join("\n");
+    }
+}
+exports.AIChatContextBuilder = AIChatContextBuilder;
+//# sourceMappingURL=AIChatContextBuilder.js.map

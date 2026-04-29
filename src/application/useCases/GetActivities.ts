@@ -1,10 +1,13 @@
 import { IActivityRepository } from "../../domain/repositories/IActivityRepository";
-import { Activity } from "../../domain/entities/Activity";
+import { IGetActivities } from "../ports/IGetActivities";
+import { ActivityCollectionResponseDto } from "../dto/ActivityDto";
+import { ActivityMapper } from "../mappers/ActivityMapper";
 
-export class GetActivities {
+export class GetActivities implements IGetActivities {
     constructor(private activityRepository: IActivityRepository) { }
 
-    async execute(): Promise<Activity[]> {
-        return this.activityRepository.findAll();
+    async execute(): Promise<ActivityCollectionResponseDto> {
+        const activities = await this.activityRepository.findAll();
+        return ActivityMapper.toCollectionResponseDto(activities);
     }
 }

@@ -1,14 +1,13 @@
 import { IEquipmentRepository } from "../../domain/repositories/IEquipmentRepository";
-import { Equipment } from "../../domain/entities/Equipment";
+import { IGetAllEquipment } from "../ports/IGetAllEquipment";
+import { EquipmentCollectionResponseDto, EquipmentFiltersDto } from "../dto/EquipmentDto";
+import { EquipmentMapper } from "../mappers/EquipmentMapper";
 
-export class GetAllEquipment {
+export class GetAllEquipment implements IGetAllEquipment {
     constructor(private equipmentRepository: IEquipmentRepository) { }
 
-    async execute(filters?: {
-        type?: string;
-        status?: string;
-        name?: string;
-    }): Promise<Equipment[]> {
-        return await this.equipmentRepository.findAll(filters);
+    async execute(filters?: EquipmentFiltersDto): Promise<EquipmentCollectionResponseDto> {
+        const equipmentList = await this.equipmentRepository.findAll(filters);
+        return EquipmentMapper.toCollectionResponseDto(equipmentList);
     }
 }

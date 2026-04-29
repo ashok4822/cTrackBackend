@@ -1,22 +1,30 @@
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { ITokenService } from "../services/ITokenService";
+import { IRefreshToken } from "../ports/IRefreshToken";
+import { IConfigService } from "../services/IConfigService";
+import { RefreshTokenResponseDto } from "../dto/AuthDto";
+import { AuthMapper } from "../mappers/AuthMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class RefreshToken {
+export class RefreshToken implements IRefreshToken {
   constructor(
     private userRepository: IUserRepository,
     private tokenService: ITokenService,
+    private configService: IConfigService,
   ) { }
 
-  async execute(refreshToken: string): Promise<{ accessToken: string }> {
+  async execute(refreshToken: string): Promise<RefreshTokenResponseDto> {
     try {
       const decoded = this.tokenService.verify<{ id: string }>(
         refreshToken,
-        process.env.JWT_REFRESH_SECRET || "refresh_fallback",
+        this.configService.get("JWT_REFRESH_SECRET"),
       );
       const user = await this.userRepository.findById(decoded.id);
 
       if (!user) {
-        throw new Error("User not found");
+        throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.UNAUTHORIZED);
       }
 
       const accessToken = this.tokenService.generate(
@@ -27,13 +35,14 @@ export class RefreshToken {
           name: user.name,
           companyName: user.companyName
         },
-        process.env.JWT_ACCESS_SECRET || "access_fallback",
-        "15m",
+        this.configService.get("JWT_ACCESS_SECRET"),
+        this.configService.get("JWT_ACCESS_EXPIRY") || "15m",
       );
 
-      return { accessToken };
+      return AuthMapper.toRefreshTokenResponseDto(accessToken);
     } catch (error) {
-      throw new Error("Invalid refresh token", { cause: error });
+      throw new AppError(ResponseMessage.INVALID_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED);
     }
   }
 }
+

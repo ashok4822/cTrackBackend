@@ -1,9 +1,9 @@
 import { ContainerHistory } from "../entities/ContainerHistory";
 
 export interface ContainerHistoryFilter {
-    containerId?: string | { $in: string[] };
-    activity?: string;
-    performedBy?: string;
+    containerId?: string | string[];
+    activity?: string | string[];
+    performedBy?: string | string[];
 }
 
 export interface IContainerHistoryRepository {

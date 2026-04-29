@@ -1,6 +1,7 @@
 import { IBillTransactionRepository } from "../../domain/repositories/IBillTransactionRepository";
 import { BillTransaction } from "../../domain/entities/BillTransaction";
 import { BillTransactionModel, IBillTransactionDocument } from "../models/BillTransactionModel";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class BillTransactionRepository implements IBillTransactionRepository {
     private mapToEntity(doc: IBillTransactionDocument): BillTransaction {
@@ -41,7 +42,7 @@ export class BillTransactionRepository implements IBillTransactionRepository {
         }
 
         if (!savedDoc) {
-            throw new Error("Transaction not found");
+            throw new Error(ResponseMessage.TRANSACTION_NOT_FOUND);
         }
         return this.mapToEntity(savedDoc as IBillTransactionDocument);
     }

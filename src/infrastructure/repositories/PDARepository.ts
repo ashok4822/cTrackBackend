@@ -49,8 +49,14 @@ export class PDARepository implements IPDARepository {
         ));
     }
 
-    async findOne(filter: Record<string, unknown>): Promise<PDA | null> {
-        const doc = await PDAModel.findOne(filter);
+    async findByUserOrCustomer(userId?: string, customerName?: string): Promise<PDA | null> {
+        const conditions: Array<Record<string, unknown>> = [];
+        if (userId) conditions.push({ userId });
+        if (customerName) conditions.push({ customer: customerName });
+
+        if (conditions.length === 0) return null;
+
+        const doc = await PDAModel.findOne(conditions.length > 1 ? { $or: conditions } : conditions[0]);
         if (!doc) return null;
         return new PDA(doc._id.toString(), doc.userId.toString(), doc.customer, doc.balance, doc.lastUpdated);
     }

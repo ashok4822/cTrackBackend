@@ -1,6 +1,7 @@
 import { IVehicleRepository } from "../../domain/repositories/IVehicleRepository";
 import { Vehicle, VehicleType } from "../../domain/entities/Vehicle";
 import { VehicleModel, IVehicleDocument } from "../models/VehicleModel";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class VehicleRepository implements IVehicleRepository {
     async findAll(filters?: {
@@ -40,7 +41,7 @@ export class VehicleRepository implements IVehicleRepository {
             const updated = await VehicleModel.findByIdAndUpdate(vehicle.id, data, {
                 new: true,
             });
-            if (!updated) throw new Error("Vehicle not found for update");
+            if (!updated) throw new Error(ResponseMessage.VEHICLE_NOT_FOUND);
             return this.toEntity(updated);
         } else {
             const newVehicle = new VehicleModel(data);

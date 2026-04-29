@@ -1,55 +1,58 @@
 import { IBillRepository } from "../../domain/repositories/IBillRepository";
 import { IPDARepository } from "../../domain/repositories/IPDARepository";
-import { Bill } from "../../domain/entities/Bill";
-import { NotificationModel } from "../../infrastructure/models/NotificationModel";
-import { socketService } from "../../infrastructure/services/socketService";
-import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog } from "../../domain/entities/AuditLog";
 import { IBillTransactionRepository } from "../../domain/repositories/IBillTransactionRepository";
-import { BillTransaction } from "../../domain/entities/BillTransaction";
-import { appConfig } from "../../infrastructure/config/appConfig";
+import { IPayBillWithPDA } from "../ports/IPayBillWithPDA";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { INotificationService } from "../services/INotificationService";
+import { IConfigService } from "../services/IConfigService";
+import { BillResponseDto, PayBillWithPDARequestDto } from "../dto/BillingDto";
+import { UserContextDto } from "../dto/CommonDto";
+import { BillingMapper } from "../mappers/BillingMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class PayBillWithPDA {
+export class PayBillWithPDA implements IPayBillWithPDA {
   constructor(
     private billRepository: IBillRepository,
     private pdaRepository: IPDARepository,
-    private auditLogRepository?: IAuditLogRepository,
+    private eventBus: IEventBus,
+    private notificationService: INotificationService,
+    private configService: IConfigService,
     private transactionRepository?: IBillTransactionRepository,
   ) {}
 
+
   async execute(
-    billId: string,
-    userId: string,
-    userContext?: {
-      userId: string;
-      userName: string;
-      userRole: string;
-      ipAddress: string;
-    },
-  ): Promise<Bill> {
+    request: PayBillWithPDARequestDto,
+    userContext?: UserContextDto,
+  ): Promise<BillResponseDto> {
+    const { billId, userId } = request;
     const bill = await this.billRepository.findById(billId);
     if (!bill) {
-      throw new Error("Bill not found");
+      throw new AppError(ResponseMessage.BILL_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
     if (bill.customer !== userId) {
-      throw new Error("Unauthorized: This bill does not belong to you");
+      throw new AppError(ResponseMessage.BILL_OWNERSHIP_ERROR, HttpStatus.FORBIDDEN);
     }
 
     if (bill.status === "paid") {
-      throw new Error("Bill is already paid");
+      throw new AppError(ResponseMessage.BILL_ALREADY_PAID, HttpStatus.CONFLICT);
     }
 
     const pda = await this.pdaRepository.findByUserId(userId);
     if (!pda) {
-      throw new Error(
-        "Pre-Deposit Account (PDA) not found. Please contact support.",
+      throw new AppError(
+        ResponseMessage.PDA_NOT_FOUND,
+        HttpStatus.NOT_FOUND
       );
     }
 
     if (pda.balance < bill.totalAmount) {
-      throw new Error(
-        `Insufficient balance in PDA. Available: ₹${pda.balance.toLocaleString()}, Bill Amount: ₹${bill.totalAmount.toLocaleString()}`,
+      throw new AppError(
+        `${ResponseMessage.PDA_INSUFFICIENT_BALANCE}. Available: ₹${pda.balance.toLocaleString()}, Bill Amount: ₹${bill.totalAmount.toLocaleString()}`,
+        HttpStatus.BAD_REQUEST
       );
     }
 
@@ -62,7 +65,7 @@ export class PayBillWithPDA {
       pdaId: pda.id,
       type: "debit",
       amount: bill.totalAmount,
-      description: `Payment for Bill: ${bill.billNumber} (Container: ${bill.containerNumber})`,
+      description: `${ResponseMessage.ACTION_PROCESSED} Payment for Bill: ${bill.billNumber} (Container: ${bill.containerNumber})`,
       balanceAfter: newBalance,
       timestamp: new Date(),
     });
@@ -74,82 +77,52 @@ export class PayBillWithPDA {
       paymentMethod: "pda",
     });
     if (!updatedBill) {
-      throw new Error("Failed to update bill status");
+      throw new AppError(ResponseMessage.BILL_STATUS_UPDATE_FAILED, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     // Log bill transaction
     if (this.transactionRepository) {
       await this.transactionRepository.save(
-        new BillTransaction(
-          null,
-          billId,
-          userId,
-          bill.totalAmount,
-          "pda",
-          "success",
-          `pda_${Date.now()}`,
-        ),
+        BillingMapper.toTransactionEntity(billId, userId, bill.totalAmount, "pda", "success", `pda_${Date.now()}`)
       );
     }
 
-    // Audit Log
-    if (this.auditLogRepository && userContext) {
-      await this.auditLogRepository.save(
-        new AuditLog(
-          null,
-          userContext.userId,
-          userContext.userRole,
-          userContext.userName,
-          "BILL_PAID",
-          "Bill",
-          updatedBill.id,
-          JSON.stringify({
-            billNumber: updatedBill.billNumber,
-            totalAmount: updatedBill.totalAmount,
-            method: "PDA",
-          }),
-          userContext.ipAddress,
-        ),
-      );
+    // Audit Log (Event-driven)
+    if (userContext) {
+      this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        userId: userContext.userId,
+        userRole: userContext.userRole,
+        userName: userContext.userName,
+        action: ResponseMessage.AUDIT_BILL_PAID,
+        resourceType: ResponseMessage.RESOURCE_BILL,
+        resourceId: updatedBill.id,
+        details: {
+          billNumber: updatedBill.billNumber,
+          totalAmount: updatedBill.totalAmount,
+          method: "PDA",
+        },
+        ipAddress: userContext.ipAddress,
+      });
     }
 
     // Notify customer about successful payment via PDA
     try {
-      const notification = await NotificationModel.create({
-        userId: userId,
+      await this.notificationService.send(userId, {
         type: "success",
-        title: "Payment Successful (PDA)",
-        message: `Your payment of ₹${updatedBill.totalAmount} for bill ${updatedBill.billNumber} has been processed using your PDA.`,
+        title: ResponseMessage.PAYMENT_SUCCESSFUL_PDA_TITLE,
+        message: `${ResponseMessage.PDA_PAYMENT_PROCESSED_MESSAGE}. Bill: ${updatedBill.billNumber}, Amount: ₹${updatedBill.totalAmount.toLocaleString()}`,
         link: "/customer/bills",
       });
-      socketService.emitNotification({
-        id: notification._id.toString(),
-        type: "success",
-        title: "Payment Successful (PDA)",
-        message: `Your payment of ₹${updatedBill.totalAmount} for bill ${updatedBill.billNumber} has been processed using your PDA.`,
-        link: "/customer/bills",
-        read: false,
-        timestamp: notification.createdAt || new Date(),
-      }, userId);
 
       // Check for low balance alert using centralized config
-      if (newBalance < appConfig.pda.lowBalanceThreshold) {
-        const alertNotification = await NotificationModel.create({
-          userId: userId,
-          type: "alert",
-          title: "Low PDA Balance Alert",
-          message: `Your PDA balance is low: ₹${newBalance.toLocaleString()}. Please recharge to avoid payment delays.`,
+      const threshold = this.configService.getNumber('PDA_LOW_BALANCE_THRESHOLD');
+      if (newBalance < threshold) {
+        await this.notificationService.send(userId, {
+          type: "warning",
+          title: ResponseMessage.LOW_PDA_BALANCE_ALERT_TITLE,
+          message: `${ResponseMessage.LOW_PDA_BALANCE_MESSAGE} Current Balance: ₹${newBalance.toLocaleString()}`,
           link: "/customer/pda",
         });
-        socketService.emitNotification({
-          id: alertNotification._id.toString(),
-          type: "alert",
-          title: "Low PDA Balance Alert",
-          message: `Your PDA balance is low: ₹${newBalance.toLocaleString()}. Please recharge to avoid payment delays.`,
-          link: "/customer/pda",
-          read: false,
-          timestamp: alertNotification.createdAt || new Date(),
-        }, userId);
       }
     } catch (err) {
       console.error(
@@ -158,6 +131,6 @@ export class PayBillWithPDA {
       );
     }
 
-    return updatedBill;
+    return BillingMapper.toResponseDto(updatedBill);
   }
 }

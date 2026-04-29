@@ -1,26 +1,18 @@
 import { IPDARepository } from "../../domain/repositories/IPDARepository";
-import { PDATransaction } from "../../domain/entities/PDA";
+import { IGetPDATransactions } from "../ports/IGetPDATransactions";
+import { PDATransactionCollectionResponseDto } from "../dto/PDADto";
+import { PDAMapper } from "../mappers/PDAMapper";
 
-export class DepositFunds {
-    constructor(private pdaRepository: IPDARepository) { }
+export class GetPDATransactions implements IGetPDATransactions {
+    constructor(private _pdaRepository: IPDARepository) { }
 
-    async execute(userId: string, amount: number, description: string): Promise<PDATransaction> {
-        const pda = await this.pdaRepository.findByUserId(userId);
-        if (!pda) throw new Error("PDA not found for user");
+    async execute(userId: string): Promise<PDATransactionCollectionResponseDto> {
+        const pda = await this._pdaRepository.findByUserId(userId);
+        if (!pda) {
+            return PDAMapper.toTransactionCollectionResponseDto([]);
+        }
 
-        const newBalance = pda.balance + amount;
-
-        const transaction = await this.pdaRepository.createTransaction({
-            pdaId: pda.id,
-            type: "credit",
-            amount,
-            description,
-            balanceAfter: newBalance,
-            timestamp: new Date()
-        });
-
-        await this.pdaRepository.updateBalance(pda.id, newBalance);
-
-        return transaction;
+        const transactions = await this._pdaRepository.findTransactionsByPdaId(pda.id);
+        return PDAMapper.toTransactionCollectionResponseDto(transactions);
     }
 }

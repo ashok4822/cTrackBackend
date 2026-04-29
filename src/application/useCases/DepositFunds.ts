@@ -1,12 +1,18 @@
+import { IDepositFunds } from "../ports/IDepositFunds";
 import { IPDARepository } from "../../domain/repositories/IPDARepository";
-import { PDATransaction } from "../../domain/entities/PDA";
+import { DepositFundsRequestDto, PDATransactionResponseDto } from "../dto/PDADto";
+import { PDAMapper } from "../mappers/PDAMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class DepositFunds {
+export class DepositFunds implements IDepositFunds {
     constructor(private pdaRepository: IPDARepository) { }
 
-    async execute(userId: string, amount: number, description: string): Promise<PDATransaction> {
-        const pda = await this.pdaRepository.findByUserId(userId);
-        if (!pda) throw new Error("PDA not found for user");
+    async execute(data: DepositFundsRequestDto): Promise<PDATransactionResponseDto> {
+        const { userId, amount, description } = data;
+        const pda = await this.pdaRepository.findByUserId(userId!);
+        if (!pda) throw new AppError(ResponseMessage.PDA_NOT_FOUND, HttpStatus.NOT_FOUND);
 
         const newBalance = pda.balance + amount;
 
@@ -21,6 +27,7 @@ export class DepositFunds {
 
         await this.pdaRepository.updateBalance(pda.id, newBalance);
 
-        return transaction;
+        return PDAMapper.toTransactionResponseDto(transaction);
     }
 }
+

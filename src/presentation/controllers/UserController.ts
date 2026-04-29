@@ -1,253 +1,109 @@
 import { Request, Response } from "express";
-import { AdminCreateUser, UserContext } from "../../application/useCases/AdminCreateUser";
-import { GetUserProfile } from "../../application/useCases/GetUserProfile";
-import { UpdateUserProfile } from "../../application/useCases/UpdateUserProfile";
-import { UpdatePassword } from "../../application/useCases/UpdatePassword";
-import { UpdateUserProfileImage } from "../../application/useCases/UpdateUserProfileImage";
-import { GetAllUsers } from "../../application/useCases/GetAllUsers";
-import { ToggleUserBlockStatus } from "../../application/useCases/ToggleUserBlockStatus";
-import { AdminUpdateUser } from "../../application/useCases/AdminUpdateUser";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
+import { IAdminCreateUser } from "../../application/ports/IAdminCreateUser";
+import { IGetUserProfile } from "../../application/ports/IGetUserProfile";
+import { IUpdateUserProfile } from "../../application/ports/IUpdateUserProfile";
+import { IUpdatePassword } from "../../application/ports/IUpdatePassword";
+import { IUpdateUserProfileImage } from "../../application/ports/IUpdateUserProfileImage";
+import { IGetAllUsers } from "../../application/ports/IGetAllUsers";
+import { IToggleUserBlockStatus } from "../../application/ports/IToggleUserBlockStatus";
+import { IAdminUpdateUser } from "../../application/ports/IAdminUpdateUser";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { AppError } from "../../domain/exceptions/AppError";
+import { extractUserContext } from "../utils/userContext";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class UserController {
   constructor(
-    private adminCreateUserUseCase: AdminCreateUser,
-    private getUserProfileUseCase: GetUserProfile,
-    private updateUserProfileUseCase: UpdateUserProfile,
-    private updatePasswordUseCase: UpdatePassword,
-    private updateProfileImageUseCase: UpdateUserProfileImage,
-    private getAllUsersUseCase: GetAllUsers,
-    private toggleUserBlockStatusUseCase: ToggleUserBlockStatus,
-    private adminUpdateUserUseCase: AdminUpdateUser
+    private adminCreateUserUseCase: IAdminCreateUser,
+    private getUserProfileUseCase: IGetUserProfile,
+    private updateUserProfileUseCase: IUpdateUserProfile,
+    private updatePasswordUseCase: IUpdatePassword,
+    private updateProfileImageUseCase: IUpdateUserProfileImage,
+    private getAllUsersUseCase: IGetAllUsers,
+    private toggleUserBlockStatusUseCase: IToggleUserBlockStatus,
+    private adminUpdateUserUseCase: IAdminUpdateUser
   ) { }
 
-  private getUserContext(req: Request): UserContext {
-    const user = req.user;
-    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
-    return {
-      userId: user?.id || 'unknown',
-      userName: user?.name || user?.email || 'unknown',
-      userRole: user?.role || 'unknown',
-      ipAddress
-    };
-  }
+  createUser = asyncHandler(async (req: Request, res: Response) => {
+    const { email, role, name } = req.body;
+    const userContext = extractUserContext(req);
+    const result = await this.adminCreateUserUseCase.execute({ email, role, name, userContext });
+    return res.status(HttpStatus.CREATED).json(ApiResponse.success(result, ResponseMessage.CREATE_SUCCESS));
+  });
 
-  async createUser(req: Request, res: Response) {
-    try {
-      const { email, role, name } = req.body;
-      const userContext = this.getUserContext(req);
-      await this.adminCreateUserUseCase.execute(email, role, userContext, name);
-      return res
-        .status(HttpStatus.CREATED)
-        .json({ message: `${role} created successfully` });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occured";
-      return res.status(HttpStatus.BAD_REQUEST).json({ message });
+  getProfile = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+
+    const user = await this.getUserProfileUseCase.execute(userId);
+    if (!user) throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+
+    return res.status(HttpStatus.OK).json(ApiResponse.success(user));
+  });
+
+  updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+
+    const { name, phone, companyName } = req.body;
+    const userContext = extractUserContext(req);
+    const updatedUser = await this.updateUserProfileUseCase.execute(userId, { name, phone, companyName }, userContext);
+
+    return res.status(HttpStatus.OK).json(ApiResponse.success(updatedUser, ResponseMessage.PROFILE_UPDATE_SUCCESS));
+  });
+
+  updatePassword = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (newPassword !== confirmPassword) {
+      throw new AppError(ResponseMessage.PASSWORD_MISMATCH, HttpStatus.BAD_REQUEST);
     }
-  }
 
-  async getProfile(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
+    const userContext = extractUserContext(req);
+    await this.updatePasswordUseCase.execute(userId, currentPassword, newPassword, confirmPassword, userContext);
+    return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.PASSWORD_UPDATE_SUCCESS));
+  });
 
-      if (!userId) {
-        return res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ message: "Unauthorized" });
-      }
+  updateProfileImage = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
+    if (!req.file) throw new AppError(ResponseMessage.NO_FILE_UPLOADED, HttpStatus.BAD_REQUEST);
 
-      const user = await this.getUserProfileUseCase.execute(userId);
+    const imageUrl = req.file.path;
+    const updatedUser = await this.updateProfileImageUseCase.execute(userId, imageUrl);
 
-      // Don't send password in response
-      return res.status(HttpStatus.OK).json({
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        name: user.name,
-        phone: user.phone,
-        profileImage: user.profileImage,
-        companyName: user.companyName,
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occured";
-      return res.status(HttpStatus.BAD_REQUEST).json({ message });
-    }
-  }
+    return res.status(HttpStatus.OK).json(ApiResponse.success({ profileImage: updatedUser.profileImage }, ResponseMessage.PROFILE_IMAGE_UPDATE_SUCCESS));
+  });
 
-  async updateProfile(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
+  getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.getAllUsersUseCase.execute();
+    return res.status(HttpStatus.OK).json(ApiResponse.success(result));
+  });
 
-      if (!userId) {
-        return res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ message: "Unauthorized" });
-      }
+  toggleBlockStatus = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userContext = extractUserContext(req);
+    const result = await this.toggleUserBlockStatusUseCase.execute(id as string, userContext);
+    return res.status(HttpStatus.OK).json(ApiResponse.success(result, ResponseMessage.USER_BLOCK_TOGGLED));
+  });
 
-      const { name, phone, companyName } = req.body;
-      const userContext = this.getUserContext(req);
-      const updatedUser = await this.updateUserProfileUseCase.execute(userId, {
-        name,
-        phone,
-        companyName,
-      }, userContext);
+  updateUser = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { name, role, organization, isBlocked } = req.body;
+    const userContext = extractUserContext(req);
+    const updatedUser = await this.adminUpdateUserUseCase.execute(id as string, {
+      name,
+      role,
+      companyName: organization,
+      isBlocked,
+      userContext
+    });
 
-      return res.status(HttpStatus.OK).json({
-        message: "Profile updated successfully",
-        user: {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          role: updatedUser.role,
-          name: updatedUser.name,
-          phone: updatedUser.phone,
-          profileImage: updatedUser.profileImage,
-          companyName: updatedUser.companyName,
-        },
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occured";
-      return res.status(HttpStatus.BAD_REQUEST).json({ message });
-    }
-  }
-
-  async updatePassword(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-
-      if (!userId) {
-        return res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ message: "Unauthorized" });
-      }
-
-      const { currentPassword, newPassword, confirmPassword } = req.body;
-
-      if (!currentPassword || !newPassword || !confirmPassword) {
-        return res
-          .status(HttpStatus.BAD_REQUEST)
-          .json({ message: "All password fields are required" });
-      }
-
-      const userContext = this.getUserContext(req);
-      await this.updatePasswordUseCase.execute(
-        userId,
-        currentPassword,
-        newPassword,
-        confirmPassword,
-        userContext
-      );
-
-      return res
-        .status(HttpStatus.OK)
-        .json({ message: "Password updated successfully" });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occured";
-      return res.status(HttpStatus.BAD_REQUEST).json({ message });
-    }
-  }
-
-  async updateProfileImage(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ message: "Unauthorized" });
-      }
-
-      if (!req.file) {
-        return res
-          .status(HttpStatus.BAD_REQUEST)
-          .json({ message: "No image file provided" });
-      }
-
-      const imageUrl = req.file.path;
-      const updatedUser = await this.updateProfileImageUseCase.execute(
-        userId,
-        imageUrl
-      );
-
-      return res.status(HttpStatus.OK).json({
-        message: "Profile image updated successfully",
-        profileImage: updatedUser.profileImage,
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occured";
-      return res.status(HttpStatus.BAD_REQUEST).json({ message });
-    }
-  }
-
-  async getAllUsers(req: Request, res: Response) {
-    try {
-      const users = await this.getAllUsersUseCase.execute();
-      return res.status(HttpStatus.OK).json(
-        users.map((user) => ({
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: user.name,
-          phone: user.phone,
-          profileImage: user.profileImage,
-          companyName: user.companyName,
-          isBlocked: user.isBlocked,
-        }))
-      );
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occured";
-      return res.status(HttpStatus.BAD_REQUEST).json({ message });
-    }
-  }
-
-  async toggleBlockStatus(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const userContext = this.getUserContext(req);
-      const updatedUser = await this.toggleUserBlockStatusUseCase.execute(id as string, userContext);
-      return res.status(HttpStatus.OK).json({
-        message: `User ${updatedUser.isBlocked ? "blocked" : "unblocked"} successfully`,
-        user: {
-          id: updatedUser.id,
-          isBlocked: updatedUser.isBlocked,
-        },
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occured";
-      return res.status(HttpStatus.BAD_REQUEST).json({ message });
-    }
-  }
-
-  async updateUser(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const { name, role, organization } = req.body;
-      const userContext = this.getUserContext(req);
-      const updatedUser = await this.adminUpdateUserUseCase.execute(id as string, {
-        name,
-        role,
-        companyName: organization,
-      }, userContext);
-
-      return res.status(HttpStatus.OK).json({
-        message: "User updated successfully",
-        user: {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          role: updatedUser.role,
-          name: updatedUser.name,
-          organization: updatedUser.companyName,
-        },
-      });
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "An unknown error occured";
-      return res.status(HttpStatus.BAD_REQUEST).json({ message });
-    }
-  }
+    return res.status(HttpStatus.OK).json(ApiResponse.success(updatedUser, ResponseMessage.USER_UPDATED));
+  });
 }
+

@@ -1,56 +1,48 @@
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
-import { User } from "../../domain/entities/User";
-import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog } from "../../domain/entities/AuditLog";
-import { UserContext } from "./AdminCreateUser";
+import { IUpdateUserProfile } from "../ports/IUpdateUserProfile";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { UpdateUserProfileRequestDto, UserResponseDto } from "../dto/UserDto";
+import { UserContextDto } from "../dto/CommonDto";
+import { UserMapper } from "../mappers/UserMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-interface UpdateProfileData {
-    name?: string;
-    phone?: string;
-    companyName?: string;
-}
-
-export class UpdateUserProfile {
+export class UpdateUserProfile implements IUpdateUserProfile {
     constructor(
         private userRepository: IUserRepository,
-        private auditLogRepository: IAuditLogRepository
+        private eventBus: IEventBus
     ) { }
 
-    async execute(userId: string, data: UpdateProfileData, userContext: UserContext): Promise<User> {
+
+    async execute(userId: string, data: UpdateUserProfileRequestDto, userContext: UserContextDto): Promise<UserResponseDto> {
         // Validation for name and phone (already present)
         if (data.name !== undefined) {
             const trimmedName = data.name.trim();
             if (trimmedName.length < 3 || trimmedName.length > 50) {
-                throw new Error("Name must be between 3 and 50 characters");
+                throw new AppError(ResponseMessage.INVALID_NAME_LENGTH, HttpStatus.BAD_REQUEST);
             }
-            data.name = trimmedName;
         }
 
         if (data.phone !== undefined && data.phone !== "") {
             const phoneRegex = /^\+?[1-9]\d{1,14}$/;
             if (!phoneRegex.test(data.phone)) {
-                throw new Error("Invalid phone number format");
+                throw new AppError(ResponseMessage.INVALID_PHONE_FORMAT, HttpStatus.BAD_REQUEST);
             }
         }
 
         const user = await this.userRepository.findById(userId);
 
         if (!user) {
-            throw new Error("User not found");
+            throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        // Create updated user with new data
-        const updatedUser = new User(
-            user.id,
-            user.email,
-            user.role,
-            user.password,
-            data.name !== undefined ? data.name : user.name,
-            data.phone !== undefined ? data.phone : user.phone,
-            user.googleId,
-            user.profileImage,
-            data.companyName !== undefined ? data.companyName : user.companyName
-        );
+        // Create updated user via domain method
+        const updatedUser = user.updateProfile({
+            name: data.name,
+            phone: data.phone,
+            companyName: data.companyName
+        });
 
         await this.userRepository.save(updatedUser);
 
@@ -60,18 +52,18 @@ export class UpdateUserProfile {
         if (data.phone !== undefined) changes.push(`phone: ${data.phone}`);
         if (data.companyName !== undefined) changes.push(`companyName: ${data.companyName}`);
 
-        await this.auditLogRepository.save(new AuditLog(
-            null,
-            userContext.userId,
-            userContext.userRole,
-            userContext.userName,
-            "PROFILE_UPDATED",
-            "Profile",
-            userId,
-            JSON.stringify({ changes }),
-            userContext.ipAddress
-        ));
+        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+            userId: userContext.userId,
+            userRole: userContext.userRole,
+            userName: userContext.userName,
+            action: ResponseMessage.AUDIT_PROFILE_UPDATED,
+            resourceType: ResponseMessage.RESOURCE_PROFILE,
+            resourceId: userId,
+            details: { changes },
+            ipAddress: userContext.ipAddress
+        });
 
-        return updatedUser;
+        return UserMapper.toResponseDto(updatedUser);
     }
 }
+

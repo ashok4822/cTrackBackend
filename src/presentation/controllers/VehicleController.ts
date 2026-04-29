@@ -1,63 +1,46 @@
 import { Request, Response } from "express";
-import { CreateVehicle } from "../../application/useCases/CreateVehicle";
-import { UpdateVehicle } from "../../application/useCases/UpdateVehicle";
-import { DeleteVehicle } from "../../application/useCases/DeleteVehicle";
-import { GetAllVehicles } from "../../application/useCases/GetAllVehicles";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
+import { ICreateVehicle } from "../../application/ports/ICreateVehicle";
+import { IUpdateVehicle } from "../../application/ports/IUpdateVehicle";
+import { IDeleteVehicle } from "../../application/ports/IDeleteVehicle";
+import { IGetAllVehicles } from "../../application/ports/IGetAllVehicles";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class VehicleController {
     constructor(
-        private createVehicle: CreateVehicle,
-        private updateVehicle: UpdateVehicle,
-        private deleteVehicle: DeleteVehicle,
-        private getAllVehicles: GetAllVehicles
+        private createVehicle: ICreateVehicle,
+        private updateVehicle: IUpdateVehicle,
+        private deleteVehicle: IDeleteVehicle,
+        private getAllVehicles: IGetAllVehicles
     ) { }
 
-    async fetchAll(req: Request, res: Response) {
-        try {
-            const filters = req.query as {
-                type?: string;
-                vehicleNumber?: string;
-            };
-            const vehicles = await this.getAllVehicles.execute(filters);
-            res.status(HttpStatus.OK).json(vehicles);
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Internal Server Error";
-            res
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .json({ message });
-        }
-    }
+    fetchAll = asyncHandler(async (req: Request, res: Response) => {
+        const filters = req.query as {
+            type?: string;
+            vehicleNumber?: string;
+        };
+        const vehicles = await this.getAllVehicles.execute(filters);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(vehicles));
+    });
 
-    async create(req: Request, res: Response) {
-        try {
-            const vehicle = await this.createVehicle.execute(req.body);
-            res.status(HttpStatus.CREATED).json(vehicle);
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Failed to create vehicle";
-            res.status(HttpStatus.BAD_REQUEST).json({ message });
-        }
-    }
+    create = asyncHandler(async (req: Request, res: Response) => {
+        const vehicle = await this.createVehicle.execute(req.body);
+        return res.status(HttpStatus.CREATED).json(ApiResponse.success(vehicle, ResponseMessage.VEHICLE_CREATED));
+    });
 
-    async update(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const vehicle = await this.updateVehicle.execute(id as string, req.body);
-            res.status(HttpStatus.OK).json(vehicle);
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Failed to update vehicle";
-            res.status(HttpStatus.BAD_REQUEST).json({ message });
-        }
-    }
+    update = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const vehicle = await this.updateVehicle.execute(id as string, req.body);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(vehicle, ResponseMessage.VEHICLE_UPDATED));
+    });
 
-    async delete(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            await this.deleteVehicle.execute(id as string);
-            res.status(HttpStatus.OK).json({ message: "Vehicle deleted" });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Failed to delete vehicle";
-            res.status(HttpStatus.BAD_REQUEST).json({ message });
-        }
-    }
+    delete = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        await this.deleteVehicle.execute(id as string);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.VEHICLE_DELETED));
+    });
 }
+
+

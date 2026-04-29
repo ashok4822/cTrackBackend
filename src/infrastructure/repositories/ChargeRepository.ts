@@ -80,10 +80,10 @@ export class ChargeRepository implements IChargeRepository {
         }
 
         const entity: Charge = {
+            ...rest,
             id: _id.toString(),
             activityId: actId,
-            cargoCategoryId: catId,
-            ...rest
+            cargoCategoryId: catId
         } as Charge;
 
         if (activityId && typeof activityId === 'object' && 'name' in activityId) {

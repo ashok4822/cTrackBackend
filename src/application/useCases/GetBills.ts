@@ -1,10 +1,14 @@
 import { IBillRepository } from "../../domain/repositories/IBillRepository";
-import { Bill } from "../../domain/entities/Bill";
+import { IGetBills } from "../ports/IGetBills";
+import { BillCollectionResponseDto, GetBillsRequestDto } from "../dto/BillingDto";
+import { BillingMapper } from "../mappers/BillingMapper";
 
-export class GetBills {
-    constructor(private billRepository: IBillRepository) { }
+export class GetBills implements IGetBills {
+    constructor(private _billRepository: IBillRepository) { }
 
-    async execute(customerId?: string): Promise<Bill[]> {
-        return this.billRepository.findAll(customerId);
+    async execute(request: GetBillsRequestDto): Promise<BillCollectionResponseDto> {
+        const { customerId, status } = request;
+        const bills = await this._billRepository.findAll(customerId, status);
+        return BillingMapper.toCollectionResponseDto(bills);
     }
 }

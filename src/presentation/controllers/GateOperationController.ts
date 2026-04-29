@@ -1,62 +1,39 @@
 import { Request, Response } from "express";
-import { GetGateOperations } from "../../application/useCases/GetGateOperations";
-import { CreateGateOperation } from "../../application/useCases/CreateGateOperation";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
-import { socketService } from "../../infrastructure/services/socketService";
+import { IGetGateOperations } from "../../application/ports/IGetGateOperations";
+import { ICreateGateOperation } from "../../application/ports/ICreateGateOperation";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { extractUserContext } from "../utils/userContext";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class GateOperationController {
     constructor(
-        private getGateOperationsUseCase: GetGateOperations,
-        private createGateOperationUseCase: CreateGateOperation
+        private getGateOperationsUseCase: IGetGateOperations,
+        private createGateOperationUseCase: ICreateGateOperation
     ) { }
 
-    async getGateOperations(req: Request, res: Response) {
-        try {
-            const filters = req.query as {
-                type?: "gate-in" | "gate-out";
-                containerNumber?: string;
-                vehicleNumber?: string;
-                limit?: string;
-                status?: string;
-            };
-            const operations = await this.getGateOperationsUseCase.execute({
-                ...filters,
-                limit: filters.limit ? parseInt(filters.limit, 10) : undefined
-            });
-            return res.status(HttpStatus.OK).json(operations);
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
-        }
-    }
+    getGateOperations = asyncHandler(async (req: Request, res: Response) => {
+        const filters = req.query as {
+            type?: "gate-in" | "gate-out";
+            containerNumber?: string;
+            vehicleNumber?: string;
+            limit?: string;
+            status?: string;
+        };
+        const operations = await this.getGateOperationsUseCase.execute({
+            ...filters,
+            limit: filters.limit ? parseInt(filters.limit, 10) : undefined
+        });
+        return res.status(HttpStatus.OK).json(ApiResponse.success(operations));
+    });
 
-    async createGateOperation(req: Request, res: Response) {
-        try {
-            const performedBy = req.user?.name || req.user?.email || "System";
-            const userContext = {
-                userId: req.user?.id || 'unknown',
-                userName: req.user?.name || req.user?.email || 'unknown',
-                userRole: req.user?.role || 'unknown',
-                ipAddress: req.ip || req.socket.remoteAddress || 'unknown'
-            };
-            await this.createGateOperationUseCase.execute(req.body, userContext, performedBy);
-
-            // Real-time update
-            // Real-time update
-            socketService.emitKPIUpdate({ type: 'GATE_OPERATION', data: req.body });
-            
-            
-            socketService.emitActivity({
-                type: 'gate',
-                title: 'New Gate Movement',
-                description: `${req.body.containerNumber} - ${req.body.type}`,
-                timestamp: new Date()
-            });
-
-            return res.status(HttpStatus.CREATED).json({ message: "Gate operation recorded successfully" });
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-            return res.status(HttpStatus.BAD_REQUEST).json({ message: errorMessage });
-        }
-    }
+    createGateOperation = asyncHandler(async (req: Request, res: Response) => {
+        const performedBy = req.user?.name || req.user?.email || "System";
+        const userContext = extractUserContext(req);
+        await this.createGateOperationUseCase.execute(req.body, userContext, performedBy);
+        
+        return res.status(HttpStatus.CREATED).json(ApiResponse.success(null, ResponseMessage.GATE_OPERATION_SUCCESS));
+    });
 }
+

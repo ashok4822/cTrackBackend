@@ -1,46 +1,42 @@
-import { PDA, PDATransaction } from "../../domain/entities/PDA";
 import { IPDARepository } from "../../domain/repositories/IPDARepository";
 import { IUserRepository } from "../../domain/repositories/IUserRepository";
-import { appConfig } from "../../infrastructure/config/appConfig";
+import { IGetPDA } from "../ports/IGetPDA";
+import { IConfigService } from "../services/IConfigService";
+import { PDAResponseDto } from "../dto/PDADto";
+import { PDAMapper } from "../mappers/PDAMapper";
 
-interface PDAWithDetails extends PDA {
-  transactions: PDATransaction[];
-  lowBalanceThreshold: number;
-}
-
-export class GetPDA {
+export class GetPDA implements IGetPDA {
   constructor(
-    private pdaRepository: IPDARepository,
-    private userRepository: IUserRepository,
+    private _pdaRepository: IPDARepository,
+    private _userRepository: IUserRepository,
+    private _configService: IConfigService,
   ) {}
 
   async execute(
     userId: string,
     role: string,
-  ): Promise<PDAWithDetails[] | PDAWithDetails | null> {
+  ): Promise<PDAResponseDto[] | PDAResponseDto | null> {
+    const lowBalanceThreshold = this._configService.getNumber('PDA_LOW_BALANCE_THRESHOLD');
+
     if (role === "admin" || role === "operator") {
-      const pdas = await this.pdaRepository.findAll();
+      const pdas = await this._pdaRepository.findAll();
       return await Promise.all(
         pdas.map(async (pda) => {
-          const transactions = await this.pdaRepository.findTransactionsByPdaId(
+          const transactions = await this._pdaRepository.findTransactionsByPdaId(
             pda.id,
           );
-          return {
-            ...pda,
-            transactions,
-            lowBalanceThreshold: appConfig.pda.lowBalanceThreshold,
-          };
+          return PDAMapper.toPDAResponseDto(pda, transactions, lowBalanceThreshold);
         }),
       );
     }
 
-    let pda = await this.pdaRepository.findByUserId(userId);
+    let pda = await this._pdaRepository.findByUserId(userId);
 
     // If PDA doesn't exist for customer, create it on first access
     if (!pda) {
-      const user = await this.userRepository.findById(userId);
+      const user = await this._userRepository.findById(userId);
       if (user && user.role === "customer") {
-        pda = await this.pdaRepository.create({
+        pda = await this._pdaRepository.create({
           userId,
           customer: user.companyName || user.name || "Unknown",
           balance: 0,
@@ -49,14 +45,10 @@ export class GetPDA {
     }
 
     if (pda) {
-      const transactions = await this.pdaRepository.findTransactionsByPdaId(
+      const transactions = await this._pdaRepository.findTransactionsByPdaId(
         pda.id,
       );
-      return {
-        ...pda,
-        transactions,
-        lowBalanceThreshold: appConfig.pda.lowBalanceThreshold,
-      };
+      return PDAMapper.toPDAResponseDto(pda, transactions, lowBalanceThreshold);
     }
 
     return null;

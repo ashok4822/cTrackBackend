@@ -1,14 +1,13 @@
 import { IVehicleRepository } from "../../domain/repositories/IVehicleRepository";
-import { Vehicle } from "../../domain/entities/Vehicle";
+import { IGetAllVehicles } from "../ports/IGetAllVehicles";
+import { VehicleCollectionResponseDto, VehicleFiltersDto } from "../dto/VehicleDto";
+import { VehicleMapper } from "../mappers/VehicleMapper";
 
-export class GetAllVehicles {
+export class GetAllVehicles implements IGetAllVehicles {
     constructor(private vehicleRepository: IVehicleRepository) { }
 
-    async execute(filters?: {
-        type?: string;
-        vehicleNumber?: string;
-        status?: string;
-    }): Promise<Vehicle[]> {
-        return await this.vehicleRepository.findAll(filters);
+    async execute(filters?: VehicleFiltersDto): Promise<VehicleCollectionResponseDto> {
+        const vehicles = await this.vehicleRepository.findAll(filters);
+        return VehicleMapper.toCollectionResponseDto(vehicles);
     }
 }

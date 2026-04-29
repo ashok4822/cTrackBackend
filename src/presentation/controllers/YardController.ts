@@ -1,82 +1,40 @@
 import { Request, Response } from "express";
-import { GetBlocks } from "../../application/useCases/GetBlocks";
-import { CreateBlock } from "../../application/useCases/CreateBlock";
-import { UpdateBlock } from "../../application/useCases/UpdateBlock";
-import { HttpStatus } from "../../domain/constants/HttpStatus";
-import { UserContext } from "../../application/useCases/AdminCreateUser";
-import { socketService } from "../../infrastructure/services/socketService";
+import { IGetBlocks } from "../../application/ports/IGetBlocks";
+import { ICreateBlock } from "../../application/ports/ICreateBlock";
+import { IUpdateBlock } from "../../application/ports/IUpdateBlock";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { extractUserContext } from "../utils/userContext";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class YardController {
     constructor(
-        private getBlocksUseCase: GetBlocks,
-        private createBlockUseCase: CreateBlock,
-        private updateBlockUseCase: UpdateBlock
+        private _getBlocksUseCase: IGetBlocks,
+        private _createBlockUseCase: ICreateBlock,
+        private _updateBlockUseCase: IUpdateBlock,
     ) { }
 
-    private getUserContext(req: Request): UserContext {
-        const user = req.user;
-        const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || 'unknown';
-        return {
-            userId: user?.id || 'unknown',
-            userName: user?.name || user?.email || 'unknown',
-            userRole: user?.role || 'unknown',
-            ipAddress
-        };
-    }
+    getBlocks = asyncHandler(async (req: Request, res: Response) => {
+        const blocks = await this._getBlocksUseCase.execute();
+        return res.status(HttpStatus.OK).json(ApiResponse.success(blocks));
+    });
 
-    async getBlocks(req: Request, res: Response) {
-        try {
-            const blocks = await this.getBlocksUseCase.execute();
-            return res.status(HttpStatus.OK).json(blocks);
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Failed to fetch blocks";
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                message,
-            });
-        }
-    }
+    updateBlock = asyncHandler(async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const { name, capacity } = req.body;
+        const userContext = extractUserContext(req);
+        await this._updateBlockUseCase.execute(id as string, { name, capacity }, userContext);
 
-    async updateBlock(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const { name, capacity } = req.body;
-            const userContext = this.getUserContext(req);
-            await this.updateBlockUseCase.execute(id as string, { name, capacity }, userContext);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.BLOCK_UPDATED));
+    });
 
-            // Real-time update
-            socketService.emitKPIUpdate({ type: 'YARD_UPDATE', action: 'UPDATE', data: req.body });
+    createBlock = asyncHandler(async (req: Request, res: Response) => {
+        const { name, capacity } = req.body;
+        const userContext = extractUserContext(req);
+        await this._createBlockUseCase.execute({ name, capacity }, userContext);
 
-            return res.status(HttpStatus.OK).json({
-                message: "Block updated successfully",
-            });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Failed to update block";
-            const status = message === "Block not found"
-                ? HttpStatus.NOT_FOUND
-                : HttpStatus.INTERNAL_SERVER_ERROR;
-            return res.status(status).json({
-                message,
-            });
-        }
-    }
-
-    async createBlock(req: Request, res: Response) {
-        try {
-            const { name, capacity } = req.body;
-            const userContext = this.getUserContext(req);
-            await this.createBlockUseCase.execute({ name, capacity }, userContext);
-
-            // Real-time update
-            socketService.emitKPIUpdate({ type: 'YARD_UPDATE', action: 'CREATE', data: req.body });
-
-            return res.status(HttpStatus.CREATED).json({
-                message: "Block created successfully",
-            });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : "Failed to create block";
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                message,
-            });
-        }
-    }
+        return res.status(HttpStatus.CREATED).json(ApiResponse.success(null, ResponseMessage.BLOCK_CREATED));
+    });
 }
+

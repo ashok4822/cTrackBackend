@@ -1,6 +1,7 @@
 import { IEquipmentRepository } from "../../domain/repositories/IEquipmentRepository";
 import { Equipment } from "../../domain/entities/Equipment";
 import { EquipmentModel, IEquipmentDocument } from "../models/EquipmentModel";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class EquipmentRepository implements IEquipmentRepository {
     async findAll(filters?: {
@@ -42,7 +43,7 @@ export class EquipmentRepository implements IEquipmentRepository {
                 { new: true }
             );
             if (!updated) {
-                throw new Error("Equipment not found");
+                throw new Error(ResponseMessage.EQUIPMENT_NOT_FOUND);
             }
             return this.toEntity(updated);
         } else {

@@ -1,44 +1,31 @@
 import { IEquipmentRepository } from "../../domain/repositories/IEquipmentRepository";
-import { Equipment, EquipmentStatus, EquipmentType } from "../../domain/entities/Equipment";
-import { IEquipmentHistoryRepository } from "../../domain/repositories/IEquipmentHistoryRepository";
-import { EquipmentHistory } from "../../domain/entities/EquipmentHistory";
+import { ICreateEquipment } from "../ports/ICreateEquipment";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { CreateEquipmentRequestDto, EquipmentResponseDto } from "../dto/EquipmentDto";
+import { EquipmentMapper } from "../mappers/EquipmentMapper";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export class CreateEquipment {
+export class CreateEquipment implements ICreateEquipment {
     constructor(
         private equipmentRepository: IEquipmentRepository,
-        private historyRepository: IEquipmentHistoryRepository
+        private eventBus: IEventBus
     ) { }
 
-    async execute(data: {
-        name: string;
-        type: EquipmentType;
-        status: EquipmentStatus;
-        operator?: string;
-        lastMaintenance?: Date;
-        nextMaintenance?: Date;
-    }, performedBy?: string): Promise<Equipment> {
-        const equipment = new Equipment(
-            null,
-            data.name,
-            data.type,
-            data.status,
-            data.operator,
-            data.lastMaintenance,
-            data.nextMaintenance
-        );
+
+    async execute(data: CreateEquipmentRequestDto, performedBy?: string): Promise<EquipmentResponseDto> {
+        const equipment = EquipmentMapper.toEntity(data);
         const savedEquipment = await this.equipmentRepository.save(equipment);
 
-        // Record History
+        // Record History (Event-driven)
         if (savedEquipment.id) {
-            await this.historyRepository.save(new EquipmentHistory(
-                null,
-                savedEquipment.id,
-                "Created",
-                `Equipment ${data.name} initialized with status ${data.status}`,
-                performedBy || "System"
-            ));
+            this.eventBus.emit(DomainEvents.EQUIPMENT_HISTORY_CREATED, {
+                equipmentId: savedEquipment.id,
+                action: ResponseMessage.ACTION_CREATED,
+                details: `${ResponseMessage.DETAILS_INITIALIZED}: ${data.name}`,
+                performedBy: performedBy || "System"
+            });
         }
 
-        return savedEquipment;
+        return EquipmentMapper.toResponseDto(savedEquipment);
     }
 }

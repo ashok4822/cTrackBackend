@@ -1,5 +1,8 @@
 import { Router } from "express";
 import { BillingController } from "../controllers/BillingController";
+import { ActivityController } from "../controllers/ActivityController";
+import { ChargeController } from "../controllers/ChargeController";
+import { CargoCategoryController } from "../controllers/CargoCategoryController";
 import { GetActivities } from "../../application/useCases/GetActivities";
 import { CreateActivity } from "../../application/useCases/CreateActivity";
 import { UpdateActivity } from "../../application/useCases/UpdateActivity";
@@ -18,7 +21,7 @@ import { UpdateCargoCategory } from "../../application/useCases/UpdateCargoCateg
 import { CreateRazorpayOrder } from "../../application/useCases/CreateRazorpayOrder";
 import { VerifyRazorpayPayment } from "../../application/useCases/VerifyRazorpayPayment";
 import { GetBillTransactions } from "../../application/useCases/GetBillTransactions";
-import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
+import { GetOverdueStatus } from "../../application/useCases/GetOverdueStatus";
 import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
 import { ChargeHistoryRepository } from "../../infrastructure/repositories/ChargeHistoryRepository";
@@ -27,49 +30,53 @@ import { PDARepository } from "../../infrastructure/repositories/PDARepository";
 import { CargoCategoryRepository } from "../../infrastructure/repositories/CargoCategoryRepository";
 import { BillTransactionRepository } from "../../infrastructure/repositories/BillTransactionRepository";
 import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { appConfig } from "../../infrastructure/config/appConfig";
+import { RazorpayService } from "../../infrastructure/services/RazorpayService";
+import { SocketNotificationService } from "../../infrastructure/services/SocketNotificationService";
+import { eventBus } from "../../infrastructure/events/EventEmitterBus";
 
 export const createBillingRouter = () => {
     const router = Router();
 
+    // Infrastructure services
+    const paymentService = new RazorpayService(appConfig);
+    const notificationService = new SocketNotificationService();
+
+    // Repositories
     const activityRepo = new ActivityRepository();
     const chargeRepo = new ChargeRepository();
     const historyRepo = new ChargeHistoryRepository();
     const billRepo = new BillRepository();
     const pdaRepo = new PDARepository();
     const cargoCategoryRepo = new CargoCategoryRepository();
-    const auditLogRepo = new MongoAuditLogRepository();
     const transactionRepo = new BillTransactionRepository();
 
+    // Use Cases
     const getActivities = new GetActivities(activityRepo);
     const createActivity = new CreateActivity(activityRepo);
     const updateActivity = new UpdateActivity(activityRepo);
     const getCharges = new GetCharges(chargeRepo);
     const createCharge = new CreateCharge(chargeRepo);
     const getChargeHistory = new GetChargeHistory(historyRepo);
-    const updateChargeRate = new UpdateChargeRate(chargeRepo, historyRepo);
+    const updateChargeRate = new UpdateChargeRate(chargeRepo, eventBus);
     const getBills = new GetBills(billRepo);
     const markBillPaid = new MarkBillPaid(billRepo);
     const createBill = new CreateBill(billRepo);
-    const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo, auditLogRepo, transactionRepo);
+    const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo, eventBus, notificationService, appConfig, transactionRepo);
     const getBillById = new GetBillById(billRepo);
     const getCargoCategories = new GetCargoCategories(cargoCategoryRepo);
     const createCargoCategory = new CreateCargoCategory(cargoCategoryRepo);
     const updateCargoCategory = new UpdateCargoCategory(cargoCategoryRepo);
-    const createRazorpayOrder = new CreateRazorpayOrder(billRepo, transactionRepo);
-    const verifyRazorpayPayment = new VerifyRazorpayPayment(billRepo, auditLogRepo, transactionRepo);
+    const createRazorpayOrder = new CreateRazorpayOrder(billRepo, transactionRepo, paymentService);
+    const verifyRazorpayPayment = new VerifyRazorpayPayment(billRepo, paymentService, notificationService, eventBus, transactionRepo);
     const getBillTransactions = new GetBillTransactions(transactionRepo);
+    const getOverdueStatus = new GetOverdueStatus(billRepo);
 
-    const controller = new BillingController(
-        getActivities,
-        createActivity,
-        updateActivity,
-        getCharges,
-        createCharge,
-        getChargeHistory,
-        updateChargeRate,
-        getCargoCategories,
-        createCargoCategory,
-        updateCargoCategory,
+    // Controllers
+    const activityController = new ActivityController(getActivities, createActivity, updateActivity);
+    const chargeController = new ChargeController(getCharges, createCharge, getChargeHistory, updateChargeRate);
+    const cargoCategoryController = new CargoCategoryController(getCargoCategories, createCargoCategory, updateCargoCategory);
+    const billingController = new BillingController(
         getBills,
         markBillPaid,
         createBill,
@@ -77,36 +84,39 @@ export const createBillingRouter = () => {
         getBillById,
         createRazorpayOrder,
         verifyRazorpayPayment,
-        getBillTransactions
+        getBillTransactions,
+        getOverdueStatus
     );
 
     // Apply auth middleware to all billing routes
     router.use(authMiddleware);
 
-    router.get("/activities", roleMiddleware(["admin", "operator"]), (req, res) => controller.getAllActivities(req, res));
-    router.post("/activities", roleMiddleware(["admin"]), (req, res) => controller.addActivity(req, res));
-    router.patch("/activities/:id", roleMiddleware(["admin"]), (req, res) => controller.patchActivity(req, res));
+    // Activity endpoints
+    router.get("/activities", roleMiddleware(["admin", "operator"]), activityController.getActivities);
+    router.post("/activities", roleMiddleware(["admin"]), activityController.createActivity);
+    router.patch("/activities/:id", roleMiddleware(["admin"]), activityController.updateActivity);
 
-    router.get("/charges", roleMiddleware(["admin", "operator"]), (req, res) => controller.getAllCharges(req, res));
-    router.post("/charges", roleMiddleware(["admin"]), (req, res) => controller.addCharge(req, res));
-    router.get("/charges/history", roleMiddleware(["admin", "operator"]), (req, res) => controller.getHistory(req, res));
-    router.patch("/charges/:id", roleMiddleware(["admin"]), (req, res) => controller.patchChargeRate(req, res));
+    // Charge endpoints
+    router.get("/charges", roleMiddleware(["admin", "operator"]), chargeController.getCharges);
+    router.post("/charges", roleMiddleware(["admin"]), chargeController.createCharge);
+    router.get("/charges/history", roleMiddleware(["admin", "operator"]), chargeController.getHistory);
+    router.patch("/charges/:id", roleMiddleware(["admin"]), chargeController.updateChargeRate);
 
     // Bills endpoints
-    router.get("/bills/overdue-status", roleMiddleware(["customer"]), (req, res) => controller.getOverdueStatus(req, res));
-    router.get("/bills", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBills(req, res));
-    router.post("/bills", roleMiddleware(["admin", "operator"]), (req, res) => controller.addBill(req, res));
-    router.get("/bills/:id", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBill(req, res));
-    router.get("/bills/:id/transactions", roleMiddleware(["admin", "operator", "customer"]), (req, res) => controller.getBillTransactions(req, res));
-    router.patch("/bills/:id/paid", roleMiddleware(["admin", "operator"]), (req, res) => controller.markBillPaid(req, res));
-    router.post("/bills/:id/pay", roleMiddleware(["customer"]), (req, res) => controller.payBill(req, res));
-    router.post("/bills/:id/razorpay/order", roleMiddleware(["customer"]), (req, res) => controller.createRazorpayOrder(req, res));
-    router.post("/bills/:id/razorpay/verify", roleMiddleware(["customer"]), (req, res) => controller.verifyRazorpayPayment(req, res));
+    router.get("/bills/overdue-status", roleMiddleware(["customer"]), billingController.getOverdueStatus);
+    router.get("/bills", roleMiddleware(["admin", "operator", "customer"]), billingController.getBills);
+    router.post("/bills", roleMiddleware(["admin", "operator"]), billingController.createBill);
+    router.get("/bills/:id", roleMiddleware(["admin", "operator", "customer"]), billingController.getBillById);
+    router.get("/bills/:id/transactions", roleMiddleware(["admin", "operator", "customer"]), billingController.getBillTransactions);
+    router.patch("/bills/:id/paid", roleMiddleware(["admin", "operator"]), billingController.markBillPaid);
+    router.post("/bills/:id/pay", roleMiddleware(["customer"]), billingController.payWithPDA); // Corrected method name
+    router.post("/bills/:id/razorpay/order", roleMiddleware(["customer"]), billingController.createRazorpayOrder);
+    router.post("/bills/:id/razorpay/verify", roleMiddleware(["customer"]), billingController.verifyRazorpayPayment);
 
     // Cargo Categories
-    router.get("/cargo-categories", (req, res) => controller.getAllCargoCategories(req, res));
-    router.post("/cargo-categories", roleMiddleware(["admin"]), (req, res) => controller.addCargoCategory(req, res));
-    router.patch("/cargo-categories/:id", roleMiddleware(["admin"]), (req, res) => controller.patchCargoCategory(req, res));
+    router.get("/cargo-categories", cargoCategoryController.getCargoCategories);
+    router.post("/cargo-categories", roleMiddleware(["admin"]), cargoCategoryController.createCargoCategory);
+    router.patch("/cargo-categories/:id", roleMiddleware(["admin"]), cargoCategoryController.updateCargoCategory);
 
     return router;
 };

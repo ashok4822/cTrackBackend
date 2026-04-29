@@ -1,49 +1,47 @@
+import { IUpdateShippingLine } from "../ports/IUpdateShippingLine";
 import { IShippingLineRepository } from "../../domain/repositories/IShippingLineRepository";
-import { ShippingLine } from "../../domain/entities/ShippingLine";
-import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
-import { AuditLog } from "../../domain/entities/AuditLog";
-import { UserContext } from "./AdminCreateUser";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
+import { UpdateShippingLineRequestDto, ShippingLineResponseDto } from "../dto/ShippingLineDto";
+import { UserContextDto } from "../dto/CommonDto";
+import { ShippingLineMapper } from "../mappers/ShippingLineMapper";
+import { AppError } from "../../domain/exceptions/AppError";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-interface UpdateShippingLineData {
-    name?: string;
-    code?: string;
-}
-
-export class UpdateShippingLine {
+export class UpdateShippingLine implements IUpdateShippingLine {
     constructor(
         private shippingLineRepository: IShippingLineRepository,
-        private auditLogRepository: IAuditLogRepository
+        private eventBus: IEventBus
     ) { }
 
-    async execute(id: string, data: UpdateShippingLineData, userContext: UserContext): Promise<void> {
+
+    async execute(id: string, data: UpdateShippingLineRequestDto, userContext: UserContextDto): Promise<ShippingLineResponseDto> {
         const shippingLine = await this.shippingLineRepository.findById(id);
         if (!shippingLine) {
-            throw new Error("Shipping Line not found");
+            throw new AppError(ResponseMessage.SHIPPING_LINE_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        const updatedShippingLine = new ShippingLine(
-            shippingLine.id,
-            data.name !== undefined ? data.name : shippingLine.shipping_line_name,
-            data.code !== undefined ? data.code : shippingLine.shipping_line_code
-        );
+        const updatedShippingLine = ShippingLineMapper.applyUpdate(shippingLine, data);
 
-        await this.shippingLineRepository.save(updatedShippingLine);
+        const saved = await this.shippingLineRepository.save(updatedShippingLine);
 
-        // Log audit event
-        const changes: string[] = [];
+        const changes = [];
         if (data.name !== undefined) changes.push(`name: ${data.name}`);
         if (data.code !== undefined) changes.push(`code: ${data.code}`);
 
-        await this.auditLogRepository.save(new AuditLog(
-            null,
-            userContext.userId,
-            userContext.userRole,
-            userContext.userName,
-            "SHIPPING_LINE_UPDATED",
-            "ShippingLine",
-            id,
-            JSON.stringify({ changes }),
-            userContext.ipAddress
-        ));
+        // Log audit event (Event-driven)
+        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+            userId: userContext.userId,
+            userRole: userContext.userRole,
+            userName: userContext.userName,
+            action: ResponseMessage.AUDIT_SHIPPING_LINE_UPDATED,
+            resourceType: ResponseMessage.RESOURCE_SHIPPING_LINE,
+            resourceId: id,
+            details: { changes },
+            ipAddress: userContext.ipAddress
+        });
+
+        return ShippingLineMapper.toResponseDto(saved);
     }
 }
+

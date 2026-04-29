@@ -1,70 +1,56 @@
 import { Request, Response } from "express";
-import { GetPDA } from "../../application/useCases/GetPDA";
-import { CreateRazorpayPDAOrder } from "../../application/useCases/CreateRazorpayPDAOrder";
-import { VerifyRazorpayPDAPayment } from "../../application/useCases/VerifyRazorpayPDAPayment";
+import { IGetPDA } from "../../application/ports/IGetPDA";
+import { ICreateRazorpayPDAOrder } from "../../application/ports/ICreateRazorpayPDAOrder";
+import { IVerifyRazorpayPDAPayment } from "../../application/ports/IVerifyRazorpayPDAPayment";
+import { HttpStatus } from "../../shared/constants/HttpStatus";
+import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { AppError } from "../../domain/exceptions/AppError";
+import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class PDAController {
     constructor(
-        private getPDAUseCase: GetPDA,
-        private createRazorpayPDAOrderUseCase: CreateRazorpayPDAOrder,
-        private verifyRazorpayPDAPaymentUseCase: VerifyRazorpayPDAPayment
+        private getPDAUseCase: IGetPDA,
+        private createRazorpayPDAOrderUseCase: ICreateRazorpayPDAOrder,
+        private verifyRazorpayPDAPaymentUseCase: IVerifyRazorpayPDAPayment
     ) { }
 
-    async getPDA(req: Request, res: Response): Promise<void> {
-        try {
-            if (!req.user) {
-                res.status(401).json({ message: "Unauthorized: No user session found" });
-                return;
-            }
-            const { id: userId, role } = req.user;
-            const result = await this.getPDAUseCase.execute(userId, role);
-            res.status(200).json(result);
-        } catch (error: unknown) {
-            res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
+    getPDA = asyncHandler(async (req: Request, res: Response) => {
+        if (!req.user) {
+            throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-    }
+        const { id: userId, role } = req.user;
+        const result = await this.getPDAUseCase.execute(userId, role);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(result));
+    });
 
-    async createRazorpayOrder(req: Request, res: Response): Promise<void> {
-        try {
-
-            if (!req.user) {
-                console.error("PDAController: No user in request");
-                res.status(401).json({ message: "Unauthorized: No user session found" });
-                return;
-            }
-
-            const { id: userId } = req.user;
-            const { amount } = req.body;
-            const result = await this.createRazorpayPDAOrderUseCase.execute(amount, userId);
-            res.status(200).json(result);
-        } catch (error: unknown) {
-            console.error("PDAController: createRazorpayOrder Error:", error);
-            res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
+    createRazorpayOrder = asyncHandler(async (req: Request, res: Response) => {
+        if (!req.user) {
+            throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-    }
 
-    async verifyRazorpayPayment(req: Request, res: Response): Promise<void> {
-        try {
+        const { id: userId } = req.user;
+        const { amount } = req.body;
+        const result = await this.createRazorpayPDAOrderUseCase.execute(amount, userId);
+        return res.status(HttpStatus.OK).json(ApiResponse.success(result));
+    });
 
-            if (!req.user) {
-                console.error("PDAController: No user in request for verification");
-                res.status(401).json({ message: "Unauthorized: No user session found" });
-                return;
-            }
-
-            const { id: userId } = req.user;
-            const { amount, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-            const result = await this.verifyRazorpayPDAPaymentUseCase.execute(
-                userId,
-                amount,
-                razorpay_order_id,
-                razorpay_payment_id,
-                razorpay_signature
-            );
-            res.status(200).json(result);
-        } catch (error: unknown) {
-            console.error("PDAController: verifyRazorpayPayment Error:", error);
-            res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
+    verifyRazorpayPayment = asyncHandler(async (req: Request, res: Response) => {
+        if (!req.user) {
+            throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-    }
+
+        const { id: userId } = req.user;
+        const { amount, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        const result = await this.verifyRazorpayPDAPaymentUseCase.execute(
+            userId,
+            amount,
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature
+        );
+        return res.status(HttpStatus.OK).json(ApiResponse.success(result));
+    });
 }
+
+
