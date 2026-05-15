@@ -24,7 +24,7 @@ export class UpdatePassword implements IUpdatePassword {
     ): Promise<void> {
         // Validation for new password matching
         if (newPassword !== confirmPassword) {
-            throw new AppError(ResponseMessage.PASSWORDS_DO_NOT_MATCH, HttpStatus.BAD_REQUEST);
+            throw new AppError(ResponseMessage.PASSWORD_MISMATCH, HttpStatus.BAD_REQUEST);
         }
 
         // Validation for new password strength

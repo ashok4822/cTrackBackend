@@ -3,6 +3,7 @@ import { ILogin } from "../../application/ports/ILogin";
 import { IRefreshToken } from "../../application/ports/IRefreshToken";
 import { IGoogleLogin } from "../../application/ports/IGoogleLogin";
 import { IGetUserProfile } from "../../application/ports/IGetUserProfile";
+import { IConfigService } from "../../application/services/IConfigService";
 import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 import { asyncHandler } from "../middlewares/asyncHandler";
@@ -14,8 +15,10 @@ export class AuthController {
     private loginUseCase: ILogin,
     private refrershTokenUseCase: IRefreshToken,
     private googleLoginUseCase: IGoogleLogin,
-    private getUserProfileUseCase: IGetUserProfile
+    private getUserProfileUseCase: IGetUserProfile,
+    private configService: IConfigService
   ) { }
+
 
   getMe = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -32,9 +35,9 @@ export class AuthController {
     
     res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: this.configService.get("NODE_ENV") === "production",
       sameSite: "strict",
-      maxAge: Number(process.env.REFRESH_TOKEN_MAX_AGE) || 7 * 24 * 60 * 60 * 1000,
+      maxAge: this.configService.getNumber("REFRESH_TOKEN_MAX_AGE") || 7 * 24 * 60 * 60 * 1000,
     });
     
     return res.status(HttpStatus.OK).json(ApiResponse.success({
@@ -51,9 +54,9 @@ export class AuthController {
 
     res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: this.configService.get("NODE_ENV") === "production",
       sameSite: "strict",
-      maxAge: Number(process.env.REFRESH_TOKEN_MAX_AGE) || 7 * 24 * 60 * 60 * 1000,
+      maxAge: this.configService.getNumber("REFRESH_TOKEN_MAX_AGE") || 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(HttpStatus.OK).json(ApiResponse.success({
@@ -75,7 +78,7 @@ export class AuthController {
   logout = asyncHandler(async (req: Request, res: Response) => {
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: this.configService.get("NODE_ENV") === "production",
       sameSite: "strict",
     });
     return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.LOGOUT_SUCCESS));

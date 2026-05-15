@@ -1,15 +1,17 @@
-import { DomainEvents } from "../../domain/events/IEventBus";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
 import { ChargeHistoryCreatedPayload } from "../../types/eventPayloads";
-import { eventBus } from "./EventEmitterBus";
 import { IChargeHistoryRepository } from "../../domain/repositories/IChargeHistoryRepository";
 
 export class ChargeHistoryHandler {
-  constructor(private historyRepository: IChargeHistoryRepository) {
+  constructor(
+    private historyRepository: IChargeHistoryRepository,
+    private eventBus: IEventBus
+  ) {
     this.initialize();
   }
 
   private initialize() {
-    eventBus.on(DomainEvents.CHARGE_HISTORY_CREATED, async (data: ChargeHistoryCreatedPayload) => {
+    this.eventBus.on(DomainEvents.CHARGE_HISTORY_CREATED, async (data: ChargeHistoryCreatedPayload) => {
       try {
         await this.historyRepository.save({
           chargeId: data.chargeId,

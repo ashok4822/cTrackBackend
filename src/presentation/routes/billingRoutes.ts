@@ -29,18 +29,24 @@ import { BillRepository } from "../../infrastructure/repositories/BillRepository
 import { PDARepository } from "../../infrastructure/repositories/PDARepository";
 import { CargoCategoryRepository } from "../../infrastructure/repositories/CargoCategoryRepository";
 import { BillTransactionRepository } from "../../infrastructure/repositories/BillTransactionRepository";
-import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
-import { appConfig } from "../../infrastructure/config/appConfig";
 import { RazorpayService } from "../../infrastructure/services/RazorpayService";
-import { SocketNotificationService } from "../../infrastructure/services/SocketNotificationService";
-import { eventBus } from "../../infrastructure/events/EventEmitterBus";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { IEventBus } from "../../domain/events/IEventBus";
+import { INotificationService } from "../../application/services/INotificationService";
+import { createAuthMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
-export const createBillingRouter = () => {
+export const createBillingRouter = (
+    tokenService: ITokenService,
+    config: IConfigService,
+    eventBus: IEventBus,
+    notificationService: INotificationService
+) => {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
 
     // Infrastructure services
-    const paymentService = new RazorpayService(appConfig);
-    const notificationService = new SocketNotificationService();
+    const paymentService = new RazorpayService(config);
 
     // Repositories
     const activityRepo = new ActivityRepository();
@@ -62,7 +68,7 @@ export const createBillingRouter = () => {
     const getBills = new GetBills(billRepo);
     const markBillPaid = new MarkBillPaid(billRepo);
     const createBill = new CreateBill(billRepo);
-    const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo, eventBus, notificationService, appConfig, transactionRepo);
+    const payBillWithPDA = new PayBillWithPDA(billRepo, pdaRepo, eventBus, notificationService, config, transactionRepo);
     const getBillById = new GetBillById(billRepo);
     const getCargoCategories = new GetCargoCategories(cargoCategoryRepo);
     const createCargoCategory = new CreateCargoCategory(cargoCategoryRepo);
@@ -109,7 +115,7 @@ export const createBillingRouter = () => {
     router.get("/bills/:id", roleMiddleware(["admin", "operator", "customer"]), billingController.getBillById);
     router.get("/bills/:id/transactions", roleMiddleware(["admin", "operator", "customer"]), billingController.getBillTransactions);
     router.patch("/bills/:id/paid", roleMiddleware(["admin", "operator"]), billingController.markBillPaid);
-    router.post("/bills/:id/pay", roleMiddleware(["customer"]), billingController.payWithPDA); // Corrected method name
+    router.post("/bills/:id/pay", roleMiddleware(["customer"]), billingController.payWithPDA);
     router.post("/bills/:id/razorpay/order", roleMiddleware(["customer"]), billingController.createRazorpayOrder);
     router.post("/bills/:id/razorpay/verify", roleMiddleware(["customer"]), billingController.verifyRazorpayPayment);
 

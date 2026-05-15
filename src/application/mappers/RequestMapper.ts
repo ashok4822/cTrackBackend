@@ -74,7 +74,6 @@ export class RequestMapper {
       ? [...data.checkpoints]
       : [...(existing.checkpoints || [])];
     
-    let changed = false;
 
     if (data.status && data.status !== existing.status) {
       const alreadyLogged = currentCheckpoints.some(
@@ -90,7 +89,6 @@ export class RequestMapper {
           status: data.status,
           remarks: `Request status updated to ${data.status.replace(/-/g, " ")}`,
         });
-        changed = true;
       }
     }
 
@@ -108,7 +106,6 @@ export class RequestMapper {
           status: data.status || existing.status,
           remarks: `Container ${data.containerNumber} allotted to request`,
         });
-        changed = true;
       }
     }
 

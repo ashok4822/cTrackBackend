@@ -40,7 +40,7 @@ export class RefreshToken implements IRefreshToken {
       );
 
       return AuthMapper.toRefreshTokenResponseDto(accessToken);
-    } catch (error) {
+    } catch {
       throw new AppError(ResponseMessage.INVALID_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED);
     }
   }

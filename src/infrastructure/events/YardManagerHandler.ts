@@ -1,19 +1,21 @@
-import { DomainEvents } from "../../domain/events/IEventBus";
-import { eventBus } from "./EventEmitterBus";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
 import { IBlockRepository } from "../../domain/repositories/IBlockRepository";
 import { Block } from "../../domain/entities/Block";
 import { GateOperationCreatedPayload, ContainerUpdatedPayload } from "../../types/eventPayloads";
 
 export class YardManagerHandler {
-    constructor(private blockRepository: IBlockRepository) {
+    constructor(
+        private blockRepository: IBlockRepository,
+        private eventBus: IEventBus
+    ) {
         this.initialize();
     }
 
     private initialize() {
         // 1. Handle occupancy change from Gate Operations
-        eventBus.on(DomainEvents.GATE_OPERATION_CREATED, async (data: GateOperationCreatedPayload) => {
+        this.eventBus.on(DomainEvents.GATE_OPERATION_CREATED, async (data: GateOperationCreatedPayload) => {
             try {
-                const { operation, data: inputData, updatedContainer } = data;
+                const { data: inputData, updatedContainer } = data;
                 
                 // If it's a Gate-Out and the container had a block assigned
                 if (inputData.type === "gate-out" && updatedContainer?.yardLocation?.block) {
@@ -28,7 +30,7 @@ export class YardManagerHandler {
         });
 
         // 2. Handle occupancy change from Container Updates (Shifting)
-        eventBus.on(DomainEvents.CONTAINER_UPDATED, async (data: ContainerUpdatedPayload) => {
+        this.eventBus.on(DomainEvents.CONTAINER_UPDATED, async (data: ContainerUpdatedPayload) => {
             try {
                 const { oldContainer, newContainer } = data;
                 

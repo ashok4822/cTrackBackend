@@ -5,13 +5,20 @@ import { UpdateVehicle } from "../../application/useCases/UpdateVehicle";
 import { DeleteVehicle } from "../../application/useCases/DeleteVehicle";
 import { GetAllVehicles } from "../../application/useCases/GetAllVehicles";
 import { VehicleRepository } from "../../infrastructure/repositories/VehicleRepository";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
 import {
-    authMiddleware,
+    createAuthMiddleware,
     roleMiddleware,
 } from "../../infrastructure/services/authMiddleWare";
 
-export const createVehicleRouter = () => {
+
+export const createVehicleRouter = (
+    tokenService: ITokenService,
+    config: IConfigService
+) => {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
     const repository = new VehicleRepository();
 
     const createUseCase = new CreateVehicle(repository);

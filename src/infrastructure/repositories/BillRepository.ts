@@ -24,7 +24,7 @@ interface BillLeanDoc {
 
 export class BillRepository implements IBillRepository {
   async findAll(customerId?: string, status?: string): Promise<Bill[]> {
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (customerId) query.customer = customerId;
     if (status) query.status = status;
     

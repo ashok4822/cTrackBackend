@@ -2,41 +2,47 @@ import { Request } from "express";
 import multer, { FileFilterCallback } from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
-import dotenv from "dotenv";
+import { IConfigService } from "../../application/services/IConfigService";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-dotenv.config();
+/**
+ * Factory function that creates and returns a multer upload middleware instance
+ * configured with Cloudinary, using credentials sourced from IConfigService.
+ *
+ * Must be called from the composition root (server.ts) and the resulting
+ * middleware injected into route factories that need it.
+ */
+export const createUploadMiddleware = (config: IConfigService): multer.Multer => {
+    cloudinary.config({
+        cloud_name: config.get("CLOUDINARY_CLOUD_NAME"),
+        api_key: config.get("CLOUDINARY_API_KEY"),
+        api_secret: config.get("CLOUDINARY_API_SECRET"),
+    });
 
-// Configure Cloudinary
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+    const storage = new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: async (_req: Request, file: Express.Multer.File) => {
+            return {
+                folder: "profiles",
+                allowed_formats: ["jpg", "jpeg", "png", "webp"],
+                public_id: `profile-${Date.now()}-${file.originalname.split(".")[0]}`,
+            };
+        },
+    });
 
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req: Request, file: Express.Multer.File) => {
-        return {
-            folder: "profiles",
-            allowed_formats: ["jpg", "jpeg", "png", "webp"],
-            public_id: `profile-${Date.now()}-${file.originalname.split('.')[0]}`,
-        };
-    },
-});
+    const fileFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+        if (file.mimetype.startsWith("image/")) {
+            cb(null, true);
+        } else {
+            cb(new Error(ResponseMessage.ONLY_IMAGES_ALLOWED));
+        }
+    };
 
-const fileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
-    if (file.mimetype.startsWith("image/")) {
-        cb(null, true);
-    } else {
-        cb(new Error(ResponseMessage.ONLY_IMAGES_ALLOWED));
-    }
+    return multer({
+        storage,
+        fileFilter,
+        limits: {
+            fileSize: 5 * 1024 * 1024, // 5 MB limit
+        },
+    });
 };
-
-export const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter,
-    limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
-    },
-});

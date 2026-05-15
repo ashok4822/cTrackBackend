@@ -8,23 +8,30 @@ import { GetEquipmentHistory } from "../../application/useCases/GetEquipmentHist
 import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
 import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
 import { UserRepository } from "../../infrastructure/repositories/UserRepository";
-import { SocketNotificationService } from "../../infrastructure/services/SocketNotificationService";
-import { eventBus } from "../../infrastructure/events/EventEmitterBus";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { IEventBus } from "../../domain/events/IEventBus";
+import { INotificationService } from "../../application/services/INotificationService";
 import {
-    authMiddleware,
+    createAuthMiddleware,
     roleMiddleware,
 } from "../../infrastructure/services/authMiddleWare";
 
-export const createEquipmentRouter = () => {
+export const createEquipmentRouter = (
+    tokenService: ITokenService,
+    config: IConfigService,
+    eventBus: IEventBus,
+    notificationService: INotificationService
+) => {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
+
     const repository = new EquipmentRepository();
     const historyRepository = new EquipmentHistoryRepository();
     const userRepository = new UserRepository();
-    const notificationService = new SocketNotificationService();
 
     const createUseCase = new CreateEquipment(repository, eventBus);
     const updateUseCase = new UpdateEquipment(repository, userRepository, eventBus, notificationService);
-
     const deleteUseCase = new DeleteEquipment(repository);
     const getAllUseCase = new GetAllEquipment(repository);
     const getHistoryUseCase = new GetEquipmentHistory(historyRepository);

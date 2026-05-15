@@ -1,21 +1,23 @@
-import { DomainEvents } from "../../domain/events/IEventBus";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
 import { GateOperationCreatedPayload } from "../../types/eventPayloads";
-import { eventBus } from "./EventEmitterBus";
 import { IContainerRequestRepository } from "../../domain/repositories/IContainerRequestRepository";
 
 export class ContainerRequestSyncHandler {
-    constructor(private requestRepository: IContainerRequestRepository) {
+    constructor(
+        private requestRepository: IContainerRequestRepository,
+        private eventBus: IEventBus
+    ) {
         this.initialize();
     }
 
     private initialize() {
         // Sync Container Request status when a container gates out
-        eventBus.on(DomainEvents.GATE_OPERATION_CREATED, async (data: GateOperationCreatedPayload) => {
+        this.eventBus.on(DomainEvents.GATE_OPERATION_CREATED, async (data: GateOperationCreatedPayload) => {
             try {
                 const { data: inputData } = data;
                 
                 if (inputData.type === "gate-out" && inputData.containerNumber) {
-                    const activeRequest = await this.requestRepository.findByContainerNumber(inputData.containerNumber);
+                    const activeRequest = await this.requestRepository.findByContainerNumber(inputData.containerNumber as string);
                     
                     if (activeRequest && activeRequest.id && (activeRequest.status === "ready-for-dispatch" || activeRequest.status === "approved")) {
                         await this.requestRepository.update(activeRequest.id, {

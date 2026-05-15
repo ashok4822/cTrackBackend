@@ -1,53 +1,15 @@
 import { Server as SocketServer } from "socket.io";
 import { Server as HttpServer } from "http";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
+import { ISocketService, SocketKPIUpdate, SocketActivity, SocketAlert, SocketNotification } from "../../application/services/ISocketService";
+import { IConfigService } from "../../application/services/IConfigService";
 
-interface SocketKPIUpdate {
-// ... rest of file (using replace_file_content with TargetContent)
-  type: string;
-  action?: string;
-  id?: string | string[];
-  data?: unknown;
-}
-
-interface SocketActivity {
-  type: string;
-  title: string;
-  description: string;
-  timestamp: Date;
-}
-
-interface SocketAlert {
-  type: "success" | "alert" | "info" | "warning";
-  title: string;
-  message: string;
-  id: string;
-}
-
-interface SocketNotification {
-  id: string;
-  type: "success" | "alert" | "info" | "warning";
-  title: string;
-  message: string;
-  link?: string;
-  read: boolean;
-  timestamp: Date;
-}
-
-class SocketService {
-  private static _instance: SocketService;
+export class SocketService implements ISocketService {
   private _io: SocketServer | null = null;
 
-  private constructor() {}
+  constructor() {}
 
-  public static getInstance(): SocketService {
-    if (!SocketService._instance) {
-      SocketService._instance = new SocketService();
-    }
-    return SocketService._instance;
-  }
-
-  public initialize(httpServer: HttpServer): SocketServer {
+  public initialize(httpServer: HttpServer, config: IConfigService): SocketServer {
     this._io = new SocketServer(httpServer, {
       cors: {
         origin: (origin, callback) => {
@@ -55,8 +17,8 @@ class SocketService {
           if (!origin || origin.startsWith("http://localhost:")) {
             return callback(null, true);
           }
-          const allowedOrigins = process.env.CORS_ORIGIN
-            ? process.env.CORS_ORIGIN.split(",")
+          const allowedOrigins = config.get("CORS_ORIGIN")
+            ? config.get("CORS_ORIGIN").split(",")
             : [];
           if (
             allowedOrigins.includes(origin) ||
@@ -119,5 +81,3 @@ class SocketService {
     }
   }
 }
-
-export const socketService = SocketService.getInstance();

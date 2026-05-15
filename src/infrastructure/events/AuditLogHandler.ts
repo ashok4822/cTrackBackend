@@ -1,16 +1,18 @@
-import { DomainEvents } from "../../domain/events/IEventBus";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
 import { AuditLogCreatedPayload } from "../../types/eventPayloads";
-import { eventBus } from "./EventEmitterBus";
 import { IAuditLogRepository } from "../../domain/repositories/IAuditLogRepository";
 import { AuditLog } from "../../domain/entities/AuditLog";
 
 export class AuditLogHandler {
-  constructor(private auditLogRepository: IAuditLogRepository) {
+  constructor(
+    private auditLogRepository: IAuditLogRepository,
+    private eventBus: IEventBus
+  ) {
     this.initialize();
   }
 
   private initialize() {
-    eventBus.on(DomainEvents.AUDIT_LOG_CREATED, async (data: AuditLogCreatedPayload) => {
+    this.eventBus.on(DomainEvents.AUDIT_LOG_CREATED, async (data: AuditLogCreatedPayload) => {
       try {
         const auditLog = new AuditLog(
           null,

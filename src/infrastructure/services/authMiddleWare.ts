@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { JwtTokenService } from "./JwtTokenService";
+import { ITokenService } from "../../application/services/ITokenService";
 import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { UserRole } from "../../domain/entities/User";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
-
-const tokenService = new JwtTokenService();
 
 interface TokenPayload {
   id: string;
@@ -14,7 +12,7 @@ interface TokenPayload {
   companyName?: string;
 }
 
-export const authMiddleware = (
+export const createAuthMiddleware = (tokenService: ITokenService, secret: string) => (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -30,8 +28,9 @@ export const authMiddleware = (
   try {
     const payload = tokenService.verify<TokenPayload>(
       token,
-      process.env.JWT_ACCESS_SECRET || "access_fallback",
+      secret,
     );
+
     req.user = payload;
     next();
   } catch (error: unknown) {

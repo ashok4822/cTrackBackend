@@ -35,7 +35,7 @@ export class UpdateContainerRequest implements IUpdateContainerRequest {
     Object.assign(data, { checkpoints: currentCheckpoints });
 
     // 2. Persist primary update
-    const { equipmentId, ...updatePayload } = data;
+    const { equipmentId: _equipmentId, ...updatePayload } = data;
     const updatedRequest = await this.repository.update(id, updatePayload);
     if (!updatedRequest) return null;
 

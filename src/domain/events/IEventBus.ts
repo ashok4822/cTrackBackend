@@ -12,6 +12,7 @@ export enum DomainEvents {
 }
 
 export interface IEventBus {
-    emit(event: DomainEvents, ...args: any[]): boolean;
-    on(event: DomainEvents, listener: (...args: any[]) => void): this;
+    emit(event: DomainEvents, ...args: unknown[]): boolean;
+    on(event: DomainEvents, listener: (...args: any[]) => void | Promise<void>): this;
+
 }

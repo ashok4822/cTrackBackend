@@ -1,17 +1,19 @@
-import { DomainEvents } from "../../domain/events/IEventBus";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
 import { ContainerUpdatedPayload } from "../../types/eventPayloads";
-import { eventBus } from "./EventEmitterBus";
 import { IContainerHistoryRepository } from "../../domain/repositories/IContainerHistoryRepository";
 import { ContainerHistory } from "../../domain/entities/ContainerHistory";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class ContainerHistoryHandler {
-  constructor(private historyRepository: IContainerHistoryRepository) {
+  constructor(
+    private historyRepository: IContainerHistoryRepository,
+    private eventBus: IEventBus
+  ) {
     this.initialize();
   }
   private initialize() {
     // Handle full container updates with automatic diffing for history
-    eventBus.on(DomainEvents.CONTAINER_UPDATED, async (data: ContainerUpdatedPayload) => {
+    this.eventBus.on(DomainEvents.CONTAINER_UPDATED, async (data: ContainerUpdatedPayload) => {
       try {
         const { oldContainer, newContainer, performedBy, equipmentName } = data;
         const historyRecords: ContainerHistory[] = [];
@@ -32,7 +34,7 @@ export class ContainerHistoryHandler {
           if (equipmentName) {
             // This might trigger an EQUIPMENT_HISTORY_CREATED event in a more advanced setup, 
             // but for now, we'll keep it simple or emit another event.
-            eventBus.emit(DomainEvents.EQUIPMENT_HISTORY_CREATED, {
+            this.eventBus.emit(DomainEvents.EQUIPMENT_HISTORY_CREATED, {
                 equipmentName, // Handler needs to find ID
                 action: ResponseMessage.ACTION_SHIFT_OPERATION,
                 details: `Shifted container ${newContainer.containerNumber} to ${newContainer.yardLocation?.block || "Unknown"}`,

@@ -5,20 +5,24 @@ import { CreateRazorpayPDAOrder } from "../../application/useCases/CreateRazorpa
 import { VerifyRazorpayPDAPayment } from "../../application/useCases/VerifyRazorpayPDAPayment";
 import { PDARepository } from "../../infrastructure/repositories/PDARepository";
 import { UserRepository } from "../../infrastructure/repositories/UserRepository";
-import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
-import { appConfig } from "../../infrastructure/config/appConfig";
 import { RazorpayService } from "../../infrastructure/services/RazorpayService";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { createAuthMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
-export const createPDARouter = () => {
+export const createPDARouter = (
+    tokenService: ITokenService,
+    config: IConfigService
+) => {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
 
-    const configService = appConfig;
-    const paymentService = new RazorpayService(configService);
+    const paymentService = new RazorpayService(config);
 
     const pdaRepository = new PDARepository();
     const userRepository = new UserRepository();
 
-    const getPDAUseCase = new GetPDA(pdaRepository, userRepository, configService);
+    const getPDAUseCase = new GetPDA(pdaRepository, userRepository, config);
     const createRazorpayOrder = new CreateRazorpayPDAOrder(paymentService);
     const verifyRazorpayPayment = new VerifyRazorpayPDAPayment(pdaRepository, paymentService);
 

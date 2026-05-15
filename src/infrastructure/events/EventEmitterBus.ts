@@ -15,15 +15,16 @@ export class EventEmitterBus extends EventEmitter implements IEventBus {
     return EventEmitterBus.instance;
   }
 
-  public emit(event: DomainEvents, ...args: any[]): boolean {
+  public emit(event: DomainEvents, ...args: unknown[]): boolean {
     console.log(`[EventBus] Emitting event: ${String(event)}`);
     return super.emit(event, ...args);
   }
 
   // Support for 'on' method as defined in interface
-  public on(event: DomainEvents, listener: (...args: any[]) => void): this {
-      return super.on(event, listener);
+  public on(event: DomainEvents, listener: (...args: any[]) => void | Promise<void>): this {
+    return super.on(event, listener);
   }
+
 }
 
 export const eventBus = EventEmitterBus.getInstance();

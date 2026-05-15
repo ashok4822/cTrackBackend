@@ -23,7 +23,7 @@ export class SupportUseCase implements ISupportUseCase {
         const userId = user?.id || "";
 
         // Build context string from DB based on selected category
-        let contextData = "";
+        let contextData: string;
         try {
             switch (category) {
                 case "containers":

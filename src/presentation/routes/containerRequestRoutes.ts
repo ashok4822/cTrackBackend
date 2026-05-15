@@ -10,16 +10,25 @@ import { BillRepository } from "../../infrastructure/repositories/BillRepository
 import { UserRepository } from "../../infrastructure/repositories/UserRepository";
 import { ActivityRepository } from "../../infrastructure/repositories/ActivityRepository";
 import { ChargeRepository } from "../../infrastructure/repositories/ChargeRepository";
-import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
-import { createCheckOverdueBillsMiddleware } from "../../infrastructure/services/checkOverdueBills";
 import { GetAllContainerRequests } from "../../application/useCases/GetAllContainerRequests";
 import { UpdateContainerRequest } from "../../application/useCases/UpdateContainerRequest";
-import { NotificationService } from "../../infrastructure/services/NotificationService";
 import { BillingDomainService } from "../../domain/services/BillingDomainService";
-import { eventBus } from "../../infrastructure/events/EventEmitterBus";
+import { IBillingDomainService } from "../../domain/services/IBillingDomainService";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { IEventBus } from "../../domain/events/IEventBus";
+import { INotificationService } from "../../application/services/INotificationService";
+import { createAuthMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { createCheckOverdueBillsMiddleware } from "../../infrastructure/services/checkOverdueBills";
 
-export const createContainerRequestRouter = () => {
+export const createContainerRequestRouter = (
+    tokenService: ITokenService,
+    config: IConfigService,
+    eventBus: IEventBus,
+    notificationService: INotificationService
+) => {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
 
     const containerRequestRepository = new ContainerRequestRepository();
     const containerRepository = new ContainerRepository();
@@ -27,9 +36,8 @@ export const createContainerRequestRouter = () => {
     const userRepository = new UserRepository();
     const activityRepository = new ActivityRepository();
     const chargeRepository = new ChargeRepository();
-    const notificationService = new NotificationService();
 
-    const billingService = new BillingDomainService(
+    const billingService: IBillingDomainService = new BillingDomainService(
         containerRepository,
         billRepository,
         activityRepository,

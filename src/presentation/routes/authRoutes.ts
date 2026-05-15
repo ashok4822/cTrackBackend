@@ -14,30 +14,35 @@ import { GetUserProfile } from "../../application/useCases/GetUserProfile";
 import { UserRepository } from "../../infrastructure/repositories/UserRepository";
 import { OtpRepository } from "../../infrastructure/repositories/OtpRepository";
 import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
-import { JwtTokenService } from "../../infrastructure/services/JwtTokenService";
 import { EmailService } from "../../infrastructure/services/EmailService";
-import { appConfig } from "../../infrastructure/config/appConfig";
 import { GoogleAuthService } from "../../infrastructure/services/GoogleAuthService";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { IEventBus } from "../../domain/events/IEventBus";
 import { validate } from "../middlewares/validate";
 import { loginSchema, signupSchema } from "../../domain/validators/auth.schema";
-import { eventBus } from "../../infrastructure/events/EventEmitterBus";
-import { authMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { createAuthMiddleware } from "../../infrastructure/services/authMiddleWare";
 
-export const createAuthRouter = () => {
+export const createAuthRouter = (
+    tokenService: ITokenService,
+    config: IConfigService,
+    eventBus: IEventBus
+) => {
     const authRouter = Router();
 
     // Dependencies
     const userRepository = new UserRepository();
     const otpRepository = new OtpRepository();
     const hashService = new BcryptHashService();
-    const tokenService = new JwtTokenService();
-    const emailService = new EmailService();
-    const googleAuthService = new GoogleAuthService(appConfig);
+    const emailService = new EmailService(config);
+    const googleAuthService = new GoogleAuthService(config);
+
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
 
     // Use Cases
-    const loginUseCase = new Login(userRepository, hashService, tokenService, appConfig, eventBus);
-    const refreshUseCase = new RefreshToken(userRepository, tokenService, appConfig);
-    const googleLoginUseCase = new GoogleLogin(userRepository, tokenService, googleAuthService, appConfig, eventBus);
+    const loginUseCase = new Login(userRepository, hashService, tokenService, config, eventBus);
+    const refreshUseCase = new RefreshToken(userRepository, tokenService, config);
+    const googleLoginUseCase = new GoogleLogin(userRepository, tokenService, googleAuthService, config, eventBus);
     const initiateSignupUseCase = new InitiateSignup(userRepository, otpRepository, emailService);
     const signupUseCase = new VerifyOtpAndSignup(userRepository, otpRepository, hashService, eventBus);
     const forgotPasswordUseCase = new ForgotPassword(userRepository, otpRepository, emailService);
@@ -46,7 +51,7 @@ export const createAuthRouter = () => {
     const getUserProfileUseCase = new GetUserProfile(userRepository);
 
     // Controllers
-    const authController = new AuthController(loginUseCase, refreshUseCase, googleLoginUseCase, getUserProfileUseCase);
+    const authController = new AuthController(loginUseCase, refreshUseCase, googleLoginUseCase, getUserProfileUseCase, config);
     const signupController = new SignupController(initiateSignupUseCase, signupUseCase);
     const passwordController = new PasswordController(forgotPasswordUseCase, resetPasswordUseCase, verifyResetOtpUseCase);
 

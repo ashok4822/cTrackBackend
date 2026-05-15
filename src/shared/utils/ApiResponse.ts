@@ -11,8 +11,9 @@ export class ApiResponse<T> {
     return new ApiResponse(true, message, data);
   }
 
-  static error(message: string, data?: any): ApiResponse<null> {
+  static error<T = unknown>(message: string, data?: T): ApiResponse<T> {
     return new ApiResponse(false, message, data);
   }
+
 }
 

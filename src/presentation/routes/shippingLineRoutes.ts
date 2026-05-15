@@ -4,13 +4,20 @@ import { CreateShippingLine } from "../../application/useCases/CreateShippingLin
 import { GetAllShippingLines } from "../../application/useCases/GetAllShippingLines";
 import { UpdateShippingLine } from "../../application/useCases/UpdateShippingLine";
 import { ShippingLineRepository } from "../../infrastructure/repositories/ShippingLineRepository";
-import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
-import { eventBus } from "../../infrastructure/events/EventEmitterBus";
-import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { IEventBus } from "../../domain/events/IEventBus";
+import { createAuthMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
-export const createShippingLineRouter = () => {
+export const createShippingLineRouter = (
+    tokenService: ITokenService,
+    config: IConfigService,
+    eventBus: IEventBus
+) => {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
     const repository = new ShippingLineRepository();
+
     const createUseCase = new CreateShippingLine(repository, eventBus);
     const getAllUseCase = new GetAllShippingLines(repository);
     const updateUseCase = new UpdateShippingLine(repository, eventBus);

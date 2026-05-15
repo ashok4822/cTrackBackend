@@ -98,7 +98,6 @@ export enum ResponseMessage {
   UNAUTHORIZED_ROLE = "Access denied: Unauthorized role for this portal",
   USER_ACCOUNT_BLOCKED = "Your account has been blocked. Please contact admin.",
   INVALID_REFRESH_TOKEN = "Invalid refresh token",
-  PASSWORDS_DO_NOT_MATCH = "Passwords do not match",
   OAUTH_USER_PASSWORD_ERROR = "Cannot update password for OAuth users",
   INCORRECT_CURRENT_PASSWORD = "Current password is incorrect",
 

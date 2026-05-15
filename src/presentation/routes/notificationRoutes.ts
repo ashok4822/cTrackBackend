@@ -1,14 +1,21 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { NotificationController } from "../controllers/NotificationController";
 import { GetNotifications } from "../../application/useCases/GetNotifications";
 import { MarkNotificationRead } from "../../application/useCases/MarkNotificationRead";
 import { MarkAllNotificationsRead } from "../../application/useCases/MarkAllNotificationsRead";
 import { DeleteNotification } from "../../application/useCases/DeleteNotification";
 import { MongoNotificationRepository } from "../../infrastructure/repositories/MongoNotificationRepository";
-import { authMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { createAuthMiddleware } from "../../infrastructure/services/authMiddleWare";
 
-export const createNotificationRouter = () => {
+
+export const createNotificationRouter = (
+    tokenService: ITokenService,
+    config: IConfigService
+) => {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
 
     const notificationRepository = new MongoNotificationRepository();
 

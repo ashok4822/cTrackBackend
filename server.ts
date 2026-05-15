@@ -22,7 +22,7 @@ import { createNotificationRouter } from "./src/presentation/routes/notification
 import { createSupportRouter } from "./src/presentation/routes/supportRoutes";
 import { HttpStatus } from "./src/shared/constants/HttpStatus";
 import { ResponseMessage } from "./src/shared/constants/ResponseMessage";
-import { socketService } from "./src/infrastructure/services/socketService";
+import { SocketService } from "./src/infrastructure/services/socketService";
 import {
   globalLimiter,
   authLimiter,
@@ -43,44 +43,61 @@ import { BillRepository } from "./src/infrastructure/repositories/BillRepository
 import { BlockRepository } from "./src/infrastructure/repositories/BlockRepository";
 import { ContainerRequestRepository } from "./src/infrastructure/repositories/ContainerRequestRepository";
 import { ApiResponse } from "./src/shared/utils/ApiResponse";
+import { eventBus } from "./src/infrastructure/events/EventEmitterBus";
+import { appConfig } from "./src/infrastructure/config/appConfig";
+// Shared infrastructure — created once, injected everywhere
+import { JwtTokenService } from "./src/infrastructure/services/JwtTokenService";
+import { SocketNotificationService } from "./src/infrastructure/services/SocketNotificationService";
+import { ITokenService } from "./src/application/services/ITokenService";
+import { INotificationService } from "./src/application/services/INotificationService";
+import { createUploadMiddleware } from "./src/infrastructure/services/UploadService";
 
 dotenv.config();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Composition Root — all shared infrastructure instances created and owned here
+// ─────────────────────────────────────────────────────────────────────────────
+// SocketService is typed as the concrete class here only for bootstrap (initialize()),
+// which is a composition-root-only concern. All downstream consumers receive ISocketService.
+const socketService = new SocketService();
+
 // Initialize Event Handlers
 const auditLogRepository = new MongoAuditLogRepository();
-new AuditLogHandler(auditLogRepository);
+new AuditLogHandler(auditLogRepository, eventBus);
 
 const equipmentHistoryRepository = new EquipmentHistoryRepository();
-new EquipmentHistoryHandler(equipmentHistoryRepository);
+new EquipmentHistoryHandler(equipmentHistoryRepository, eventBus);
 
 const containerHistoryRepository = new ContainerHistoryRepository();
-new ContainerHistoryHandler(containerHistoryRepository);
+new ContainerHistoryHandler(containerHistoryRepository, eventBus);
 
 const chargeHistoryRepository = new ChargeHistoryRepository();
-new ChargeHistoryHandler(chargeHistoryRepository);
+new ChargeHistoryHandler(chargeHistoryRepository, eventBus);
 
-new SocketActivityHandler();
+new SocketActivityHandler(eventBus, socketService);
 
 const blockRepository = new BlockRepository();
-new YardManagerHandler(blockRepository);
+new YardManagerHandler(blockRepository, eventBus);
 
 const billRepositoryForSync = new BillRepository();
-new BillingSyncHandler(billRepositoryForSync);
+new BillingSyncHandler(billRepositoryForSync, eventBus);
 
 const requestRepository = new ContainerRequestRepository();
-new ContainerRequestSyncHandler(requestRepository);
-
-
+new ContainerRequestSyncHandler(requestRepository, eventBus);
 
 //Connect DB
-connectDB();
+connectDB(appConfig.get("MONGODB_URI"));
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = process.env.PORT || 5001;
+const PORT = appConfig.get("PORT") || 5001;
 
 // Initialize Socket.io
-socketService.initialize(httpServer);
+socketService.initialize(httpServer, appConfig);
+
+const tokenService: ITokenService = new JwtTokenService();
+const notificationService: INotificationService = new SocketNotificationService(socketService);
+const upload = createUploadMiddleware(appConfig);
 
 app.use(helmet());
 app.use(
@@ -94,8 +111,8 @@ app.use(
         return callback(null, true);
       }
 
-      const allowedOrigins = process.env.CORS_ORIGIN
-        ? process.env.CORS_ORIGIN.split(",")
+      const allowedOrigins = appConfig.get("CORS_ORIGIN")
+        ? appConfig.get("CORS_ORIGIN").split(",")
         : [];
 
       if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
@@ -114,21 +131,21 @@ app.use(cookieParser());
 // Apply global rate limiter to all api routes
 app.use("/api", globalLimiter);
 
-//Routes
-app.use("/api/auth", authLimiter, createAuthRouter());
-app.use("/api/users", createUserRouter());
-app.use("/api/yard", createYardRouter());
-app.use("/api/shipping-lines", createShippingLineRouter());
-app.use("/api/containers", createContainerRouter());
-app.use("/api/gate-operations", createGateOperationRouter());
-app.use("/api/vehicles", createVehicleRouter());
-app.use("/api/equipment", createEquipmentRouter());
-app.use("/api/billing", createBillingRouter());
-app.use("/api/container-requests", createContainerRequestRouter());
-app.use("/api/pda", createPDARouter());
-app.use("/api/dashboard", createDashboardRouter());
-app.use("/api/notifications", createNotificationRouter());
-app.use("/api/support", createSupportRouter());
+//Routes — all factories receive injected interfaces, not concrete singletons
+app.use("/api/auth", authLimiter, createAuthRouter(tokenService, appConfig, eventBus));
+app.use("/api/users", createUserRouter(tokenService, appConfig, eventBus, upload));
+app.use("/api/yard", createYardRouter(tokenService, appConfig, eventBus));
+app.use("/api/shipping-lines", createShippingLineRouter(tokenService, appConfig, eventBus));
+app.use("/api/containers", createContainerRouter(tokenService, appConfig, eventBus));
+app.use("/api/gate-operations", createGateOperationRouter(tokenService, appConfig, eventBus));
+app.use("/api/vehicles", createVehicleRouter(tokenService, appConfig));
+app.use("/api/equipment", createEquipmentRouter(tokenService, appConfig, eventBus, notificationService));
+app.use("/api/billing", createBillingRouter(tokenService, appConfig, eventBus, notificationService));
+app.use("/api/container-requests", createContainerRequestRouter(tokenService, appConfig, eventBus, notificationService));
+app.use("/api/pda", createPDARouter(tokenService, appConfig));
+app.use("/api/dashboard", createDashboardRouter(tokenService, appConfig));
+app.use("/api/notifications", createNotificationRouter(tokenService, appConfig));
+app.use("/api/support", createSupportRouter(tokenService, appConfig));
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -151,7 +168,7 @@ app.use(
     console.error("Global Error Handler caught an error:", err);
     const status = err.status || HttpStatus.INTERNAL_SERVER_ERROR;
     const message = err.message || ResponseMessage.INTERNAL_SERVER_ERROR;
-    const errorDetails = process.env.NODE_ENV === "development" ? err : {};
+    const errorDetails = appConfig.get("NODE_ENV") === "development" ? err : {};
     
     res.status(status).json(ApiResponse.error(message, errorDetails));
   },

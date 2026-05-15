@@ -4,11 +4,18 @@ import { GetBlocks } from "../../application/useCases/GetBlocks";
 import { CreateBlock } from "../../application/useCases/CreateBlock";
 import { UpdateBlock } from "../../application/useCases/UpdateBlock";
 import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
-import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
-import { eventBus } from "../../infrastructure/events/EventEmitterBus";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { IEventBus } from "../../domain/events/IEventBus";
+import { createAuthMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
-export function createYardRouter(): Router {
+export function createYardRouter(
+    tokenService: ITokenService,
+    config: IConfigService,
+    eventBus: IEventBus
+): Router {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
 
     // DI
     const blockRepository = new BlockRepository();

@@ -9,7 +9,7 @@ export const validate = (schema: z.ZodTypeAny) => (req: Request, res: Response, 
       body: req.body,
       query: req.query,
       params: req.params,
-    }) as any;
+    }) as Record<string, unknown>;
 
     if (result.body) {
       req.body = result.body;
@@ -32,11 +32,12 @@ export const validate = (schema: z.ZodTypeAny) => (req: Request, res: Response, 
     }
     
     next();
-  } catch (error: any) {
-    if (error.errors) {
-      const message = error.errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ");
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      const message = error.issues.map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`).join(", ");
       return next(new AppError(message, HttpStatus.BAD_REQUEST));
     }
+
     next(error);
   }
 };

@@ -13,13 +13,20 @@ import { ContainerHistoryRepository } from "../../infrastructure/repositories/Co
 import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
 import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
-import { eventBus } from "../../infrastructure/events/EventEmitterBus";
-import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
-import { createCheckOverdueBillsMiddleware } from "../../infrastructure/services/checkOverdueBills";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { IEventBus } from "../../domain/events/IEventBus";
+import { createAuthMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { createCheckOverdueBillsMiddleware } from "../../infrastructure/services/checkOverdueBills";
 
-export const createContainerRouter = () => {
+export const createContainerRouter = (
+    tokenService: ITokenService,
+    config: IConfigService,
+    eventBus: IEventBus
+) => {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
     const repository = new ContainerRepository();
     const historyRepository = new ContainerHistoryRepository();
     const equipmentRepository = new EquipmentRepository();

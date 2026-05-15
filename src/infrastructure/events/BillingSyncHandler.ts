@@ -1,17 +1,19 @@
-import { DomainEvents } from "../../domain/events/IEventBus";
+import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
 import { ContainerUpdatedPayload } from "../../types/eventPayloads";
-import { eventBus } from "./EventEmitterBus";
 import { IBillRepository } from "../../domain/repositories/IBillRepository";
 import { Bill } from "../../domain/entities/Bill";
 
 export class BillingSyncHandler {
-    constructor(private billRepository: IBillRepository) {
+    constructor(
+        private billRepository: IBillRepository,
+        private eventBus: IEventBus
+    ) {
         this.initialize();
     }
 
     private initialize() {
         // Transfer pending bills when a container's customer changes
-        eventBus.on(DomainEvents.CONTAINER_UPDATED, async (data: ContainerUpdatedPayload) => {
+        this.eventBus.on(DomainEvents.CONTAINER_UPDATED, async (data: ContainerUpdatedPayload) => {
             try {
                 const { oldContainer, newContainer } = data;
                 

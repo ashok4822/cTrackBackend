@@ -1,22 +1,24 @@
 import nodemailer from "nodemailer";
 import { IEmailService } from "../../application/services/IEmailService";
+import { IConfigService } from "../../application/services/IConfigService";
 
 export class EmailService implements IEmailService {
     private _transporter: nodemailer.Transporter;
 
-    constructor() {
+    constructor(private configService: IConfigService) {
         this._transporter = nodemailer.createTransport({
             service: "gmail", // Or use host/port for other providers
             auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
+                user: this.configService.get("EMAIL_USER"),
+                pass: this.configService.get("EMAIL_PASS"),
             },
         });
     }
 
+
     async sendOtp(email: string, otp: string): Promise<void> {
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: this.configService.get("EMAIL_USER"),
             to: email,
             subject: "Your OTP for cTrack Signup",
             text: `Your OTP is ${otp}. It is valid for 1 minute.`,
@@ -28,7 +30,7 @@ export class EmailService implements IEmailService {
 
     async sendPasswordResetOtp(email: string, otp: string): Promise<void> {
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: this.configService.get("EMAIL_USER"),
             to: email,
             subject: "Reset Your Password - cTrack",
             text: `Your OTP for password reset is ${otp}. It is valid for 1 minute.`,
@@ -40,7 +42,7 @@ export class EmailService implements IEmailService {
 
     async sendWelcomeEmail(email: string, password: string, name?: string): Promise<void> {
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: this.configService.get("EMAIL_USER"),
             to: email,
             subject: "Welcome to cTrack - Your Account Details",
             text: `Hello ${name || 'User'},\n\nYour account has been created successfully. Your login credentials are:\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password for security.`,

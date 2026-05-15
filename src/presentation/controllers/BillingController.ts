@@ -29,7 +29,8 @@ export class BillingController {
   ) {}
 
   getBills = asyncHandler(async (req: Request, res: Response) => {
-    let { customerId, status } = req.query;
+    const { status } = req.query;
+    let { customerId } = req.query;
 
     // If the user is a customer, they should only see their own bills
     if (req.user?.role === "customer") {

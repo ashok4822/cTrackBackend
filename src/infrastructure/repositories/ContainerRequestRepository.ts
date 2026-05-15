@@ -325,7 +325,6 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
     data: Partial<ContainerRequest>,
   ): Promise<ContainerRequest | null> {
     // Prepare update object handling undefined carefully
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id: _, ...rest } = data;
     const updateData: UpdateQuery<IContainerRequestDocument> = { ...rest };
 

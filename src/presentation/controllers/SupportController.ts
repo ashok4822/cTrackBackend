@@ -1,24 +1,25 @@
 import { Request, Response } from "express";
 import { ISupportUseCase } from "../../application/ports/ISupportUseCase";
 import { ChatCategory, ChatMessage } from "../../application/dto/SupportDto";
+import { IConfigService } from "../../application/services/IConfigService";
 import { HttpStatus } from "../../shared/constants/HttpStatus";
-import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 import { asyncHandler } from "../middlewares/asyncHandler";
-import { AppError } from "../../domain/exceptions/AppError";
 
 export class SupportController {
-    constructor(private supportUseCase: ISupportUseCase) { }
+    constructor(
+        private supportUseCase: ISupportUseCase,
+        private configService: IConfigService
+    ) { }
 
     chat = asyncHandler(async (req: Request, res: Response) => {
         const { messages, category = "general" } = req.body as { messages: ChatMessage[]; category?: ChatCategory };
         const user = req.user;
 
-        if (!process.env.GROQ_API_KEY) {
-            console.error("!!! CRITICAL ERROR: GROQ_API_KEY MISSING !!!");
-            throw new AppError(ResponseMessage.AI_CONFIG_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        // Configuration check is now implicitly handled by configService or at startup
+        this.configService.get("GROQ_API_KEY");
 
         const result = await this.supportUseCase.execute({
+
             messages,
             category,
             user: user ? {

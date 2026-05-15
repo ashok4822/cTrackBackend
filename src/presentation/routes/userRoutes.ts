@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 import { UserController } from "../controllers/UserController";
 import { AuditLogController } from "../controllers/AuditLogController";
 import { AdminCreateUser } from "../../application/useCases/AdminCreateUser";
@@ -14,18 +15,25 @@ import { UserRepository } from "../../infrastructure/repositories/UserRepository
 import { MongoAuditLogRepository } from "../../infrastructure/repositories/MongoAuditLogRepository";
 import { BcryptHashService } from "../../infrastructure/services/BcryptHashService";
 import { EmailService } from "../../infrastructure/services/EmailService";
-import { upload } from "../../infrastructure/services/UploadService";
-import { authMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
-import { eventBus } from "../../infrastructure/events/EventEmitterBus";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { IEventBus } from "../../domain/events/IEventBus";
+import { createAuthMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
 
-export const createUserRouter = () => {
+export const createUserRouter = (
+    tokenService: ITokenService,
+    config: IConfigService,
+    eventBus: IEventBus,
+    upload: multer.Multer
+) => {
     const router = Router();
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
 
     // Dependencies
     const userRepository = new UserRepository();
     const auditLogRepository = new MongoAuditLogRepository();
     const hashService = new BcryptHashService();
-    const emailService = new EmailService();
+    const emailService = new EmailService(config);
 
     // Use Cases
     const adminCreateUserUseCase = new AdminCreateUser(userRepository, hashService, emailService, eventBus);

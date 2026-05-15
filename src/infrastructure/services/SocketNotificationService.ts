@@ -1,8 +1,10 @@
 import { INotificationService } from "../../application/services/INotificationService";
 import { NotificationModel } from "../models/NotificationModel";
-import { socketService } from "./socketService";
+import { ISocketService } from "../../application/services/ISocketService";
 
 export class SocketNotificationService implements INotificationService {
+  constructor(private socketService: ISocketService) {}
+
   async send(userId: string, notification: {
     type: "success" | "error" | "info" | "warning" | "alert";
     title: string;
@@ -20,7 +22,7 @@ export class SocketNotificationService implements INotificationService {
       });
 
       // Emit via socket
-      socketService.emitNotification({
+      this.socketService.emitNotification({
         id: savedNotification._id.toString(),
         type: notification.type === "error" ? "alert" : notification.type,
         title: notification.title,
@@ -35,3 +37,4 @@ export class SocketNotificationService implements INotificationService {
     }
   }
 }
+

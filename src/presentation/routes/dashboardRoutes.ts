@@ -1,7 +1,6 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { DashboardController } from "../controllers/DashboardController";
 import { GetDashboardKPIs } from "../../application/useCases/GetDashboardKPIs";
-import { authMiddleware } from "../../infrastructure/services/authMiddleWare";
 import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
 import { GateOperationRepository } from "../../infrastructure/repositories/GateOperationRepository";
 import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
@@ -11,12 +10,16 @@ import { EquipmentRepository } from "../../infrastructure/repositories/Equipment
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { PDARepository } from "../../infrastructure/repositories/PDARepository";
 import { MongooseIdValidator } from "../../infrastructure/services/MongooseIdValidator";
-import { appConfig } from "../../infrastructure/config/appConfig";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { createAuthMiddleware } from "../../infrastructure/services/authMiddleWare";
 
-export const createDashboardRouter = () => {
+export const createDashboardRouter = (
+    tokenService: ITokenService,
+    config: IConfigService
+) => {
     const router = Router();
-
-    const configService = appConfig;
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
 
     const getDashboardKPIsUseCase = new GetDashboardKPIs(
         new ContainerRepository(),
@@ -28,7 +31,7 @@ export const createDashboardRouter = () => {
         new BillRepository(),
         new PDARepository(),
         new MongooseIdValidator(),
-        configService
+        config
     );
     const controller = new DashboardController(getDashboardKPIsUseCase);
 

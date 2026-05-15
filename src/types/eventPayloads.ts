@@ -10,7 +10,7 @@ export interface AuditLogCreatedPayload {
   action: AuditAction;
   resourceType: EntityType;
   resourceId: string | null;
-  details: any;
+  details: Record<string, unknown>;
   ipAddress: string;
 }
 
@@ -19,17 +19,17 @@ export interface ContainerUpdatedPayload {
   newContainer: Container;
   performedBy?: string;
   equipmentName?: string;
-  userContext?: any;
+  userContext?: Record<string, unknown>;
 }
 
 export interface ContainerCreatedPayload {
   container: Container;
-  inputData: any;
+  inputData: Record<string, unknown>;
 }
 
 export interface GateOperationCreatedPayload {
   operation: GateOperation;
-  data: any;
+  data: Record<string, unknown>;
   performedBy: string;
   updatedContainer: Container | null;
 }

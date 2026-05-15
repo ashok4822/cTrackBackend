@@ -7,11 +7,17 @@ import { ContainerRepository } from "../../infrastructure/repositories/Container
 import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
 import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { PDARepository } from "../../infrastructure/repositories/PDARepository";
-import { authMiddleware } from "../../infrastructure/services/authMiddleWare";
+import { ITokenService } from "../../application/services/ITokenService";
+import { IConfigService } from "../../application/services/IConfigService";
+import { createAuthMiddleware } from "../../infrastructure/services/authMiddleWare";
 
-export const createSupportRouter = () => {
+export const createSupportRouter = (
+    tokenService: ITokenService,
+    config: IConfigService
+) => {
     const router = Router();
-    
+    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
+
     // Dependencies
     const contextBuilder = new AIChatContextBuilder(
         new ContainerRepository(),
@@ -19,9 +25,9 @@ export const createSupportRouter = () => {
         new BillRepository(),
         new PDARepository()
     );
-    const aiService = new GroqAIService();
+    const aiService = new GroqAIService(config);
     const supportUseCase = new SupportUseCase(contextBuilder, aiService);
-    const controller = new SupportController(supportUseCase);
+    const controller = new SupportController(supportUseCase, config);
 
     router.post("/chat", authMiddleware, controller.chat);
 
