@@ -4,10 +4,10 @@ import { NotificationCollectionResponseDto } from "../dto/NotificationDto";
 import { NotificationMapper } from "../mappers/NotificationMapper";
 
 export class GetNotifications implements IGetNotifications {
-    constructor(private notificationRepository: INotificationRepository) { }
+    constructor(private readonly _notificationRepository: INotificationRepository) { }
 
     async execute(userId: string): Promise<NotificationCollectionResponseDto> {
-        const notifications = await this.notificationRepository.findByUserId(userId);
+        const notifications = await this._notificationRepository.findByUserId(userId);
         return NotificationMapper.toCollectionResponseDto(notifications);
     }
 }

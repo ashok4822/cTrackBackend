@@ -10,27 +10,27 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class UpdateShippingLine implements IUpdateShippingLine {
     constructor(
-        private shippingLineRepository: IShippingLineRepository,
-        private eventBus: IEventBus
+        private readonly _shippingLineRepository: IShippingLineRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
 
     async execute(id: string, data: UpdateShippingLineRequestDto, userContext: UserContextDto): Promise<ShippingLineResponseDto> {
-        const shippingLine = await this.shippingLineRepository.findById(id);
+        const shippingLine = await this._shippingLineRepository.findById(id);
         if (!shippingLine) {
             throw new AppError(ResponseMessage.SHIPPING_LINE_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         const updatedShippingLine = ShippingLineMapper.applyUpdate(shippingLine, data);
 
-        const saved = await this.shippingLineRepository.save(updatedShippingLine);
+        const saved = await this._shippingLineRepository.save(updatedShippingLine);
 
         const changes = [];
         if (data.name !== undefined) changes.push(`name: ${data.name}`);
         if (data.code !== undefined) changes.push(`code: ${data.code}`);
 
         // Log audit event (Event-driven)
-        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
             userId: userContext.userId,
             userRole: userContext.userRole,
             userName: userContext.userName,

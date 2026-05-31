@@ -4,7 +4,7 @@ import { GateOperationModel, IGateOperationDocument } from "../models/GateOperat
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class GateOperationRepository implements IGateOperationRepository {
-    private applyFilters(filters: GateOperationFilter): Record<string, unknown> {
+    private _applyFilters(filters: GateOperationFilter): Record<string, unknown> {
         const query: Record<string, unknown> = {};
 
         if (filters.type) {
@@ -32,7 +32,7 @@ export class GateOperationRepository implements IGateOperationRepository {
         vehicleNumber?: string;
         limit?: number;
     }): Promise<GateOperation[]> {
-        const query = filters ? this.applyFilters(filters as GateOperationFilter) : {};
+        const query = filters ? this._applyFilters(filters as GateOperationFilter) : {};
 
         let mQuery = GateOperationModel.find(query).sort({ timestamp: -1 });
         if (filters?.limit) {
@@ -40,13 +40,13 @@ export class GateOperationRepository implements IGateOperationRepository {
         }
 
         const operations = await mQuery;
-        return operations.map((o) => this.toEntity(o));
+        return operations.map((o) => this._toEntity(o));
     }
 
     async findById(id: string): Promise<GateOperation | null> {
         const operation = await GateOperationModel.findById(id);
         if (!operation) return null;
-        return this.toEntity(operation);
+        return this._toEntity(operation);
     }
 
     async save(operation: GateOperation): Promise<GateOperation> {
@@ -65,15 +65,15 @@ export class GateOperationRepository implements IGateOperationRepository {
         if (operation.id && operation.id.match(/^[0-9a-fA-F]{24}$/)) {
             const updated = await GateOperationModel.findByIdAndUpdate(operation.id, data, { new: true });
             if (!updated) throw new Error(ResponseMessage.GATE_OPERATION_NOT_FOUND);
-            return this.toEntity(updated);
+            return this._toEntity(updated);
         } else {
             const newOperation = new GateOperationModel(data);
             const saved = await newOperation.save();
-            return this.toEntity(saved);
+            return this._toEntity(saved);
         }
     }
 
-    private toEntity(o: IGateOperationDocument): GateOperation {
+    private _toEntity(o: IGateOperationDocument): GateOperation {
         return new GateOperation(
             o.id as string,
             o.type,
@@ -89,12 +89,12 @@ export class GateOperationRepository implements IGateOperationRepository {
     }
 
     async count(filter: GateOperationFilter): Promise<number> {
-        const query = this.applyFilters(filter);
+        const query = this._applyFilters(filter);
         return await GateOperationModel.countDocuments(query).exec();
     }
 
     async getDailyMovements(filter: GateOperationFilter): Promise<DailyMovement[]> {
-        const query = this.applyFilters(filter);
+        const query = this._applyFilters(filter);
         const results = await GateOperationModel.aggregate([
             { $match: query },
             {

@@ -4,7 +4,7 @@ import { GateOperationCollectionResponseDto } from "../dto/GateDto";
 import { GateMapper } from "../mappers/GateMapper";
 
 export class GetGateOperations implements IGetGateOperations {
-    constructor(private gateOperationRepository: IGateOperationRepository) { }
+    constructor(private readonly _gateOperationRepository: IGateOperationRepository) { }
 
     async execute(filters?: {
         type?: "gate-in" | "gate-out";
@@ -13,7 +13,7 @@ export class GetGateOperations implements IGetGateOperations {
         limit?: number;
         status?: string;
     }): Promise<GateOperationCollectionResponseDto> {
-        const operations = await this.gateOperationRepository.findAll(filters);
+        const operations = await this._gateOperationRepository.findAll(filters);
         return GateMapper.toCollectionResponseDto(operations);
     }
 }

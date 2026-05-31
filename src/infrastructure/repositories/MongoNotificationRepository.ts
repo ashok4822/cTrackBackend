@@ -4,7 +4,7 @@ import { NotificationModel } from "../models/NotificationModel";
 export class MongoNotificationRepository implements INotificationRepository {
     async findByUserId(userId: string): Promise<INotification[]> {
         const docs = await NotificationModel.find({ userId }).sort({ createdAt: -1 }).limit(50);
-        return docs.map(this.toEntity);
+        return docs.map(this._toEntity);
     }
 
     async create(data: INotificationData): Promise<INotification> {
@@ -15,7 +15,7 @@ export class MongoNotificationRepository implements INotificationRepository {
             message: data.message,
             link: data.link,
         });
-        return this.toEntity(doc);
+        return this._toEntity(doc);
     }
 
     async markRead(notificationId: string, userId: string): Promise<void> {
@@ -33,7 +33,7 @@ export class MongoNotificationRepository implements INotificationRepository {
         await NotificationModel.findOneAndDelete({ _id: notificationId, userId });
     }
 
-    private toEntity(doc: InstanceType<typeof NotificationModel>): INotification {
+    private _toEntity(doc: InstanceType<typeof NotificationModel>): INotification {
         return {
             id: doc._id.toString(),
             userId: doc.userId.toString(),

@@ -9,8 +9,8 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class GateOperationController {
     constructor(
-        private getGateOperationsUseCase: IGetGateOperations,
-        private createGateOperationUseCase: ICreateGateOperation
+        private readonly _getGateOperationsUseCase: IGetGateOperations,
+        private readonly _createGateOperationUseCase: ICreateGateOperation
     ) { }
 
     getGateOperations = asyncHandler(async (req: Request, res: Response) => {
@@ -21,7 +21,7 @@ export class GateOperationController {
             limit?: string;
             status?: string;
         };
-        const operations = await this.getGateOperationsUseCase.execute({
+        const operations = await this._getGateOperationsUseCase.execute({
             ...filters,
             limit: filters.limit ? parseInt(filters.limit, 10) : undefined
         });
@@ -31,7 +31,7 @@ export class GateOperationController {
     createGateOperation = asyncHandler(async (req: Request, res: Response) => {
         const performedBy = req.user?.name || req.user?.email || "System";
         const userContext = extractUserContext(req);
-        await this.createGateOperationUseCase.execute(req.body, userContext, performedBy);
+        await this._createGateOperationUseCase.execute(req.body, userContext, performedBy);
         
         return res.status(HttpStatus.CREATED).json(ApiResponse.success(null, ResponseMessage.GATE_OPERATION_SUCCESS));
     });

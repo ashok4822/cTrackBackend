@@ -6,22 +6,22 @@ import { YardMapper } from "../mappers/YardMapper";
 
 export class SyncYardOccupancy implements ISyncYardOccupancy {
     constructor(
-        private blockRepository: IBlockRepository,
-        private containerRepository: IContainerRepository
+        private readonly _blockRepository: IBlockRepository,
+        private readonly _containerRepository: IContainerRepository
     ) { }
 
     async execute(): Promise<SyncYardOccupancyResponseDto> {
-        const blocks = await this.blockRepository.findAll();
+        const blocks = await this._blockRepository.findAll();
         const results: SyncResultDto[] = [];
 
         for (const block of blocks) {
-            const containerCount = await this.containerRepository.countByBlockNameAndStatuses(
+            const containerCount = await this._containerRepository.countByBlockNameAndStatuses(
                 block.name,
                 ['gate-in', 'in-yard', 'damaged']
             );
 
             const oldOccupied = block.occupied;
-            await this.blockRepository.updateOccupied(block.id!, containerCount);
+            await this._blockRepository.updateOccupied(block.id!, containerCount);
 
             results.push({
                 block: block.name,

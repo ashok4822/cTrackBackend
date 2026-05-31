@@ -1,11 +1,23 @@
 import { Container } from "../../domain/entities/Container";
+import { ContainerFilter } from "../../domain/repositories/IContainerRepository";
 import { 
   CreateContainerRequestDto, 
   ContainerResponseDto, 
-  ContainerCollectionResponseDto 
+  ContainerCollectionResponseDto,
+  ContainerFiltersDto
 } from "../dto/ContainerDto";
 
 export class ContainerMapper {
+  static toFilter(dto: ContainerFiltersDto): ContainerFilter {
+    return {
+      status: dto.status,
+      type: dto.type,
+      size: dto.size,
+      customer: dto.customer,
+      containerNumber: dto.containerNumber,
+      blacklisted: dto.blacklisted !== undefined ? String(dto.blacklisted) === "true" : undefined
+    };
+  }
   static toEntity(dto: CreateContainerRequestDto): Container {
     return new Container(
       null,

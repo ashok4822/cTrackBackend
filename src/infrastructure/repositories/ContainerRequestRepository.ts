@@ -22,7 +22,7 @@ interface IContainerRequestAggregate extends Omit<
 }
 
 export class ContainerRequestRepository implements IContainerRequestRepository {
-  private mapToEntity(
+  private _mapToEntity(
     doc: IContainerRequestDocument | IContainerRequestAggregate,
   ): ContainerRequest {
     const d = doc as IContainerRequestAggregate;
@@ -80,7 +80,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
       checkpoints: request.checkpoints,
       cargoCharge: request.cargoCharge,
     });
-    return this.mapToEntity(created);
+    return this._mapToEntity(created);
   }
 
   async findByCustomerId(customerId: string): Promise<ContainerRequest[]> {
@@ -166,12 +166,12 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
     ];
 
     const results = await ContainerRequestModel.aggregate(pipeline);
-    return results.map((doc) => this.mapToEntity(doc));
+    return results.map((doc) => this._mapToEntity(doc));
   }
 
   async findById(id: string): Promise<ContainerRequest | null> {
     const doc = await ContainerRequestModel.findById(id);
-    return doc ? this.mapToEntity(doc) : null;
+    return doc ? this._mapToEntity(doc) : null;
   }
 
   async findAll(): Promise<ContainerRequest[]> {
@@ -317,7 +317,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
     ];
 
     const results = await ContainerRequestModel.aggregate(pipeline);
-    return results.map((doc) => this.mapToEntity(doc));
+    return results.map((doc) => this._mapToEntity(doc));
   }
 
   async update(
@@ -337,7 +337,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
       { $set: updateData },
       { new: true },
     );
-    return updated ? this.mapToEntity(updated) : null;
+    return updated ? this._mapToEntity(updated) : null;
   }
 
   async updateStatus(
@@ -349,7 +349,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
       { status },
       { new: true },
     );
-    return updated ? this.mapToEntity(updated) : null;
+    return updated ? this._mapToEntity(updated) : null;
   }
 
   async findByContainerNumber(
@@ -359,7 +359,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
       containerNumber,
       status: { $in: ["ready-for-dispatch", "approved"] },
     }).sort({ createdAt: -1 });
-    return doc ? this.mapToEntity(doc) : null;
+    return doc ? this._mapToEntity(doc) : null;
   }
 
   async findActiveRequestsByCustomerId(
@@ -377,10 +377,10 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
       customerId,
       status: { $in: activeStatuses },
     });
-    return docs.map((doc) => this.mapToEntity(doc));
+    return docs.map((doc) => this._mapToEntity(doc));
   }
 
-  private applyFilters(filters: ContainerRequestFilter): Record<string, unknown> {
+  private _applyFilters(filters: ContainerRequestFilter): Record<string, unknown> {
     const query: Record<string, unknown> = {};
 
     if (filters.customerId) {
@@ -403,7 +403,7 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
   }
 
   async countPending(filter: ContainerRequestFilter): Promise<number> {
-    const query = this.applyFilters(filter);
+    const query = this._applyFilters(filter);
     query.status = "pending";
     return await ContainerRequestModel.countDocuments(query);
   }
@@ -412,10 +412,10 @@ export class ContainerRequestRepository implements IContainerRequestRepository {
     filter: ContainerRequestFilter,
     limit: number,
   ): Promise<ContainerRequest[]> {
-    const query = this.applyFilters(filter);
+    const query = this._applyFilters(filter);
     const docs = await ContainerRequestModel.find(query)
       .sort({ createdAt: -1 as const })
       .limit(limit);
-    return docs.map((doc) => this.mapToEntity(doc));
+    return docs.map((doc) => this._mapToEntity(doc));
   }
 }

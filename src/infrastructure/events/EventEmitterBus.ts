@@ -21,6 +21,7 @@ export class EventEmitterBus extends EventEmitter implements IEventBus {
   }
 
   // Support for 'on' method as defined in interface
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public on(event: DomainEvents, listener: (...args: any[]) => void | Promise<void>): this {
     return super.on(event, listener);
   }

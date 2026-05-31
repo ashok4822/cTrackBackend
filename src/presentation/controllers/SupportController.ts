@@ -7,8 +7,8 @@ import { asyncHandler } from "../middlewares/asyncHandler";
 
 export class SupportController {
     constructor(
-        private supportUseCase: ISupportUseCase,
-        private configService: IConfigService
+        private readonly _supportUseCase: ISupportUseCase,
+        private readonly _configService: IConfigService
     ) { }
 
     chat = asyncHandler(async (req: Request, res: Response) => {
@@ -16,9 +16,9 @@ export class SupportController {
         const user = req.user;
 
         // Configuration check is now implicitly handled by configService or at startup
-        this.configService.get("GROQ_API_KEY");
+        this._configService.get("GROQ_API_KEY");
 
-        const result = await this.supportUseCase.execute({
+        const result = await this._supportUseCase.execute({
 
             messages,
             category,

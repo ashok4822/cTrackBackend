@@ -8,7 +8,7 @@ import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class GetBillTransactions implements IGetBillTransactions {
-    constructor(private transactionRepository: IBillTransactionRepository) {}
+    constructor(private readonly _transactionRepository: IBillTransactionRepository) {}
 
   async execute(
     request: GetBillTransactionsRequestDto,
@@ -16,7 +16,7 @@ export class GetBillTransactions implements IGetBillTransactions {
   ): Promise<BillTransactionCollectionResponseDto> {
     const { billId } = request;
     if (!billId) throw new AppError(ResponseMessage.BILL_ID_REQUIRED, HttpStatus.BAD_REQUEST);
-    const transactions = await this.transactionRepository.findByBillId(billId);
+    const transactions = await this._transactionRepository.findByBillId(billId);
     return BillingMapper.toTransactionCollectionResponseDto(transactions);
   }
 }

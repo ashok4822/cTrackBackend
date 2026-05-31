@@ -11,10 +11,10 @@ import { AppError } from "../../domain/exceptions/AppError";
 
 export class NotificationController {
     constructor(
-        private getNotificationsUseCase: IGetNotifications,
-        private markAsReadUseCase: IMarkNotificationRead,
-        private markAllAsReadUseCase: IMarkAllNotificationsRead,
-        private deleteNotificationUseCase: IDeleteNotification
+        private readonly _getNotificationsUseCase: IGetNotifications,
+        private readonly _markAsReadUseCase: IMarkNotificationRead,
+        private readonly _markAllAsReadUseCase: IMarkAllNotificationsRead,
+        private readonly _deleteNotificationUseCase: IDeleteNotification
     ) { }
 
     getNotifications = asyncHandler(async (req: Request, res: Response) => {
@@ -22,7 +22,7 @@ export class NotificationController {
         if (!userId) {
             throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-        const notifications = await this.getNotificationsUseCase.execute(userId);
+        const notifications = await this._getNotificationsUseCase.execute(userId);
         return res.status(HttpStatus.OK).json(ApiResponse.success(notifications));
     });
 
@@ -32,7 +32,7 @@ export class NotificationController {
         if (!userId) {
             throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-        await this.markAsReadUseCase.execute(id as string, userId as string);
+        await this._markAsReadUseCase.execute(id as string, userId as string);
         return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.NOTIFICATION_READ));
     });
 
@@ -41,7 +41,7 @@ export class NotificationController {
         if (!userId) {
             throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-        await this.markAllAsReadUseCase.execute(userId);
+        await this._markAllAsReadUseCase.execute(userId);
         return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.NOTIFICATION_ALL_READ));
     });
 
@@ -51,7 +51,7 @@ export class NotificationController {
         if (!userId) {
             throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
-        await this.deleteNotificationUseCase.execute(id as string, userId as string);
+        await this._deleteNotificationUseCase.execute(id as string, userId as string);
         return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.NOTIFICATION_DELETED));
     });
 }

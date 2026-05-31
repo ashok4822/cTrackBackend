@@ -4,7 +4,7 @@ import { UpdateActivityRequestDto, ActivityResponseDto } from "../dto/ActivityDt
 import { ActivityMapper } from "../mappers/ActivityMapper";
 
 export class UpdateActivity implements IUpdateActivity {
-    constructor(private _activityRepository: IActivityRepository) { }
+    constructor(private readonly _activityRepository: IActivityRepository) { }
 
     async execute(id: string, activityData: UpdateActivityRequestDto): Promise<ActivityResponseDto | null> {
         const updated = await this._activityRepository.update(id, activityData);

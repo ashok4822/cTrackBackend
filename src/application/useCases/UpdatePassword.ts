@@ -9,9 +9,9 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class UpdatePassword implements IUpdatePassword {
     constructor(
-        private userRepository: IUserRepository,
-        private hashService: IHashService,
-        private eventBus: IEventBus
+        private readonly _userRepository: IUserRepository,
+        private readonly _hashService: IHashService,
+        private readonly _eventBus: IEventBus
     ) { }
 
 
@@ -36,7 +36,7 @@ export class UpdatePassword implements IUpdatePassword {
             );
         }
 
-        const user = await this.userRepository.findById(userId);
+        const user = await this._userRepository.findById(userId);
 
         if (!user) {
             throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -48,7 +48,7 @@ export class UpdatePassword implements IUpdatePassword {
         }
 
         // Verify current password
-        const isPasswordValid = await this.hashService.compare(
+        const isPasswordValid = await this._hashService.compare(
             currentPassword,
             user.password
         );
@@ -58,15 +58,15 @@ export class UpdatePassword implements IUpdatePassword {
         }
 
         // Hash new password
-        const hashedPassword = await this.hashService.hash(newPassword);
+        const hashedPassword = await this._hashService.hash(newPassword);
 
         // Update user via domain method
         const updatedUser = user.updatePassword(hashedPassword);
 
-        await this.userRepository.save(updatedUser);
+        await this._userRepository.save(updatedUser);
 
         // Log audit event (Event-driven)
-        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
             userId: userContext.userId,
             userRole: userContext.userRole,
             userName: userContext.userName,

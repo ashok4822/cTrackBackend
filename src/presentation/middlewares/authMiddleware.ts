@@ -12,7 +12,7 @@ interface TokenPayload {
   companyName?: string;
 }
 
-export const createAuthMiddleware = (tokenService: ITokenService, secret: string) => (
+export const createAuthMiddleware = (tokenService: ITokenService) => (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -26,9 +26,8 @@ export const createAuthMiddleware = (tokenService: ITokenService, secret: string
 
   const token = authHeader.split(" ")[1];
   try {
-    const payload = tokenService.verify<TokenPayload>(
+    const payload = tokenService.verifyAccessToken<TokenPayload>(
       token,
-      secret,
     );
 
     req.user = payload;

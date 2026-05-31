@@ -8,17 +8,17 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CreateShippingLine implements ICreateShippingLine {
     constructor(
-        private shippingLineRepository: IShippingLineRepository,
-        private eventBus: IEventBus
+        private readonly _shippingLineRepository: IShippingLineRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
 
     async execute(data: CreateShippingLineRequestDto, userContext: UserContextDto): Promise<ShippingLineResponseDto> {
         const shippingLine = ShippingLineMapper.toEntity(data);
-        const savedShippingLine = await this.shippingLineRepository.save(shippingLine);
+        const savedShippingLine = await this._shippingLineRepository.save(shippingLine);
 
         // Log audit event (Event-driven)
-        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
             userId: userContext.userId,
             userRole: userContext.userRole,
             userName: userContext.userName,

@@ -3,7 +3,6 @@ import { ITokenService } from "../services/ITokenService";
 import { UserRole } from "../dto/UserDto";
 import { IGoogleLogin } from "../ports/IGoogleLogin";
 import { IAuthService } from "../services/IAuthService";
-import { IConfigService } from "../services/IConfigService";
 import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
 import { LoginResponseDto } from "../dto/AuthDto";
 import { AuthMapper } from "../mappers/AuthMapper";
@@ -15,37 +14,36 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class GoogleLogin implements IGoogleLogin {
   constructor(
-    private userRepository: IUserRepository,
-    private tokenService: ITokenService,
-    private authService: IAuthService,
-    private configService: IConfigService,
-    private eventBus: IEventBus
+    private readonly _userRepository: IUserRepository,
+    private readonly _tokenService: ITokenService,
+    private readonly _authService: IAuthService,
+    private readonly _eventBus: IEventBus
   ) { }
 
   async execute(
     code: string,
     requiredRole?: UserRole,
   ): Promise<LoginResponseDto> {
-    const googleUser = await this.authService.verifyGoogleToken(code);
+    const googleUser = await this._authService.verifyGoogleToken(code);
     const { email, googleId, name, profileImage } = googleUser;
 
-    let user = await this.userRepository.findByGoogleId(googleId);
+    let user = await this._userRepository.findByGoogleId(googleId);
 
     if (!user) {
       //Check if user exists with the same email
-      user = await this.userRepository.findByEmail(email);
+      user = await this._userRepository.findByEmail(email);
 
       if (user) {
         // Link account if it matches email
         const updatedUser = UserMapper.linkGoogle(user, googleId, name, profileImage);
-        await this.userRepository.save(updatedUser);
+        await this._userRepository.save(updatedUser);
         user = updatedUser;
       } else {
         //Create new customer
         const newUser = UserMapper.createFromGoogle(email, googleId, name, profileImage);
-        await this.userRepository.save(newUser);
+        await this._userRepository.save(newUser);
         //Re-fetch to get the ID if it was created
-        user = await this.userRepository.findByGoogleId(googleId);
+        user = await this._userRepository.findByGoogleId(googleId);
       }
     }
 
@@ -67,7 +65,7 @@ export class GoogleLogin implements IGoogleLogin {
     }
 
     //Access token
-    const accessToken = this.tokenService.generate(
+    const accessToken = this._tokenService.generateAccessToken(
       {
         id: user.id,
         email: user.email,
@@ -75,19 +73,15 @@ export class GoogleLogin implements IGoogleLogin {
         name: user.name,
         companyName: user.companyName,
       },
-      this.configService.get("JWT_ACCESS_SECRET") || "access_fallback",
-      this.configService.get("JWT_ACCESS_EXPIRY") || "15m",
     );
 
     // Refresh Token
-    const refreshToken = this.tokenService.generate(
+    const refreshToken = this._tokenService.generateRefreshToken(
       { id: user.id },
-      this.configService.get("JWT_REFRESH_SECRET") || "refresh_fallback",
-      this.configService.get("JWT_REFRESH_EXPIRY") || "7d",
     );
 
     // Event-driven Audit
-    this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+    this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
       userId: user.id,
       userRole: user.role,
       userName: user.name || user.email,

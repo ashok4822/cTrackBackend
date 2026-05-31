@@ -6,17 +6,17 @@ import { IContainerDomainService, GateInContainerData } from "./IContainerDomain
 
 export class ContainerDomainService implements IContainerDomainService {
   constructor(
-    private containerRepository: IContainerRepository,
-    private userRepository: IUserRepository
+    private readonly _containerRepository: IContainerRepository,
+    private readonly _userRepository: IUserRepository
   ) {}
 
   async findByNumber(containerNumber: string): Promise<Container | null> {
-    const containers = await this.containerRepository.findAll({ containerNumber });
+    const containers = await this._containerRepository.findAll({ containerNumber });
     return containers.length > 0 ? containers[0] : null;
   }
 
   async getCustomerName(customerId: string): Promise<string> {
-    const user = await this.userRepository.findById(customerId);
+    const user = await this._userRepository.findById(customerId);
     return user ? (user.companyName || user.name || customerId) : customerId;
   }
 

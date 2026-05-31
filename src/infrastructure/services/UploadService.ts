@@ -5,14 +5,16 @@ import { CloudinaryStorage } from "multer-storage-cloudinary";
 import { IConfigService } from "../../application/services/IConfigService";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
+import { IUploadProvider } from "../../presentation/ports/IUploadProvider";
+
 /**
- * Factory function that creates and returns a multer upload middleware instance
+ * Factory function that creates and returns an IUploadProvider instance
  * configured with Cloudinary, using credentials sourced from IConfigService.
  *
  * Must be called from the composition root (server.ts) and the resulting
- * middleware injected into route factories that need it.
+ * provider injected into route factories that need it.
  */
-export const createUploadMiddleware = (config: IConfigService): multer.Multer => {
+export const createUploadProvider = (config: IConfigService): IUploadProvider => {
     cloudinary.config({
         cloud_name: config.get("CLOUDINARY_CLOUD_NAME"),
         api_key: config.get("CLOUDINARY_API_KEY"),
@@ -38,11 +40,16 @@ export const createUploadMiddleware = (config: IConfigService): multer.Multer =>
         }
     };
 
-    return multer({
+    const multerInstance = multer({
         storage,
         fileFilter,
         limits: {
             fileSize: 5 * 1024 * 1024, // 5 MB limit
         },
     });
+
+    return {
+        single: (fieldName: string) => multerInstance.single(fieldName),
+        array: (fieldName: string, maxCount?: number) => multerInstance.array(fieldName, maxCount),
+    };
 };

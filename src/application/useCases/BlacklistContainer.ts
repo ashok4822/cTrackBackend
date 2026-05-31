@@ -9,22 +9,22 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class BlacklistContainer implements IBlacklistContainer {
     constructor(
-        private containerRepository: IContainerRepository,
-        private eventBus: IEventBus
+        private readonly _containerRepository: IContainerRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
 
     async execute(id: string, userContext?: UserContextDto): Promise<void> {
-        const container = await this.containerRepository.findById(id);
+        const container = await this._containerRepository.findById(id);
         if (!container) {
             throw new AppError(ResponseMessage.CONTAINER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         const updatedContainer = container.update({ blacklisted: true });
 
-        await this.containerRepository.save(updatedContainer);
+        await this._containerRepository.save(updatedContainer);
 
-        this.eventBus.emit(DomainEvents.CONTAINER_HISTORY_CREATED, {
+        this._eventBus.emit(DomainEvents.CONTAINER_HISTORY_CREATED, {
             containerId: id,
             action: ResponseMessage.ACTION_BLACKLISTED,
             details: ResponseMessage.DETAILS_BLACKLISTED,
@@ -33,7 +33,7 @@ export class BlacklistContainer implements IBlacklistContainer {
 
         // Audit Log (Event-driven)
         if (userContext) {
-            this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+            this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
                 userId: userContext.userId,
                 userRole: userContext.userRole,
                 userName: userContext.userName,

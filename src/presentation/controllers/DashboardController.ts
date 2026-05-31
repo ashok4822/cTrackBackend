@@ -6,12 +6,12 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class DashboardController {
     constructor(
-        private getDashboardKPIsUseCase: IGetDashboardKPIs
+        private readonly _getDashboardKPIsUseCase: IGetDashboardKPIs
     ) { }
 
     getKPIs = asyncHandler(async (req: Request, res: Response) => {
         const user = req.user;
-        const kpis = await this.getDashboardKPIsUseCase.execute({
+        const kpis = await this._getDashboardKPIsUseCase.execute({
             role: user?.role,
             customerName: user?.companyName || user?.name,
             userId: user?.id

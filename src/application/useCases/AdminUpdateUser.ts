@@ -9,8 +9,8 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class AdminUpdateUser implements IAdminUpdateUser {
     constructor(
-        private userRepository: IUserRepository,
-        private eventBus: IEventBus
+        private readonly _userRepository: IUserRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
 
@@ -26,7 +26,7 @@ export class AdminUpdateUser implements IAdminUpdateUser {
             nameToUse = trimmedName;
         }
 
-        const user = await this.userRepository.findById(userId);
+        const user = await this._userRepository.findById(userId);
 
         if (!user) {
             throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -35,7 +35,7 @@ export class AdminUpdateUser implements IAdminUpdateUser {
         // Create updated user via mapper (using validated trimmed name)
         const updatedUser = UserMapper.applyAdminUpdate(user, { ...data, name: nameToUse });
 
-        await this.userRepository.save(updatedUser);
+        await this._userRepository.save(updatedUser);
 
         // Log audit event
         const changes: string[] = [];
@@ -45,7 +45,7 @@ export class AdminUpdateUser implements IAdminUpdateUser {
         if (data.isBlocked !== undefined) changes.push(`isBlocked: ${data.isBlocked}`);
 
         // Log audit event (Event-driven)
-        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
             userId: userContext.userId,
             userRole: userContext.userRole,
             userName: userContext.userName,

@@ -9,9 +9,9 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class ResetPassword implements IResetPassword {
     constructor(
-        private userRepository: IUserRepository,
-        private otpRepository: IOtpRepository,
-        private hashService: IHashService,
+        private readonly _userRepository: IUserRepository,
+        private readonly _otpRepository: IOtpRepository,
+        private readonly _hashService: IHashService,
     ) { }
 
     async execute(email: string, otp: string, newPassword: string): Promise<void> {
@@ -25,7 +25,7 @@ export class ResetPassword implements IResetPassword {
         }
 
         // 1. Verify OTP with strict expiration check
-        const savedOtpData = await this.otpRepository.findOtp(email);
+        const savedOtpData = await this._otpRepository.findOtp(email);
         if (!savedOtpData || savedOtpData.otp !== otp) {
             throw new AppError(ResponseMessage.INVALID_OTP, HttpStatus.BAD_REQUEST);
         }
@@ -36,26 +36,26 @@ export class ResetPassword implements IResetPassword {
 
         // 5 minute expiration
         if (timeDifference > 300 * 1000) {
-            await this.otpRepository.deleteOtp(email);
+            await this._otpRepository.deleteOtp(email);
             throw new AppError(ResponseMessage.OTP_EXPIRED, HttpStatus.BAD_REQUEST);
         }
 
         // 2. Find User
-        const user = await this.userRepository.findByEmail(email);
+        const user = await this._userRepository.findByEmail(email);
         if (!user) {
             throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         // 3. Hash New Password
-        const hashedPassword = await this.hashService.hash(newPassword);
+        const hashedPassword = await this._hashService.hash(newPassword);
 
         // 4. Update User
         const updatedUser = user.updatePassword(hashedPassword);
 
-        await this.userRepository.save(updatedUser);
+        await this._userRepository.save(updatedUser);
 
         // 5. Cleanup OTP
-        await this.otpRepository.deleteOtp(email);
+        await this._otpRepository.deleteOtp(email);
     }
 }
 

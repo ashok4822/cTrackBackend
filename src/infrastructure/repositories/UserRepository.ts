@@ -10,18 +10,18 @@ export class UserRepository extends BaseRepository<User, IUserDocument> implemen
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const userDoc = await this.model.findOne({ email }).exec();
-    return userDoc ? this.toEntity(userDoc) : null;
+    const userDoc = await this._model.findOne({ email }).exec();
+    return userDoc ? this._toEntity(userDoc) : null;
   }
 
   async findByGoogleId(googleId: string): Promise<User | null> {
-    const userDoc = await this.model.findOne({ googleId }).exec();
-    return userDoc ? this.toEntity(userDoc) : null;
+    const userDoc = await this._model.findOne({ googleId }).exec();
+    return userDoc ? this._toEntity(userDoc) : null;
   }
 
   async findByRole(role: string): Promise<User[]> {
-    const userDocs = await this.model.find({ role }).exec();
-    return userDocs.map((doc) => this.toEntity(doc));
+    const userDocs = await this._model.find({ role }).exec();
+    return userDocs.map((doc) => this._toEntity(doc));
   }
 
   async exists(query: UpdateQuery<IUserDocument> | string): Promise<boolean> {
@@ -29,7 +29,7 @@ export class UserRepository extends BaseRepository<User, IUserDocument> implemen
     return super.exists(actualQuery);
   }
 
-  protected toEntity(userDoc: IUserDocument): User {
+  protected _toEntity(userDoc: IUserDocument): User {
     return new User(
       userDoc._id.toString(),
       userDoc.email,
@@ -46,7 +46,7 @@ export class UserRepository extends BaseRepository<User, IUserDocument> implemen
     );
   }
 
-  protected toModelData(user: User): UpdateQuery<IUserDocument> {
+  protected _toModelData(user: User): UpdateQuery<IUserDocument> {
     return {
       email: user.email,
       password: user.password,

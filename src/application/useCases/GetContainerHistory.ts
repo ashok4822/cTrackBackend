@@ -4,10 +4,10 @@ import { ContainerHistoryCollectionResponseDto } from "../dto/ContainerDto";
 import { ContainerHistoryMapper } from "../mappers/ContainerHistoryMapper";
  
 export class GetContainerHistory implements IGetContainerHistory {
-    constructor(private historyRepository: IContainerHistoryRepository) { }
+    constructor(private readonly _historyRepository: IContainerHistoryRepository) { }
  
     async execute(containerId: string): Promise<ContainerHistoryCollectionResponseDto> {
-        const history = await this.historyRepository.findByContainerId(containerId);
+        const history = await this._historyRepository.findByContainerId(containerId);
         return ContainerHistoryMapper.toCollectionResponseDto(history);
     }
 }

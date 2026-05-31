@@ -6,20 +6,20 @@ import { ContainerMapper } from "../mappers/ContainerMapper";
 
 export class GetCustomerContainers implements IGetCustomerContainers {
     constructor(
-        private containerRepository: IContainerRepository,
-        private containerRequestRepository: IContainerRequestRepository
+        private readonly _containerRepository: IContainerRepository,
+        private readonly _containerRequestRepository: IContainerRequestRepository
     ) { }
 
     async execute(customerName: string, customerId: string): Promise<ContainerResponseDto[]> {
         // Fetch all active containers for this customer (used by both 'My Containers' page
         // and as the pool from which the destuffing dropdown filters client-side)
-        const containers = await this.containerRepository.findAll({
+        const containers = await this._containerRepository.findAll({
             customer: customerId,
             status: ["gate-in", "in-yard", "in-transit", "at-port", "at-factory", "damaged"]
         });
 
         // Fetch active requests for this customer
-        const activeRequests = await this.containerRequestRepository.findActiveRequestsByCustomerId(customerId);
+        const activeRequests = await this._containerRequestRepository.findActiveRequestsByCustomerId(customerId);
 
         // Filter out containers that already have an active destuffing request
         const containersWithActiveRequests = new Set(

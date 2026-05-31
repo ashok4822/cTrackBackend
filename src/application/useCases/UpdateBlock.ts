@@ -10,8 +10,8 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class UpdateBlock implements IUpdateBlock {
     constructor(
-        private _blockRepository: IBlockRepository,
-        private _eventBus: IEventBus
+        private readonly _blockRepository: IBlockRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
 

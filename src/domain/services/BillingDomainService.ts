@@ -4,15 +4,15 @@ import { IActivityRepository } from "../repositories/IActivityRepository";
 import { IChargeRepository } from "../repositories/IChargeRepository";
 import { ContainerRequest } from "../entities/ContainerRequest";
 import { BillLineItem } from "../entities/Bill";
-import { BillingMapper } from "../../application/mappers/BillingMapper";
+import { BillFactory } from "../factories/BillFactory";
 import { IBillingDomainService } from "./IBillingDomainService";
 
 export class BillingDomainService implements IBillingDomainService {
   constructor(
-    private containerRepository: IContainerRepository,
-    private billRepository: IBillRepository,
-    private activityRepository: IActivityRepository,
-    private chargeRepository: IChargeRepository
+    private readonly _containerRepository: IContainerRepository,
+    private readonly _billRepository: IBillRepository,
+    private readonly _activityRepository: IActivityRepository,
+    private readonly _chargeRepository: IChargeRepository
   ) {}
 
   async generateBillForRequest(
@@ -23,7 +23,7 @@ export class BillingDomainService implements IBillingDomainService {
     const containerNumber = request.containerNumber;
     if (!containerNumber) return;
 
-    const containers = await this.containerRepository.findAll({ containerNumber });
+    const containers = await this._containerRepository.findAll({ containerNumber });
     const container = containers.length > 0 ? containers[0] : null;
 
     if (!container) return;
@@ -33,7 +33,7 @@ export class BillingDomainService implements IBillingDomainService {
     let totalAmount = 0;
 
     // --- A. Yard Storage (STOR) ---
-    const storActivity = await this.activityRepository.findByCode("STOR");
+    const storActivity = await this._activityRepository.findByCode("STOR");
     if (storActivity && storActivity.id) {
       const storCharge = await this.findApplicableCharge(
         storActivity.id,
@@ -66,9 +66,9 @@ export class BillingDomainService implements IBillingDomainService {
     const primaryCode = request.type === "stuffing" ? "STUF" : "DEST";
     const altCode = request.type === "stuffing" ? "STUFFING" : "DESTUFFING";
 
-    let opActivity = await this.activityRepository.findByCode(primaryCode);
+    let opActivity = await this._activityRepository.findByCode(primaryCode);
     if (!opActivity) {
-      opActivity = await this.activityRepository.findByCode(altCode);
+      opActivity = await this._activityRepository.findByCode(altCode);
     }
 
     if (opActivity && opActivity.id) {
@@ -103,7 +103,7 @@ export class BillingDomainService implements IBillingDomainService {
     }
 
     // --- D. Container Lift (LIFT) ---
-    const liftActivity = await this.activityRepository.findByCode("LIFT");
+    const liftActivity = await this._activityRepository.findByCode("LIFT");
     if (liftActivity && liftActivity.id) {
       const liftCharge = await this.findApplicableCharge(
         liftActivity.id,
@@ -125,7 +125,7 @@ export class BillingDomainService implements IBillingDomainService {
 
     // 3. Persist Bill
     if (lineItems.length > 0 && container.id) {
-      const containerBills = await this.billRepository.findByContainerId(container.id);
+      const containerBills = await this._billRepository.findByContainerId(container.id);
       const pendingBill = containerBills.find((b) => b.status === "pending");
 
       if (pendingBill) {
@@ -133,10 +133,10 @@ export class BillingDomainService implements IBillingDomainService {
           console.log(`[BillingDomainService] Bill for identifier ${billIdentifier} already exists. Skipping duplicate charge addition.`);
           return;
         }
-        const updatedBill = BillingMapper.appendLineItems(pendingBill, lineItems, billIdentifier, request.type);
-        await this.billRepository.save(updatedBill);
+        const updatedBill = BillFactory.appendLineItems(pendingBill, lineItems, billIdentifier, request.type);
+        await this._billRepository.save(updatedBill);
       } else {
-        const bill = BillingMapper.createForRequest(
+        const bill = BillFactory.createForRequest(
           request.type === "stuffing" ? "STUF" : "DEST",
           containerNumber,
           container.shippingLine,
@@ -147,10 +147,11 @@ export class BillingDomainService implements IBillingDomainService {
           request.type,
           billIdentifier
         );
-        await this.billRepository.save(bill);
+        await this._billRepository.save(bill);
       }
     }
   }
+
 
   private async findApplicableCharge(
     activityId: string,
@@ -159,19 +160,19 @@ export class BillingDomainService implements IBillingDomainService {
     cargoCategoryId?: string
   ) {
     if (cargoCategoryId) {
-      let charge = await this.chargeRepository.findByCriteria(activityId, size, type, cargoCategoryId);
+      let charge = await this._chargeRepository.findByCriteria(activityId, size, type, cargoCategoryId);
       if (charge) return charge;
 
-      charge = await this.chargeRepository.findByCriteria(activityId, size, "all", cargoCategoryId);
+      charge = await this._chargeRepository.findByCriteria(activityId, size, "all", cargoCategoryId);
       if (charge) return charge;
 
-      charge = await this.chargeRepository.findByCriteria(activityId, "all", "all", cargoCategoryId);
+      charge = await this._chargeRepository.findByCriteria(activityId, "all", "all", cargoCategoryId);
       if (charge) return charge;
     }
 
-    let charge = await this.chargeRepository.findByCriteria(activityId, size, type);
-    if (!charge) charge = await this.chargeRepository.findByCriteria(activityId, size, "all");
-    if (!charge) charge = await this.chargeRepository.findByCriteria(activityId, "all", "all");
+    let charge = await this._chargeRepository.findByCriteria(activityId, size, type);
+    if (!charge) charge = await this._chargeRepository.findByCriteria(activityId, size, "all");
+    if (!charge) charge = await this._chargeRepository.findByCriteria(activityId, "all", "all");
     return charge;
   }
 }

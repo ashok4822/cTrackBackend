@@ -5,12 +5,12 @@ import { IConfigService } from "../../application/services/IConfigService";
 export class EmailService implements IEmailService {
     private _transporter: nodemailer.Transporter;
 
-    constructor(private configService: IConfigService) {
+    constructor(private readonly _configService: IConfigService) {
         this._transporter = nodemailer.createTransport({
             service: "gmail", // Or use host/port for other providers
             auth: {
-                user: this.configService.get("EMAIL_USER"),
-                pass: this.configService.get("EMAIL_PASS"),
+                user: this._configService.get("EMAIL_USER"),
+                pass: this._configService.get("EMAIL_PASS"),
             },
         });
     }
@@ -18,7 +18,7 @@ export class EmailService implements IEmailService {
 
     async sendOtp(email: string, otp: string): Promise<void> {
         const mailOptions = {
-            from: this.configService.get("EMAIL_USER"),
+            from: this._configService.get("EMAIL_USER"),
             to: email,
             subject: "Your OTP for cTrack Signup",
             text: `Your OTP is ${otp}. It is valid for 1 minute.`,
@@ -30,7 +30,7 @@ export class EmailService implements IEmailService {
 
     async sendPasswordResetOtp(email: string, otp: string): Promise<void> {
         const mailOptions = {
-            from: this.configService.get("EMAIL_USER"),
+            from: this._configService.get("EMAIL_USER"),
             to: email,
             subject: "Reset Your Password - cTrack",
             text: `Your OTP for password reset is ${otp}. It is valid for 1 minute.`,
@@ -42,7 +42,7 @@ export class EmailService implements IEmailService {
 
     async sendWelcomeEmail(email: string, password: string, name?: string): Promise<void> {
         const mailOptions = {
-            from: this.configService.get("EMAIL_USER"),
+            from: this._configService.get("EMAIL_USER"),
             to: email,
             subject: "Welcome to cTrack - Your Account Details",
             text: `Hello ${name || 'User'},\n\nYour account has been created successfully. Your login credentials are:\nEmail: ${email}\nPassword: ${password}\n\nPlease log in and change your password for security.`,

@@ -6,20 +6,20 @@ export class ChargeHistoryRepository implements IChargeHistoryRepository {
     async save(history: ChargeHistory): Promise<ChargeHistory> {
         const doc = new ChargeHistoryModel(history);
         const saved = await doc.save();
-        return this.mapToEntity(saved.toObject() as IChargeHistoryDocument);
+        return this._mapToEntity(saved.toObject() as IChargeHistoryDocument);
     }
 
     async findAll(): Promise<ChargeHistory[]> {
         const docs = await ChargeHistoryModel.find().sort({ changedAt: -1 }).lean();
-        return (docs as unknown as IChargeHistoryDocument[]).map(doc => this.mapToEntity(doc));
+        return (docs as unknown as IChargeHistoryDocument[]).map(doc => this._mapToEntity(doc));
     }
 
     async findByChargeId(chargeId: string): Promise<ChargeHistory[]> {
         const docs = await ChargeHistoryModel.find({ chargeId }).sort({ changedAt: -1 }).lean();
-        return (docs as unknown as IChargeHistoryDocument[]).map(doc => this.mapToEntity(doc));
+        return (docs as unknown as IChargeHistoryDocument[]).map(doc => this._mapToEntity(doc));
     }
 
-    private mapToEntity(doc: IChargeHistoryDocument): ChargeHistory {
+    private _mapToEntity(doc: IChargeHistoryDocument): ChargeHistory {
         return {
             id: doc._id!.toString(),
             chargeId: doc.chargeId.toString(),

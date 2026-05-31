@@ -10,9 +10,9 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class PDAController {
     constructor(
-        private getPDAUseCase: IGetPDA,
-        private createRazorpayPDAOrderUseCase: ICreateRazorpayPDAOrder,
-        private verifyRazorpayPDAPaymentUseCase: IVerifyRazorpayPDAPayment
+        private readonly _getPDAUseCase: IGetPDA,
+        private readonly _createRazorpayPDAOrderUseCase: ICreateRazorpayPDAOrder,
+        private readonly _verifyRazorpayPDAPaymentUseCase: IVerifyRazorpayPDAPayment
     ) { }
 
     getPDA = asyncHandler(async (req: Request, res: Response) => {
@@ -20,7 +20,7 @@ export class PDAController {
             throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
         const { id: userId, role } = req.user;
-        const result = await this.getPDAUseCase.execute(userId, role);
+        const result = await this._getPDAUseCase.execute(userId, role);
         return res.status(HttpStatus.OK).json(ApiResponse.success(result));
     });
 
@@ -31,7 +31,7 @@ export class PDAController {
 
         const { id: userId } = req.user;
         const { amount } = req.body;
-        const result = await this.createRazorpayPDAOrderUseCase.execute(amount, userId);
+        const result = await this._createRazorpayPDAOrderUseCase.execute(amount, userId);
         return res.status(HttpStatus.OK).json(ApiResponse.success(result));
     });
 
@@ -42,7 +42,7 @@ export class PDAController {
 
         const { id: userId } = req.user;
         const { amount, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-        const result = await this.verifyRazorpayPDAPaymentUseCase.execute(
+        const result = await this._verifyRazorpayPDAPaymentUseCase.execute(
             userId,
             amount,
             razorpay_order_id,

@@ -10,10 +10,10 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class VehicleController {
     constructor(
-        private createVehicle: ICreateVehicle,
-        private updateVehicle: IUpdateVehicle,
-        private deleteVehicle: IDeleteVehicle,
-        private getAllVehicles: IGetAllVehicles
+        private readonly _createVehicle: ICreateVehicle,
+        private readonly _updateVehicle: IUpdateVehicle,
+        private readonly _deleteVehicle: IDeleteVehicle,
+        private readonly _getAllVehicles: IGetAllVehicles
     ) { }
 
     fetchAll = asyncHandler(async (req: Request, res: Response) => {
@@ -21,24 +21,24 @@ export class VehicleController {
             type?: string;
             vehicleNumber?: string;
         };
-        const vehicles = await this.getAllVehicles.execute(filters);
+        const vehicles = await this._getAllVehicles.execute(filters);
         return res.status(HttpStatus.OK).json(ApiResponse.success(vehicles));
     });
 
     create = asyncHandler(async (req: Request, res: Response) => {
-        const vehicle = await this.createVehicle.execute(req.body);
+        const vehicle = await this._createVehicle.execute(req.body);
         return res.status(HttpStatus.CREATED).json(ApiResponse.success(vehicle, ResponseMessage.VEHICLE_CREATED));
     });
 
     update = asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
-        const vehicle = await this.updateVehicle.execute(id as string, req.body);
+        const vehicle = await this._updateVehicle.execute(id as string, req.body);
         return res.status(HttpStatus.OK).json(ApiResponse.success(vehicle, ResponseMessage.VEHICLE_UPDATED));
     });
 
     delete = asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
-        await this.deleteVehicle.execute(id as string);
+        await this._deleteVehicle.execute(id as string);
         return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.VEHICLE_DELETED));
     });
 }

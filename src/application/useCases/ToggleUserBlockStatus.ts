@@ -10,23 +10,23 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class ToggleUserBlockStatus implements IToggleUserBlockStatus {
     constructor(
-        private userRepository: IUserRepository,
-        private eventBus: IEventBus
+        private readonly _userRepository: IUserRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
 
     async execute(userId: string, userContext: UserContextDto): Promise<UserResponseDto> {
-        const user = await this.userRepository.findById(userId);
+        const user = await this._userRepository.findById(userId);
         if (!user) {
             throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         const updatedUser = UserMapper.applyBlockToggle(user);
 
-        await this.userRepository.save(updatedUser);
+        await this._userRepository.save(updatedUser);
 
         // Log audit event (Event-driven)
-        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
             userId: userContext.userId,
             userRole: userContext.userRole,
             userName: userContext.userName,

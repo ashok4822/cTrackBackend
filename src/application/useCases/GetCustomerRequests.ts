@@ -4,10 +4,10 @@ import { ContainerRequestCollectionResponseDto } from "../dto/RequestDto";
 import { RequestMapper } from "../mappers/RequestMapper";
 
 export class GetCustomerRequests implements IGetCustomerRequests {
-    constructor(private containerRequestRepository: IContainerRequestRepository) { }
+    constructor(private readonly _containerRequestRepository: IContainerRequestRepository) { }
 
     async execute(customerId: string): Promise<ContainerRequestCollectionResponseDto> {
-        const requests = await this.containerRequestRepository.findByCustomerId(customerId);
+        const requests = await this._containerRequestRepository.findByCustomerId(customerId);
         return RequestMapper.toCollectionResponseDto(requests);
     }
 }

@@ -13,11 +13,11 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class VerifyRazorpayPayment implements IVerifyRazorpayPayment {
     constructor(
-        private billRepository: IBillRepository,
-        private paymentService: IPaymentService,
-        private notificationService: INotificationService,
-        private eventBus: IEventBus,
-        private transactionRepository?: IBillTransactionRepository
+        private readonly _billRepository: IBillRepository,
+        private readonly _paymentService: IPaymentService,
+        private readonly _notificationService: INotificationService,
+        private readonly _eventBus: IEventBus,
+        private readonly _transactionRepository?: IBillTransactionRepository
     ) { }
 
 
@@ -29,7 +29,7 @@ export class VerifyRazorpayPayment implements IVerifyRazorpayPayment {
         razorpay_signature: string,
         userContext?: UserContextDto
     ): Promise<BillResponseDto> {
-        const bill = await this.billRepository.findById(billId);
+        const bill = await this._billRepository.findById(billId);
 
         if (!bill) {
             throw new AppError(ResponseMessage.BILL_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -40,14 +40,14 @@ export class VerifyRazorpayPayment implements IVerifyRazorpayPayment {
         }
 
         // Verify signature
-        const isValid = this.paymentService.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+        const isValid = this._paymentService.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
 
         if (!isValid) {
             // Log failed transaction
-            if (this.transactionRepository) {
-                const transaction = await this.transactionRepository.findByOrderId(razorpay_order_id);
+            if (this._transactionRepository) {
+                const transaction = await this._transactionRepository.findByOrderId(razorpay_order_id);
                 if (transaction && transaction.id) {
-                    await this.transactionRepository.updateStatus(transaction.id, "failed", {
+                    await this._transactionRepository.updateStatus(transaction.id, "failed", {
                         transactionId: razorpay_payment_id,
                         errorDetails: ResponseMessage.INVALID_PAYMENT_SIGNATURE
                     });
@@ -57,7 +57,7 @@ export class VerifyRazorpayPayment implements IVerifyRazorpayPayment {
         }
 
         // Update bill status
-        const updatedBill = await this.billRepository.update(billId, {
+        const updatedBill = await this._billRepository.update(billId, {
             status: "paid",
             paymentMethod: "online",
             paidAt: new Date()
@@ -68,10 +68,10 @@ export class VerifyRazorpayPayment implements IVerifyRazorpayPayment {
         }
 
         // Update transaction to success
-        if (this.transactionRepository) {
-            const transaction = await this.transactionRepository.findByOrderId(razorpay_order_id);
+        if (this._transactionRepository) {
+            const transaction = await this._transactionRepository.findByOrderId(razorpay_order_id);
             if (transaction && transaction.id) {
-                await this.transactionRepository.updateStatus(transaction.id, "success", {
+                await this._transactionRepository.updateStatus(transaction.id, "success", {
                     transactionId: razorpay_payment_id
                 });
             }
@@ -79,7 +79,7 @@ export class VerifyRazorpayPayment implements IVerifyRazorpayPayment {
 
         // Audit Log (Event-driven)
         if (userContext) {
-            this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+            this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
                 userId: userContext.userId,
                 userRole: userContext.userRole,
                 userName: userContext.userName,
@@ -92,7 +92,7 @@ export class VerifyRazorpayPayment implements IVerifyRazorpayPayment {
         }
 
         // Notify customer about successful payment
-        await this.notificationService.send(userId, {
+        await this._notificationService.send(userId, {
             type: "success",
             title: ResponseMessage.PAYMENT_SUCCESSFUL_TITLE,
             message: `${ResponseMessage.PAYMENT_RECEIVED_MESSAGE} for bill ${updatedBill.billNumber}. Amount: ₹${updatedBill.totalAmount}`,

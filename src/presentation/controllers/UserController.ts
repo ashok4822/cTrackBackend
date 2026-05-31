@@ -16,20 +16,20 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class UserController {
   constructor(
-    private adminCreateUserUseCase: IAdminCreateUser,
-    private getUserProfileUseCase: IGetUserProfile,
-    private updateUserProfileUseCase: IUpdateUserProfile,
-    private updatePasswordUseCase: IUpdatePassword,
-    private updateProfileImageUseCase: IUpdateUserProfileImage,
-    private getAllUsersUseCase: IGetAllUsers,
-    private toggleUserBlockStatusUseCase: IToggleUserBlockStatus,
-    private adminUpdateUserUseCase: IAdminUpdateUser
+    private readonly _adminCreateUserUseCase: IAdminCreateUser,
+    private readonly _getUserProfileUseCase: IGetUserProfile,
+    private readonly _updateUserProfileUseCase: IUpdateUserProfile,
+    private readonly _updatePasswordUseCase: IUpdatePassword,
+    private readonly _updateProfileImageUseCase: IUpdateUserProfileImage,
+    private readonly _getAllUsersUseCase: IGetAllUsers,
+    private readonly _toggleUserBlockStatusUseCase: IToggleUserBlockStatus,
+    private readonly _adminUpdateUserUseCase: IAdminUpdateUser
   ) { }
 
   createUser = asyncHandler(async (req: Request, res: Response) => {
     const { email, role, name } = req.body;
     const userContext = extractUserContext(req);
-    const result = await this.adminCreateUserUseCase.execute({ email, role, name, userContext });
+    const result = await this._adminCreateUserUseCase.execute({ email, role, name, userContext });
     return res.status(HttpStatus.CREATED).json(ApiResponse.success(result, ResponseMessage.CREATE_SUCCESS));
   });
 
@@ -37,7 +37,7 @@ export class UserController {
     const userId = req.user?.id;
     if (!userId) throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
 
-    const user = await this.getUserProfileUseCase.execute(userId);
+    const user = await this._getUserProfileUseCase.execute(userId);
     if (!user) throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
 
     return res.status(HttpStatus.OK).json(ApiResponse.success(user));
@@ -49,7 +49,7 @@ export class UserController {
 
     const { name, phone, companyName } = req.body;
     const userContext = extractUserContext(req);
-    const updatedUser = await this.updateUserProfileUseCase.execute(userId, { name, phone, companyName }, userContext);
+    const updatedUser = await this._updateUserProfileUseCase.execute(userId, { name, phone, companyName }, userContext);
 
     return res.status(HttpStatus.OK).json(ApiResponse.success(updatedUser, ResponseMessage.PROFILE_UPDATE_SUCCESS));
   });
@@ -64,7 +64,7 @@ export class UserController {
     }
 
     const userContext = extractUserContext(req);
-    await this.updatePasswordUseCase.execute(userId, currentPassword, newPassword, confirmPassword, userContext);
+    await this._updatePasswordUseCase.execute(userId, currentPassword, newPassword, confirmPassword, userContext);
     return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.PASSWORD_UPDATE_SUCCESS));
   });
 
@@ -74,20 +74,20 @@ export class UserController {
     if (!req.file) throw new AppError(ResponseMessage.NO_FILE_UPLOADED, HttpStatus.BAD_REQUEST);
 
     const imageUrl = req.file.path;
-    const updatedUser = await this.updateProfileImageUseCase.execute(userId, imageUrl);
+    const updatedUser = await this._updateProfileImageUseCase.execute(userId, imageUrl);
 
     return res.status(HttpStatus.OK).json(ApiResponse.success({ profileImage: updatedUser.profileImage }, ResponseMessage.PROFILE_IMAGE_UPDATE_SUCCESS));
   });
 
   getAllUsers = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.getAllUsersUseCase.execute();
+    const result = await this._getAllUsersUseCase.execute();
     return res.status(HttpStatus.OK).json(ApiResponse.success(result));
   });
 
   toggleBlockStatus = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const userContext = extractUserContext(req);
-    const result = await this.toggleUserBlockStatusUseCase.execute(id as string, userContext);
+    const result = await this._toggleUserBlockStatusUseCase.execute(id as string, userContext);
     return res.status(HttpStatus.OK).json(ApiResponse.success(result, ResponseMessage.USER_BLOCK_TOGGLED));
   });
 
@@ -95,7 +95,7 @@ export class UserController {
     const { id } = req.params;
     const { name, role, organization, isBlocked } = req.body;
     const userContext = extractUserContext(req);
-    const updatedUser = await this.adminUpdateUserUseCase.execute(id as string, {
+    const updatedUser = await this._adminUpdateUserUseCase.execute(id as string, {
       name,
       role,
       companyName: organization,

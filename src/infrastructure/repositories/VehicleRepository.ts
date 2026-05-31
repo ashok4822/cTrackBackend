@@ -17,13 +17,13 @@ export class VehicleRepository implements IVehicleRepository {
         }
 
         const vehicles = await VehicleModel.find(query);
-        return vehicles.map(this.toEntity);
+        return vehicles.map(this._toEntity);
     }
 
     async findById(id: string): Promise<Vehicle | null> {
         const vehicle = await VehicleModel.findById(id);
         if (!vehicle) return null;
-        return this.toEntity(vehicle);
+        return this._toEntity(vehicle);
     }
 
     async save(vehicle: Vehicle): Promise<Vehicle> {
@@ -42,11 +42,11 @@ export class VehicleRepository implements IVehicleRepository {
                 new: true,
             });
             if (!updated) throw new Error(ResponseMessage.VEHICLE_NOT_FOUND);
-            return this.toEntity(updated);
+            return this._toEntity(updated);
         } else {
             const newVehicle = new VehicleModel(data);
             const saved = await newVehicle.save();
-            return this.toEntity(saved);
+            return this._toEntity(saved);
         }
     }
 
@@ -54,7 +54,7 @@ export class VehicleRepository implements IVehicleRepository {
         await VehicleModel.findByIdAndDelete(id);
     }
 
-    private toEntity(v: IVehicleDocument): Vehicle {
+    private _toEntity(v: IVehicleDocument): Vehicle {
         const id = v._id ? v._id.toString() : "";
         return new Vehicle(
             id,

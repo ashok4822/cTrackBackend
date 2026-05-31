@@ -15,16 +15,16 @@ import { EquipmentMapper } from "../mappers/EquipmentMapper";
 
 export class GetDashboardKPIs implements IGetDashboardKPIs {
   constructor(
-    private containerRepository: IContainerRepository,
-    private gateOperationRepository: IGateOperationRepository,
-    private blockRepository: IBlockRepository,
-    private containerHistoryRepository: IContainerHistoryRepository,
-    private containerRequestRepository: IContainerRequestRepository,
-    private equipmentRepository: IEquipmentRepository,
-    private billRepository: IBillRepository,
-    private pdaRepository: IPDARepository,
-    private idValidator: IIdValidator,
-    private configService: IConfigService,
+    private readonly _containerRepository: IContainerRepository,
+    private readonly _gateOperationRepository: IGateOperationRepository,
+    private readonly _blockRepository: IBlockRepository,
+    private readonly _containerHistoryRepository: IContainerHistoryRepository,
+    private readonly _containerRequestRepository: IContainerRequestRepository,
+    private readonly _equipmentRepository: IEquipmentRepository,
+    private readonly _billRepository: IBillRepository,
+    private readonly _pdaRepository: IPDARepository,
+    private readonly _idValidator: IIdValidator,
+    private readonly _configService: IConfigService,
   ) {}
 
   async execute(request: GetDashboardKPIsRequestDto): Promise<DashboardKPIsResponseDto> {
@@ -44,7 +44,7 @@ export class GetDashboardKPIs implements IGetDashboardKPIs {
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
     const ownedContainerIds = isCustomer
-      ? (await this.containerRepository.getDistinctContainerIds(containerFilter))
+      ? (await this._containerRepository.getDistinctContainerIds(containerFilter))
       : null;
     const historyFilter: ContainerHistoryFilter = ownedContainerIds
       ? { containerId: ownedContainerIds }
@@ -68,69 +68,69 @@ export class GetDashboardKPIs implements IGetDashboardKPIs {
       pdaData,
       unpaidBillsRaw,
     ] = await Promise.all([
-      this.containerRepository.countByStatus(
+      this._containerRepository.countByStatus(
         ["gate-in", "in-yard", "damaged"],
         containerFilter,
       ),
-      this.containerRepository.countByStatus("in-transit", containerFilter),
-      this.gateOperationRepository.count({
+      this._containerRepository.countByStatus("in-transit", containerFilter),
+      this._gateOperationRepository.count({
         type: "gate-in",
         startDate: startOfDay,
         ...(isCustomer
           ? {
-              containerNumber: await this.containerRepository.getDistinctContainerNumbers(
+              containerNumber: await this._containerRepository.getDistinctContainerNumbers(
                 containerFilter,
               ),
             }
           : {}),
       }),
-      this.gateOperationRepository.count({
+      this._gateOperationRepository.count({
         type: "gate-out",
         startDate: startOfDay,
         ...(isCustomer
           ? {
-              containerNumber: await this.containerRepository.getDistinctContainerNumbers(
+              containerNumber: await this._containerRepository.getDistinctContainerNumbers(
                 containerFilter,
               ),
             }
           : {}),
       }),
-      this.blockRepository.findAll(),
-      this.gateOperationRepository.getDailyMovements({
+      this._blockRepository.findAll(),
+      this._gateOperationRepository.getDailyMovements({
         startDate: sevenDaysAgo,
         ...(isCustomer
           ? {
-              containerNumber: await this.containerRepository.getDistinctContainerNumbers(
+              containerNumber: await this._containerRepository.getDistinctContainerNumbers(
                 containerFilter,
               ),
             }
           : {}),
       }),
-      this.containerRepository.findInYard(containerFilter),
-      this.containerHistoryRepository.findRecent(historyFilter, 10),
-      this.containerRequestRepository.countPending(requestFilter),
-      this.containerRepository.findRecent({ ...containerFilter, damaged: true }, 5),
-      this.equipmentRepository.findByStatus(["down", "maintenance"]),
-      this.containerRepository.findRecent(
+      this._containerRepository.findInYard(containerFilter),
+      this._containerHistoryRepository.findRecent(historyFilter, 10),
+      this._containerRequestRepository.countPending(requestFilter),
+      this._containerRepository.findRecent({ ...containerFilter, damaged: true }, 5),
+      this._equipmentRepository.findByStatus(["down", "maintenance"]),
+      this._containerRepository.findRecent(
         {
           ...containerFilter,
           status: ["gate-in", "gate-out", "in-transit"],
         },
         10,
       ),
-      this.containerRequestRepository.findRecent(
+      this._containerRequestRepository.findRecent(
         {
           ...requestFilter,
           status: ["pending", "approved", "ready-for-dispatch"],
         },
         10,
       ),
-      this.equipmentRepository.findAll().then(eq => eq.map(e => EquipmentMapper.toSummaryDto(e))),
+      this._equipmentRepository.findAll().then(eq => eq.map(e => EquipmentMapper.toSummaryDto(e))),
       isCustomer
-        ? this.pdaRepository.findByUserOrCustomer(userId, customerName)
+        ? this._pdaRepository.findByUserOrCustomer(userId, customerName)
         : Promise.resolve(null),
       isCustomer
-        ? this.billRepository.aggregateUnpaidAmount({
+        ? this._billRepository.aggregateUnpaidAmount({
             customerId: userId,
             customerName,
             excludeStatus: "paid",
@@ -154,7 +154,7 @@ export class GetDashboardKPIs implements IGetDashboardKPIs {
       activeTasksRaw,
       equipmentStatusSummary,
       pdaBalance: pdaData?.balance || 0,
-      lowBalanceThreshold: this.configService.getNumber('PDA_LOW_BALANCE_THRESHOLD'),
+      lowBalanceThreshold: this._configService.getNumber('PDA_LOW_BALANCE_THRESHOLD'),
       unpaidBillsAmount: unpaidBillsRaw?.[0]?.total || 0,
       sevenDaysAgo
     });

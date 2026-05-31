@@ -17,15 +17,15 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class BillingController {
   constructor(
-    private getBillsUseCase: IGetBills,
-    private markBillPaidUseCase: IMarkBillPaid,
-    private createBillUseCase: ICreateBill,
-    private payBillWithPDAUseCase: IPayBillWithPDA,
-    private getBillByIdUseCase: IGetBillById,
-    private createRazorpayOrderUseCase: ICreateRazorpayOrder,
-    private verifyRazorpayPaymentUseCase: IVerifyRazorpayPayment,
-    private getBillTransactionsUseCase: IGetBillTransactions,
-    private getOverdueStatusUseCase: IGetOverdueStatus,
+    private readonly _getBillsUseCase: IGetBills,
+    private readonly _markBillPaidUseCase: IMarkBillPaid,
+    private readonly _createBillUseCase: ICreateBill,
+    private readonly _payBillWithPDAUseCase: IPayBillWithPDA,
+    private readonly _getBillByIdUseCase: IGetBillById,
+    private readonly _createRazorpayOrderUseCase: ICreateRazorpayOrder,
+    private readonly _verifyRazorpayPaymentUseCase: IVerifyRazorpayPayment,
+    private readonly _getBillTransactionsUseCase: IGetBillTransactions,
+    private readonly _getOverdueStatusUseCase: IGetOverdueStatus,
   ) {}
 
   getBills = asyncHandler(async (req: Request, res: Response) => {
@@ -37,7 +37,7 @@ export class BillingController {
       customerId = req.user.id;
     }
 
-    const bills = await this.getBillsUseCase.execute({ 
+    const bills = await this._getBillsUseCase.execute({ 
       customerId: customerId as string,
       status: status as string 
     });
@@ -46,12 +46,12 @@ export class BillingController {
 
   markBillPaid = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const updated = await this.markBillPaidUseCase.execute(id as string);
+    const updated = await this._markBillPaidUseCase.execute(id as string);
     return res.status(HttpStatus.OK).json(ApiResponse.success(updated, ResponseMessage.BILL_PAID_SUCCESS));
   });
 
   createBill = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.createBillUseCase.execute(req.body);
+    const result = await this._createBillUseCase.execute(req.body);
     return res.status(HttpStatus.CREATED).json(ApiResponse.success(result, ResponseMessage.BILL_CREATED));
   });
 
@@ -64,7 +64,7 @@ export class BillingController {
       throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
     }
 
-    const bill = await this.payBillWithPDAUseCase.execute({ 
+    const bill = await this._payBillWithPDAUseCase.execute({ 
       billId: billId as string, 
       userId: userId as string 
     }, userContext);
@@ -73,7 +73,7 @@ export class BillingController {
 
   getBillById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const bill = await this.getBillByIdUseCase.execute(id as string);
+    const bill = await this._getBillByIdUseCase.execute(id as string);
     return res.status(HttpStatus.OK).json(ApiResponse.success(bill));
   });
 
@@ -83,7 +83,7 @@ export class BillingController {
     if (!userId) {
       throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
     }
-    const order = await this.createRazorpayOrderUseCase.execute(billId as string, userId as string);
+    const order = await this._createRazorpayOrderUseCase.execute(billId as string, userId as string);
     return res.status(HttpStatus.OK).json(ApiResponse.success(order));
   });
 
@@ -97,7 +97,7 @@ export class BillingController {
 
     const userContext = req.user ? extractUserContext(req) : undefined;
 
-    const bill = await this.verifyRazorpayPaymentUseCase.execute(
+    const bill = await this._verifyRazorpayPaymentUseCase.execute(
       billId as string,
       userId,
       razorpay_order_id,
@@ -118,7 +118,7 @@ export class BillingController {
 
     const userContext = extractUserContext(req);
 
-    const transactions = await this.getBillTransactionsUseCase.execute({ 
+    const transactions = await this._getBillTransactionsUseCase.execute({ 
       billId: billId as string 
     }, userContext);
     return res.status(HttpStatus.OK).json(ApiResponse.success(transactions));
@@ -126,7 +126,7 @@ export class BillingController {
 
   getOverdueStatus = asyncHandler(async (req: Request, res: Response) => {
     const { customerId } = req.params;
-    const isOverdue = await this.getOverdueStatusUseCase.execute(customerId as string);
+    const isOverdue = await this._getOverdueStatusUseCase.execute(customerId as string);
     return res.status(HttpStatus.OK).json(ApiResponse.success({ isOverdue }));
   });
 }

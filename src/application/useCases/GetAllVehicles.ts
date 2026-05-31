@@ -4,10 +4,10 @@ import { VehicleCollectionResponseDto, VehicleFiltersDto } from "../dto/VehicleD
 import { VehicleMapper } from "../mappers/VehicleMapper";
 
 export class GetAllVehicles implements IGetAllVehicles {
-    constructor(private vehicleRepository: IVehicleRepository) { }
+    constructor(private readonly _vehicleRepository: IVehicleRepository) { }
 
     async execute(filters?: VehicleFiltersDto): Promise<VehicleCollectionResponseDto> {
-        const vehicles = await this.vehicleRepository.findAll(filters);
+        const vehicles = await this._vehicleRepository.findAll(filters);
         return VehicleMapper.toCollectionResponseDto(vehicles);
     }
 }

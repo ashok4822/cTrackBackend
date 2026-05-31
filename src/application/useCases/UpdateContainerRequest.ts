@@ -14,12 +14,12 @@ import type { Bill } from "../../domain/entities/Bill";
 
 export class UpdateContainerRequest implements IUpdateContainerRequest {
   constructor(
-    private repository: IContainerRequestRepository,
-    private eventBus: IEventBus,
-    private billingService: IBillingDomainService,
-    private containerRepository?: IContainerRepository,
-    private billRepository?: IBillRepository,
-    private notificationService?: INotificationService,
+    private readonly _repository: IContainerRequestRepository,
+    private readonly _eventBus: IEventBus,
+    private readonly _billingService: IBillingDomainService,
+    private readonly _containerRepository?: IContainerRepository,
+    private readonly _billRepository?: IBillRepository,
+    private readonly _notificationService?: INotificationService,
   ) {}
 
   async execute(
@@ -27,7 +27,7 @@ export class UpdateContainerRequest implements IUpdateContainerRequest {
     data: UpdateContainerRequestDto,
     userContext?: UserContextDto,
   ): Promise<ContainerRequestResponseDto | null> {
-    const existingRequest = await this.repository.findById(id);
+    const existingRequest = await this._repository.findById(id);
     if (!existingRequest) return null;
 
     // 1. Update Checkpoints via Mapper
@@ -36,12 +36,12 @@ export class UpdateContainerRequest implements IUpdateContainerRequest {
 
     // 2. Persist primary update
     const { equipmentId: _equipmentId, ...updatePayload } = data;
-    const updatedRequest = await this.repository.update(id, updatePayload);
+    const updatedRequest = await this._repository.update(id, updatePayload);
     if (!updatedRequest) return null;
 
     // 3. Side Effects: Audit Logging
     if (userContext) {
-      this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+      this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
         userId: userContext.userId,
         userRole: userContext.userRole,
         userName: userContext.userName,
@@ -57,8 +57,8 @@ export class UpdateContainerRequest implements IUpdateContainerRequest {
     }
 
     // 4. Side Effects: Notifications
-    if (data.status && data.status !== existingRequest.status && this.notificationService) {
-      await this.notificationService.send(updatedRequest.customerId, {
+    if (data.status && data.status !== existingRequest.status && this._notificationService) {
+      await this._notificationService.send(updatedRequest.customerId, {
         type: data.status === "rejected" ? "alert" : "success",
         title: ResponseMessage.REQUEST_STATUS_UPDATED_TITLE,
         message: `Your ${updatedRequest.type} request status has been updated to ${data.status}.`,
@@ -68,7 +68,7 @@ export class UpdateContainerRequest implements IUpdateContainerRequest {
 
     // 5. Side Effects: Container Ownership & Billing
     if (updatedRequest && existingRequest && existingRequest.status !== "approved" && data.status === "approved") {
-      await this.handleApprovalSideEffects(updatedRequest, existingRequest, data);
+      await this._handleApprovalSideEffects(updatedRequest, existingRequest, data);
     }
 
     // 6. Side Effects: Billing on Dispatch
@@ -77,31 +77,31 @@ export class UpdateContainerRequest implements IUpdateContainerRequest {
                                    activeBillingStatuses.includes(data.status!);
     
     if (isEnteringBillingPhase) {
-      await this.handleDispatchSideEffects(updatedRequest, data);
+      await this._handleDispatchSideEffects(updatedRequest, data);
     }
 
     return RequestMapper.toResponseDto(updatedRequest);
   }
 
-  private async handleApprovalSideEffects(updatedRequest: ContainerRequest, existingRequest: ContainerRequest, data: UpdateContainerRequestDto) {
-    if (!this.containerRepository || !(data.containerId || updatedRequest.containerId)) return;
+  private async _handleApprovalSideEffects(updatedRequest: ContainerRequest, existingRequest: ContainerRequest, data: UpdateContainerRequestDto) {
+    if (!this._containerRepository || !(data.containerId || updatedRequest.containerId)) return;
 
     try {
       const containerId = data.containerId || updatedRequest.containerId;
-      const container = await this.containerRepository.findById(containerId!);
+      const container = await this._containerRepository.findById(containerId!);
       
       if (container && container.customer !== existingRequest.customerId) {
         // 1. Assign container to customer
         const newContainer = container.update({ customer: existingRequest.customerId });
-        await this.containerRepository.save(newContainer);
+        await this._containerRepository.save(newContainer);
 
         // 2. Transfer pending bills
-        if (this.billRepository) {
-          const bills = await this.billRepository.findByContainerId(containerId!);
+        if (this._billRepository) {
+          const bills = await this._billRepository.findByContainerId(containerId!);
           const pendingBills = bills.filter((b: Bill) => b.status === "pending");
           for (const bill of pendingBills) {
             const updatedBill = bill.update({ customer: existingRequest.customerId });
-            await this.billRepository.save(updatedBill);
+            await this._billRepository.save(updatedBill);
           }
         }
       }
@@ -110,10 +110,10 @@ export class UpdateContainerRequest implements IUpdateContainerRequest {
     }
   }
 
-  private async handleDispatchSideEffects(updatedRequest: ContainerRequest, data: UpdateContainerRequestDto) {
+  private async _handleDispatchSideEffects(updatedRequest: ContainerRequest, data: UpdateContainerRequestDto) {
     try {
       if (data.equipmentId) {
-        this.eventBus.emit(DomainEvents.EQUIPMENT_HISTORY_CREATED, {
+        this._eventBus.emit(DomainEvents.EQUIPMENT_HISTORY_CREATED, {
           equipmentId: data.equipmentId,
           action: `${updatedRequest.type === "stuffing" ? ResponseMessage.ACTION_STUFFING_DISPATCH : ResponseMessage.ACTION_DESTUFFING_DISPATCH}`,
           details: `Container: ${updatedRequest.containerNumber || "N/A"}`,
@@ -123,7 +123,7 @@ export class UpdateContainerRequest implements IUpdateContainerRequest {
 
       const billIdentifier = `REQ-${updatedRequest.id}`;
       // In a real app, the repository should probably check this, but we'll use our new service
-      await this.billingService.generateBillForRequest(updatedRequest, billIdentifier);
+      await this._billingService.generateBillForRequest(updatedRequest, billIdentifier);
     } catch (error) {
       console.error("Failed to process dispatch side-effects:", error);
     }

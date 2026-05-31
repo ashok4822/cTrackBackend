@@ -4,11 +4,11 @@ import { CreateCargoCategoryRequestDto, CargoCategoryResponseDto } from "../dto/
 import { CargoMapper } from "../mappers/CargoMapper";
 
 export class CreateCargoCategory implements ICreateCargoCategory {
-    constructor(private repository: ICargoCategoryRepository) { }
+    constructor(private readonly _repository: ICargoCategoryRepository) { }
 
     async execute(data: CreateCargoCategoryRequestDto): Promise<CargoCategoryResponseDto> {
         const category = CargoMapper.toEntity(data);
-        const saved = await this.repository.save(category);
+        const saved = await this._repository.save(category);
         return CargoMapper.toResponseDto(saved);
     }
 }

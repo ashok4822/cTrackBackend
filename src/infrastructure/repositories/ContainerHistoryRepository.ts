@@ -34,7 +34,7 @@ export class ContainerHistoryRepository implements IContainerHistoryRepository {
         }
     }
 
-    private toEntity(h: IContainerHistoryDocument): ContainerHistory {
+    private _toEntity(h: IContainerHistoryDocument): ContainerHistory {
         // Handle both populated and unpopulated containerId
         const containerId = h.containerId as unknown;
         
@@ -70,7 +70,7 @@ export class ContainerHistoryRepository implements IContainerHistoryRepository {
         return entity;
     }
 
-    private applyFilters(filters: ContainerHistoryFilter): Record<string, unknown> {
+    private _applyFilters(filters: ContainerHistoryFilter): Record<string, unknown> {
         const query: Record<string, unknown> = {};
 
         if (filters.containerId) {
@@ -87,11 +87,11 @@ export class ContainerHistoryRepository implements IContainerHistoryRepository {
     }
 
     async findRecent(filter: ContainerHistoryFilter, limit: number): Promise<ContainerHistory[]> {
-        const query = this.applyFilters(filter);
+        const query = this._applyFilters(filter);
         const histories = await ContainerHistoryModel.find(query)
             .sort({ timestamp: -1 as const })
             .limit(limit)
             .populate("containerId", "containerNumber");
-        return histories.map(h => this.toEntity(h));
+        return histories.map(h => this._toEntity(h));
     }
 }

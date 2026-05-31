@@ -4,10 +4,10 @@ import { BillResponseDto } from "../dto/BillingDto";
 import { BillingMapper } from "../mappers/BillingMapper";
 
 export class MarkBillPaid implements IMarkBillPaid {
-    constructor(private billRepository: IBillRepository) { }
+    constructor(private readonly _billRepository: IBillRepository) { }
 
     async execute(id: string): Promise<BillResponseDto | null> {
-        const bill = await this.billRepository.update(id, { status: "paid", paidAt: new Date() });
+        const bill = await this._billRepository.update(id, { status: "paid", paidAt: new Date() });
         return bill ? BillingMapper.toResponseDto(bill) : null;
     }
 }
