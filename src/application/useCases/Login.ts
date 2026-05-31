@@ -2,7 +2,6 @@ import { IUserRepository } from "../../domain/repositories/IUserRepository";
 import { IHashService } from "../services/IHashService";
 import { ITokenService } from "../services/ITokenService";
 import { ILogin } from "../ports/ILogin";
-import { IConfigService } from "../services/IConfigService";
 import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
 import { AppError } from "../../domain/exceptions/AppError";
 import { LoginRequestDto, LoginResponseDto } from "../dto/AuthDto";
@@ -12,17 +11,16 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class Login implements ILogin {
   constructor(
-    private userRepository: IUserRepository,
-    private hashService: IHashService,
-    private tokenService: ITokenService,
-    private configService: IConfigService,
-    private eventBus: IEventBus
+    private readonly _userRepository: IUserRepository,
+    private readonly _hashService: IHashService,
+    private readonly _tokenService: ITokenService,
+    private readonly _eventBus: IEventBus
   ) { }
 
 
   async execute(request: LoginRequestDto): Promise<LoginResponseDto> {
     const { email, password, requiredRole, ipAddress } = request;
-    const user = await this.userRepository.findByEmail(email);
+    const user = await this._userRepository.findByEmail(email);
 
     if (!user) {
       throw new AppError(ResponseMessage.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
@@ -36,7 +34,7 @@ export class Login implements ILogin {
       throw new AppError(ResponseMessage.INVALID_CREDENTIALS, HttpStatus.UNAUTHORIZED);
     }
 
-    const isPasswordValid = await this.hashService.compare(
+    const isPasswordValid = await this._hashService.compare(
       password,
       user.password,
     );
@@ -55,28 +53,24 @@ export class Login implements ILogin {
     }
 
     //Access Token (short-lived)
-    const accessToken = this.tokenService.generate(
+    const accessToken = this._tokenService.generateAccessToken(
       {
         id: user.id,
         email: user.email,
         role: user.role,
         name: user.name,
         companyName: user.companyName
-      },
-      this.configService.get("JWT_ACCESS_SECRET") || "access_fallback",
-      this.configService.get("JWT_ACCESS_EXPIRY") || "15m",
+      }
     );
 
     //Refresh Token (long-lived)
-    const refreshToken = this.tokenService.generate(
-      { id: user.id },
-      this.configService.get("JWT_REFRESH_SECRET") || "refresh_fallback",
-      this.configService.get("JWT_REFRESH_EXPIRY") || "7d",
+    const refreshToken = this._tokenService.generateRefreshToken(
+      { id: user.id }
     );
 
     // Event-driven Audit
     if (ipAddress) {
-      this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+      this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
         userId: user.id,
         userRole: user.role,
         userName: user.name || user.email,

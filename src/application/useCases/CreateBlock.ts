@@ -10,8 +10,8 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CreateBlock implements ICreateBlock {
     constructor(
-        private blockRepository: IBlockRepository,
-        private eventBus: IEventBus
+        private readonly _blockRepository: IBlockRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
 
@@ -25,10 +25,10 @@ export class CreateBlock implements ICreateBlock {
         }
 
         const newBlock = YardMapper.toEntity(data);
-        const savedBlock = await this.blockRepository.save(newBlock);
+        const savedBlock = await this._blockRepository.save(newBlock);
 
         // Log audit event (Event-driven)
-        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
             userId: userContext.userId,
             userRole: userContext.userRole,
             userName: userContext.userName,
@@ -40,7 +40,7 @@ export class CreateBlock implements ICreateBlock {
         });
 
         // Real-time yard update (Event-driven)
-        this.eventBus.emit(DomainEvents.YARD_BLOCK_CREATED, { action: ResponseMessage.YARD_ACTION_CREATE, block: savedBlock });
+        this._eventBus.emit(DomainEvents.YARD_BLOCK_CREATED, { action: ResponseMessage.YARD_ACTION_CREATE, block: savedBlock });
 
         return YardMapper.toResponseDto(savedBlock);
     }

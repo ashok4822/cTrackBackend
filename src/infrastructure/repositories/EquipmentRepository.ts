@@ -17,13 +17,13 @@ export class EquipmentRepository implements IEquipmentRepository {
         }
 
         const equipment = await EquipmentModel.find(query);
-        return equipment.map(this.toEntity);
+        return equipment.map(this._toEntity);
     }
 
     async findById(id: string): Promise<Equipment | null> {
         const equipment = await EquipmentModel.findById(id);
         if (!equipment) return null;
-        return this.toEntity(equipment);
+        return this._toEntity(equipment);
     }
 
     async save(equipment: Equipment): Promise<Equipment> {
@@ -45,11 +45,11 @@ export class EquipmentRepository implements IEquipmentRepository {
             if (!updated) {
                 throw new Error(ResponseMessage.EQUIPMENT_NOT_FOUND);
             }
-            return this.toEntity(updated);
+            return this._toEntity(updated);
         } else {
             const newEquipment = new EquipmentModel(data);
             const saved = await newEquipment.save();
-            return this.toEntity(saved);
+            return this._toEntity(saved);
         }
     }
 
@@ -57,7 +57,7 @@ export class EquipmentRepository implements IEquipmentRepository {
         await EquipmentModel.findByIdAndDelete(id);
     }
 
-    private toEntity(e: IEquipmentDocument): Equipment {
+    private _toEntity(e: IEquipmentDocument): Equipment {
         return new Equipment(
             e._id.toString(),
             e.name,
@@ -79,6 +79,6 @@ export class EquipmentRepository implements IEquipmentRepository {
             query.status = status;
         }
         const equipment = await EquipmentModel.find(query);
-        return equipment.map(this.toEntity);
+        return equipment.map(this._toEntity);
     }
 }

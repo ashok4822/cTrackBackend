@@ -7,15 +7,15 @@ import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CreateActivity implements ICreateActivity {
-    constructor(private activityRepository: IActivityRepository) { }
+    constructor(private readonly _activityRepository: IActivityRepository) { }
 
     async execute(activityData: CreateActivityRequestDto): Promise<ActivityResponseDto> {
-        const existing = await this.activityRepository.findByCode(activityData.code);
+        const existing = await this._activityRepository.findByCode(activityData.code);
         if (existing) {
             throw new AppError(ResponseMessage.ACTIVITY_ALREADY_EXISTS, HttpStatus.CONFLICT);
         }
         const entity = ActivityMapper.toEntity(activityData);
-        const saved = await this.activityRepository.save(entity);
+        const saved = await this._activityRepository.save(entity);
         return ActivityMapper.toResponseDto(saved);
     }
 }

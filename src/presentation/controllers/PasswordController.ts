@@ -9,26 +9,26 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class PasswordController {
   constructor(
-    private forgotPasswordUseCase: IForgotPassword,
-    private resetPasswordUseCase: IResetPassword,
-    private verifyResetOtpUseCase: IVerifyResetOtp,
+    private readonly _forgotPasswordUseCase: IForgotPassword,
+    private readonly _resetPasswordUseCase: IResetPassword,
+    private readonly _verifyResetOtpUseCase: IVerifyResetOtp,
   ) {}
 
   forgotPassword = asyncHandler(async (req: Request, res: Response) => {
     const { email } = req.body;
-    await this.forgotPasswordUseCase.execute(email);
+    await this._forgotPasswordUseCase.execute(email);
     return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.PASSWORD_RESET_OTP_SENT));
   });
 
   resetPassword = asyncHandler(async (req: Request, res: Response) => {
     const { email, otp, newPassword } = req.body;
-    await this.resetPasswordUseCase.execute(email, otp, newPassword);
+    await this._resetPasswordUseCase.execute(email, otp, newPassword);
     return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.PASSWORD_RESET_SUCCESS));
   });
 
   verifyResetOtp = asyncHandler(async (req: Request, res: Response) => {
     const { email, otp } = req.body;
-    await this.verifyResetOtpUseCase.execute(email, otp);
+    await this._verifyResetOtpUseCase.execute(email, otp);
     return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.OTP_VERIFIED));
   });
 }

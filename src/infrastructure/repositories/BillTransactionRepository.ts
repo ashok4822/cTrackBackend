@@ -4,7 +4,7 @@ import { BillTransactionModel, IBillTransactionDocument } from "../models/BillTr
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class BillTransactionRepository implements IBillTransactionRepository {
-    private mapToEntity(doc: IBillTransactionDocument): BillTransaction {
+    private _mapToEntity(doc: IBillTransactionDocument): BillTransaction {
         return new BillTransaction(
             doc._id.toString(),
             doc.billId.toString(),
@@ -44,22 +44,22 @@ export class BillTransactionRepository implements IBillTransactionRepository {
         if (!savedDoc) {
             throw new Error(ResponseMessage.TRANSACTION_NOT_FOUND);
         }
-        return this.mapToEntity(savedDoc as IBillTransactionDocument);
+        return this._mapToEntity(savedDoc as IBillTransactionDocument);
     }
 
     async findById(id: string): Promise<BillTransaction | null> {
         const doc = await BillTransactionModel.findById(id);
-        return doc ? this.mapToEntity(doc) : null;
+        return doc ? this._mapToEntity(doc) : null;
     }
 
     async findByBillId(billId: string): Promise<BillTransaction[]> {
         const docs = await BillTransactionModel.find({ billId }).sort({ timestamp: -1 });
-        return docs.map(doc => this.mapToEntity(doc));
+        return docs.map(doc => this._mapToEntity(doc));
     }
 
     async findByOrderId(orderId: string): Promise<BillTransaction | null> {
         const doc = await BillTransactionModel.findOne({ orderId });
-        return doc ? this.mapToEntity(doc) : null;
+        return doc ? this._mapToEntity(doc) : null;
     }
 
     async updateStatus(id: string, status: "success" | "failed", details?: { transactionId?: string; errorDetails?: string }): Promise<BillTransaction | null> {
@@ -68,6 +68,6 @@ export class BillTransactionRepository implements IBillTransactionRepository {
             { status, ...details },
             { new: true }
         );
-        return doc ? this.mapToEntity(doc) : null;
+        return doc ? this._mapToEntity(doc) : null;
     }
 }

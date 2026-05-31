@@ -9,13 +9,13 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CreateRazorpayOrder implements ICreateRazorpayOrder {
   constructor(
-    private billRepository: IBillRepository,
-    private transactionRepository: IBillTransactionRepository,
-    private paymentService: IPaymentService,
+    private readonly _billRepository: IBillRepository,
+    private readonly _transactionRepository: IBillTransactionRepository,
+    private readonly _paymentService: IPaymentService,
   ) { }
 
   async execute(billId: string, userId: string): Promise<PaymentOrder> {
-    const bill = await this.billRepository.findById(billId);
+    const bill = await this._billRepository.findById(billId);
 
     if (!bill) {
       throw new AppError(ResponseMessage.BILL_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -32,10 +32,10 @@ export class CreateRazorpayOrder implements ICreateRazorpayOrder {
     const receipt = `receipt_bill_${billId}`;
 
     try {
-      const order = await this.paymentService.createOrder(bill.totalAmount, receipt);
+      const order = await this._paymentService.createOrder(bill.totalAmount, receipt);
 
       // Log pending transaction
-      await this.transactionRepository.save(
+      await this._transactionRepository.save(
         BillingMapper.toTransactionEntity(billId, userId, bill.totalAmount, "online", "pending", undefined, order.id)
       );
 

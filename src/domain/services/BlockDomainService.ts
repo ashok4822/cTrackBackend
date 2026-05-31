@@ -4,7 +4,7 @@ import { Block } from "../../domain/entities/Block";
 import { IBlockDomainService } from "./IBlockDomainService";
 
 export class BlockDomainService implements IBlockDomainService {
-  constructor(private blockRepository: IBlockRepository) {}
+  constructor(private readonly _blockRepository: IBlockRepository) {}
 
   async decrementOccupancy(blockName: string): Promise<void> {
     return this.updateOccupancy(blockName, -1);
@@ -15,7 +15,7 @@ export class BlockDomainService implements IBlockDomainService {
   }
 
   async updateOccupancy(blockName: string, delta: number): Promise<void> {
-    const block = await this.blockRepository.findByName(blockName);
+    const block = await this._blockRepository.findByName(blockName);
     if (block) {
       const updatedBlock = new Block(
         block.id,
@@ -25,7 +25,7 @@ export class BlockDomainService implements IBlockDomainService {
         block.createdAt,
         new Date()
       );
-      await this.blockRepository.save(updatedBlock);
+      await this._blockRepository.save(updatedBlock);
     }
   }
 }

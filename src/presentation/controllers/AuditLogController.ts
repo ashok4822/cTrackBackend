@@ -6,7 +6,7 @@ import { AuditActionDto, EntityTypeDto, AuditLogFiltersDto } from "../../applica
 import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class AuditLogController {
-    constructor(private getAuditLogsUseCase: IGetAuditLogs) { }
+    constructor(private readonly _getAuditLogsUseCase: IGetAuditLogs) { }
 
     getAuditLogs = asyncHandler(async (req: Request, res: Response) => {
         const {
@@ -49,7 +49,7 @@ export class AuditLogController {
             filters.limit = parseInt(limit as string, 10);
         }
 
-        const result = await this.getAuditLogsUseCase.execute(filters);
+        const result = await this._getAuditLogsUseCase.execute(filters);
 
         return res.status(HttpStatus.OK).json(ApiResponse.success(result));
     });

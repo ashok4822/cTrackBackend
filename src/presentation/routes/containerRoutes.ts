@@ -1,74 +1,28 @@
 import { Router } from "express";
 import { ContainerController } from "../controllers/ContainerController";
-import { CreateContainer } from "../../application/useCases/CreateContainer";
-import { GetAllContainers } from "../../application/useCases/GetAllContainers";
-import { GetContainerById } from "../../application/useCases/GetContainerById";
-import { UpdateContainer } from "../../application/useCases/UpdateContainer";
-import { BlacklistContainer } from "../../application/useCases/BlacklistContainer";
-import { UnblacklistContainer } from "../../application/useCases/UnblacklistContainer";
-import { GetContainerHistory } from "../../application/useCases/GetContainerHistory";
-import { GetCustomerContainers } from "../../application/useCases/GetCustomerContainers";
-import { ContainerRepository } from "../../infrastructure/repositories/ContainerRepository";
-import { ContainerHistoryRepository } from "../../infrastructure/repositories/ContainerHistoryRepository";
-import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
-import { BlockRepository } from "../../infrastructure/repositories/BlockRepository";
-import { ContainerRequestRepository } from "../../infrastructure/repositories/ContainerRequestRepository";
-import { BillRepository } from "../../infrastructure/repositories/BillRepository";
 import { ITokenService } from "../../application/services/ITokenService";
-import { IConfigService } from "../../application/services/IConfigService";
-import { IEventBus } from "../../domain/events/IEventBus";
-import { createAuthMiddleware, roleMiddleware } from "../../infrastructure/services/authMiddleWare";
-import { createCheckOverdueBillsMiddleware } from "../../infrastructure/services/checkOverdueBills";
+import { IGetOverdueStatus } from "../../application/ports/IGetOverdueStatus";
+import { createAuthMiddleware, roleMiddleware } from "../middlewares/authMiddleware";
+import { createCheckOverdueBillsMiddleware } from "../middlewares/checkOverdueBills";
 
 export const createContainerRouter = (
     tokenService: ITokenService,
-    config: IConfigService,
-    eventBus: IEventBus
+    getOverdueStatus: IGetOverdueStatus,
+    containerController: ContainerController
 ) => {
     const router = Router();
-    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
-    const repository = new ContainerRepository();
-    const historyRepository = new ContainerHistoryRepository();
-    const equipmentRepository = new EquipmentRepository();
-    const blockRepository = new BlockRepository();
-    const containerRequestRepository = new ContainerRequestRepository();
-    const billRepository = new BillRepository();
+    const authMiddleware = createAuthMiddleware(tokenService);
 
-    const checkOverdueBills = createCheckOverdueBillsMiddleware(billRepository);
+    const checkOverdueBills = createCheckOverdueBillsMiddleware(getOverdueStatus);
 
-    const createUseCase = new CreateContainer(repository, eventBus);
-    const getAllUseCase = new GetAllContainers(repository);
-    const getByIdUseCase = new GetContainerById(repository);
-    const updateUseCase = new UpdateContainer(
-        repository,
-        equipmentRepository,
-        blockRepository,
-        eventBus
-    );
-    const blacklistUseCase = new BlacklistContainer(repository, eventBus);
-    const unblacklistUseCase = new UnblacklistContainer(repository, eventBus);
-    const getHistoryUseCase = new GetContainerHistory(historyRepository);
-    const getCustomerContainersUseCase = new GetCustomerContainers(repository, containerRequestRepository);
-
-    const controller = new ContainerController(
-        createUseCase,
-        getAllUseCase,
-        getByIdUseCase,
-        updateUseCase,
-        blacklistUseCase,
-        unblacklistUseCase,
-        getHistoryUseCase,
-        getCustomerContainersUseCase
-    );
-
-    router.get("/", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), controller.getAllContainers);
-    router.get("/my-containers", authMiddleware, roleMiddleware(["customer"]), checkOverdueBills, controller.getCustomerContainers);
-    router.get("/:id/history", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), controller.getContainerHistory);
-    router.get("/:id", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), controller.getContainerById);
-    router.post("/", authMiddleware, roleMiddleware(["admin"]), controller.createContainer);
-    router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator"]), controller.updateContainer);
-    router.patch("/:id/blacklist", authMiddleware, roleMiddleware(["admin"]), controller.blacklistContainer);
-    router.patch("/:id/unblacklist", authMiddleware, roleMiddleware(["admin"]), controller.unblacklistContainer);
+    router.get("/", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), containerController.getAllContainers);
+    router.get("/my-containers", authMiddleware, roleMiddleware(["customer"]), checkOverdueBills, containerController.getCustomerContainers);
+    router.get("/:id/history", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), containerController.getContainerHistory);
+    router.get("/:id", authMiddleware, roleMiddleware(["admin", "operator", "customer"]), containerController.getContainerById);
+    router.post("/", authMiddleware, roleMiddleware(["admin"]), containerController.createContainer);
+    router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator"]), containerController.updateContainer);
+    router.patch("/:id/blacklist", authMiddleware, roleMiddleware(["admin"]), containerController.blacklistContainer);
+    router.patch("/:id/unblacklist", authMiddleware, roleMiddleware(["admin"]), containerController.unblacklistContainer);
 
     return router;
 };

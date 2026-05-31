@@ -4,10 +4,10 @@ import { BillResponseDto } from "../dto/BillingDto";
 import { BillingMapper } from "../mappers/BillingMapper";
 
 export class GetBillById implements IGetBillById {
-    constructor(private billRepository: IBillRepository) { }
+    constructor(private readonly _billRepository: IBillRepository) { }
 
     async execute(id: string): Promise<BillResponseDto | null> {
-        const bill = await this.billRepository.findById(id);
+        const bill = await this._billRepository.findById(id);
         return bill ? BillingMapper.toResponseDto(bill) : null;
     }
 }

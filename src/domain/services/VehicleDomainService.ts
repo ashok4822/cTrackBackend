@@ -4,10 +4,10 @@ import { Vehicle, VehicleType } from "../../domain/entities/Vehicle";
 import { IVehicleDomainService, GateInVehicleData } from "./IVehicleDomainService";
 
 export class VehicleDomainService implements IVehicleDomainService {
-  constructor(private vehicleRepository: IVehicleRepository) {}
+  constructor(private readonly _vehicleRepository: IVehicleRepository) {}
 
   async processGateIn(data: GateInVehicleData): Promise<Vehicle> {
-    const vehicles = await this.vehicleRepository.findAll({
+    const vehicles = await this._vehicleRepository.findAll({
       vehicleNumber: data.vehicleNumber,
     });
     const vehicle = vehicles.length > 0 ? vehicles[0] : null;
@@ -34,7 +34,7 @@ export class VehicleDomainService implements IVehicleDomainService {
         vehicle.createdAt,
         new Date()
       );
-      await this.vehicleRepository.save(vehicleEntity);
+      await this._vehicleRepository.save(vehicleEntity);
       return vehicleEntity;
     } else {
       const newVehicle = new Vehicle(
@@ -47,7 +47,7 @@ export class VehicleDomainService implements IVehicleDomainService {
         undefined,
         vehicleData.currentLocation
       );
-      await this.vehicleRepository.save(newVehicle);
+      await this._vehicleRepository.save(newVehicle);
       return newVehicle;
     }
   }
@@ -65,6 +65,6 @@ export class VehicleDomainService implements IVehicleDomainService {
       vehicle.createdAt,
       new Date()
     );
-    await this.vehicleRepository.save(updatedVehicle);
+    await this._vehicleRepository.save(updatedVehicle);
   }
 }

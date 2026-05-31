@@ -9,8 +9,8 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class VerifyRazorpayPDAPayment implements IVerifyRazorpayPDAPayment {
     constructor(
-        private pdaRepository: IPDARepository,
-        private paymentService: IPaymentService
+        private readonly _pdaRepository: IPDARepository,
+        private readonly _paymentService: IPaymentService
     ) { }
 
     async execute(
@@ -21,18 +21,18 @@ export class VerifyRazorpayPDAPayment implements IVerifyRazorpayPDAPayment {
         razorpay_signature: string
     ): Promise<PDATransactionResponseDto> {
         // Verify signature
-        const isValid = this.paymentService.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+        const isValid = this._paymentService.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
 
         if (!isValid) {
             throw new AppError(ResponseMessage.INVALID_PAYMENT_SIGNATURE, HttpStatus.BAD_REQUEST);
         }
 
-        const pda = await this.pdaRepository.findByUserId(userId);
+        const pda = await this._pdaRepository.findByUserId(userId);
         if (!pda) throw new AppError(ResponseMessage.PDA_NOT_FOUND, HttpStatus.NOT_FOUND);
 
         const newBalance = pda.balance + amount;
 
-        const transaction = await this.pdaRepository.createTransaction({
+        const transaction = await this._pdaRepository.createTransaction({
             pdaId: pda.id,
             type: "credit",
             amount,
@@ -41,7 +41,7 @@ export class VerifyRazorpayPDAPayment implements IVerifyRazorpayPDAPayment {
             timestamp: new Date()
         });
 
-        await this.pdaRepository.updateBalance(pda.id, newBalance);
+        await this._pdaRepository.updateBalance(pda.id, newBalance);
 
         return PDAMapper.toTransactionResponseDto(transaction);
     }

@@ -4,10 +4,10 @@ import { UpdateCargoCategoryRequestDto, CargoCategoryResponseDto } from "../dto/
 import { CargoMapper } from "../mappers/CargoMapper";
 
 export class UpdateCargoCategory implements IUpdateCargoCategory {
-    constructor(private cargoCategoryRepository: ICargoCategoryRepository) { }
+    constructor(private readonly _cargoCategoryRepository: ICargoCategoryRepository) { }
 
     async execute(id: string, data: UpdateCargoCategoryRequestDto): Promise<CargoCategoryResponseDto | null> {
-        const updated = await this.cargoCategoryRepository.update(id, data);
+        const updated = await this._cargoCategoryRepository.update(id, data);
         return updated ? CargoMapper.toResponseDto(updated) : null;
     }
 }

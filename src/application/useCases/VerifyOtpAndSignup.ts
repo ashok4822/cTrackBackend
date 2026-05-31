@@ -11,10 +11,10 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class VerifyOtpAndSignup implements IVerifyOtpAndSignup {
     constructor(
-        private _userRepository: IUserRepository,
-        private _otpRepository: IOtpRepository,
-        private _hashService: IHashService,
-        private _eventBus: IEventBus
+        private readonly _userRepository: IUserRepository,
+        private readonly _otpRepository: IOtpRepository,
+        private readonly _hashService: IHashService,
+        private readonly _eventBus: IEventBus
     ) { }
 
 

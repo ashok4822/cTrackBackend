@@ -6,22 +6,22 @@ import { ChargeMapper } from "../mappers/ChargeMapper";
 
 export class UpdateChargeRate implements IUpdateChargeRate {
     constructor(
-        private chargeRepository: IChargeRepository,
-        private eventBus: IEventBus
+        private readonly _chargeRepository: IChargeRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
     async execute(id: string, rateData: UpdateChargeRateRequestDto): Promise<ChargeResponseDto | null> {
-        const currentCharge = await this.chargeRepository.findById(id);
+        const currentCharge = await this._chargeRepository.findById(id);
         if (!currentCharge) return null;
 
-        const updated = await this.chargeRepository.update(id, {
+        const updated = await this._chargeRepository.update(id, {
             rate: rateData.rate,
             effectiveFrom: rateData.effectiveFrom || new Date(),
             active: rateData.active !== undefined ? rateData.active : currentCharge.active
         });
 
         if (updated) {
-            this.eventBus.emit(DomainEvents.CHARGE_HISTORY_CREATED, {
+            this._eventBus.emit(DomainEvents.CHARGE_HISTORY_CREATED, {
                 chargeId: id,
                 activityName: currentCharge.activityName || "Unknown",
                 containerSize: currentCharge.containerSize,

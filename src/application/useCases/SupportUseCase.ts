@@ -12,8 +12,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export class SupportUseCase implements ISupportUseCase {
     constructor(
-        private contextBuilder: IAIChatContextBuilder,
-        private aiService: IAIService
+        private readonly _contextBuilder: IAIChatContextBuilder,
+        private readonly _aiService: IAIService
     ) { }
 
     async execute(data: SupportChatRequestDto): Promise<SupportChatStreamResponseDto> {
@@ -27,17 +27,17 @@ export class SupportUseCase implements ISupportUseCase {
         try {
             switch (category) {
                 case "containers":
-                    contextData = await this.contextBuilder.buildContainerContext(customerId);
+                    contextData = await this._contextBuilder.buildContainerContext(customerId);
                     break;
                 case "bills":
-                    contextData = await this.contextBuilder.buildBillContext(customerId);
+                    contextData = await this._contextBuilder.buildBillContext(customerId);
                     break;
                 case "pda":
-                    contextData = await this.contextBuilder.buildPDAContext(userId);
+                    contextData = await this._contextBuilder.buildPDAContext(userId);
                     break;
                 case "general":
                 default:
-                    contextData = await this.contextBuilder.buildGeneralContext(customerId, userId);
+                    contextData = await this._contextBuilder.buildGeneralContext(customerId, userId);
                     break;
             }
         } catch (ctxErr: unknown) {
@@ -65,6 +65,6 @@ GUIDELINES:
 6. Terminal operates 24/7. Support: support@ctrack.io
 `.trim();
 
-        return this.aiService.streamChat(messages, systemPrompt);
+        return this._aiService.streamChat(messages, systemPrompt);
     }
 }

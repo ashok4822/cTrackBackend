@@ -13,6 +13,7 @@ export enum DomainEvents {
 
 export interface IEventBus {
     emit(event: DomainEvents, ...args: unknown[]): boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     on(event: DomainEvents, listener: (...args: any[]) => void | Promise<void>): this;
 
 }

@@ -4,10 +4,10 @@ import { ChargeResponseDto } from "../dto/ChargeDto";
 import { ChargeMapper } from "../mappers/ChargeMapper";
 
 export class GetCharges implements IGetCharges {
-    constructor(private chargeRepository: IChargeRepository) { }
+    constructor(private readonly _chargeRepository: IChargeRepository) { }
 
     async execute(): Promise<ChargeResponseDto[]> {
-        const charges = await this.chargeRepository.findAll();
+        const charges = await this._chargeRepository.findAll();
         return charges.map(c => ChargeMapper.toResponseDto(c));
     }
 }

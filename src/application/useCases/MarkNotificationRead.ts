@@ -2,9 +2,9 @@ import { INotificationRepository } from "../../domain/repositories/INotification
 import { IMarkNotificationRead } from "../ports/IMarkNotificationRead";
 
 export class MarkNotificationRead implements IMarkNotificationRead {
-    constructor(private notificationRepository: INotificationRepository) { }
+    constructor(private readonly _notificationRepository: INotificationRepository) { }
 
     async execute(notificationId: string, userId: string): Promise<void> {
-        await this.notificationRepository.markRead(notificationId, userId);
+        await this._notificationRepository.markRead(notificationId, userId);
     }
 }

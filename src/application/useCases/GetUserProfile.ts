@@ -7,10 +7,10 @@ import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class GetUserProfile implements IGetUserProfile {
-    constructor(private userRepository: IUserRepository) { }
+    constructor(private readonly _userRepository: IUserRepository) { }
 
     async execute(userId: string): Promise<UserResponseDto> {
-        const user = await this.userRepository.findById(userId);
+        const user = await this._userRepository.findById(userId);
 
         if (!user) {
             throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);

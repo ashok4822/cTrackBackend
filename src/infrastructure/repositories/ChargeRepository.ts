@@ -20,7 +20,7 @@ export class ChargeRepository implements IChargeRepository {
             .populate("activityId", "name")
             .populate("cargoCategoryId", "name")
             .lean() as PopulatedChargeDoc[];
-        return docs.map(doc => this.mapToEntity(doc));
+        return docs.map(doc => this._mapToEntity(doc));
     }
 
     async findById(id: string): Promise<Charge | null> {
@@ -28,12 +28,12 @@ export class ChargeRepository implements IChargeRepository {
             .populate("activityId", "name")
             .populate("cargoCategoryId", "name")
             .lean() as PopulatedChargeDoc | null;
-        return doc ? this.mapToEntity(doc) : null;
+        return doc ? this._mapToEntity(doc) : null;
     }
 
     async findByActivityId(activityId: string): Promise<Charge[]> {
         const docs = await ChargeModel.find({ activityId }).lean() as PopulatedChargeDoc[];
-        return docs.map(doc => this.mapToEntity(doc));
+        return docs.map(doc => this._mapToEntity(doc));
     }
 
     async findByCriteria(activityId: string, containerSize: string, containerType: string, cargoCategoryId?: string): Promise<Charge | null> {
@@ -44,21 +44,21 @@ export class ChargeRepository implements IChargeRepository {
             cargoCategoryId: cargoCategoryId || null
         };
         const doc = await ChargeModel.findOne(query).lean() as PopulatedChargeDoc | null;
-        return doc ? this.mapToEntity(doc) : null;
+        return doc ? this._mapToEntity(doc) : null;
     }
 
     async save(charge: Charge): Promise<Charge> {
         const doc = new ChargeModel(charge);
         const saved = await doc.save();
-        return this.mapToEntity(saved.toObject() as PopulatedChargeDoc);
+        return this._mapToEntity(saved.toObject() as PopulatedChargeDoc);
     }
 
     async update(id: string, charge: Partial<Charge>): Promise<Charge | null> {
         const doc = await ChargeModel.findByIdAndUpdate(id, charge, { new: true }).lean() as PopulatedChargeDoc | null;
-        return doc ? this.mapToEntity(doc) : null;
+        return doc ? this._mapToEntity(doc) : null;
     }
 
-    private mapToEntity(doc: PopulatedChargeDoc): Charge {
+    private _mapToEntity(doc: PopulatedChargeDoc): Charge {
         const { _id, activityId, cargoCategoryId, ...rest } = doc;
 
         let actId = "";

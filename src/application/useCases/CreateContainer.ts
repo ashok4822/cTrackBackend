@@ -8,18 +8,18 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CreateContainer implements ICreateContainer {
     constructor(
-        private containerRepository: IContainerRepository,
-        private eventBus: IEventBus
+        private readonly _containerRepository: IContainerRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
 
     async execute(data: CreateContainerRequestDto, userContext?: UserContextDto): Promise<void> {
         const container = ContainerMapper.toEntity(data);
-        const savedContainer = await this.containerRepository.save(container);
+        const savedContainer = await this._containerRepository.save(container);
 
         // Audit Log (Event-driven)
         if (userContext) {
-            this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+            this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
                 userId: userContext.userId,
                 userRole: userContext.userRole,
                 userName: userContext.userName,
@@ -32,7 +32,7 @@ export class CreateContainer implements ICreateContainer {
         }
 
         // Emit for downstream side-effects (Sockets, etc.)
-        this.eventBus.emit(DomainEvents.CONTAINER_CREATED, {
+        this._eventBus.emit(DomainEvents.CONTAINER_CREATED, {
             container: savedContainer,
             inputData: data
         });

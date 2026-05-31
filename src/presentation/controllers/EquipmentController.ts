@@ -11,11 +11,11 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class EquipmentController {
     constructor(
-        private createEquipment: ICreateEquipment,
-        private updateEquipment: IUpdateEquipment,
-        private deleteEquipment: IDeleteEquipment,
-        private getAllEquipment: IGetAllEquipment,
-        private getEquipmentHistory: IGetEquipmentHistory
+        private readonly _createEquipment: ICreateEquipment,
+        private readonly _updateEquipment: IUpdateEquipment,
+        private readonly _deleteEquipment: IDeleteEquipment,
+        private readonly _getAllEquipment: IGetAllEquipment,
+        private readonly _getEquipmentHistory: IGetEquipmentHistory
     ) { }
 
     fetchAll = asyncHandler(async (req: Request, res: Response) => {
@@ -24,32 +24,32 @@ export class EquipmentController {
             status?: string;
             name?: string;
         };
-        const equipment = await this.getAllEquipment.execute(filters);
+        const equipment = await this._getAllEquipment.execute(filters);
         return res.status(HttpStatus.OK).json(ApiResponse.success(equipment));
     });
 
     create = asyncHandler(async (req: Request, res: Response) => {
         const performedBy = req.user?.name || req.user?.email || "System";
-        const equipment = await this.createEquipment.execute(req.body, performedBy);
+        const equipment = await this._createEquipment.execute(req.body, performedBy);
         return res.status(HttpStatus.CREATED).json(ApiResponse.success(equipment, ResponseMessage.EQUIPMENT_CREATED));
     });
 
     update = asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
         const performedBy = req.user?.name || req.user?.email || "System";
-        const equipment = await this.updateEquipment.execute(id as string, req.body, performedBy);
+        const equipment = await this._updateEquipment.execute(id as string, req.body, performedBy);
         return res.status(HttpStatus.OK).json(ApiResponse.success(equipment, ResponseMessage.EQUIPMENT_UPDATED));
     });
 
     delete = asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
-        await this.deleteEquipment.execute(id as string);
+        await this._deleteEquipment.execute(id as string);
         return res.status(HttpStatus.OK).json(ApiResponse.success(null, ResponseMessage.EQUIPMENT_DELETED));
     });
 
     fetchHistory = asyncHandler(async (req: Request, res: Response) => {
         const { id } = req.params;
-        const history = await this.getEquipmentHistory.execute(id as string);
+        const history = await this._getEquipmentHistory.execute(id as string);
         return res.status(HttpStatus.OK).json(ApiResponse.success(history));
     });
 }

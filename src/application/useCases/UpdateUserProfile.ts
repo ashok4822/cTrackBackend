@@ -4,14 +4,15 @@ import { DomainEvents, IEventBus } from "../../domain/events/IEventBus";
 import { UpdateUserProfileRequestDto, UserResponseDto } from "../dto/UserDto";
 import { UserContextDto } from "../dto/CommonDto";
 import { UserMapper } from "../mappers/UserMapper";
+import { DiffUtil } from "../../shared/utils/DiffUtil";
 import { AppError } from "../../domain/exceptions/AppError";
 import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class UpdateUserProfile implements IUpdateUserProfile {
     constructor(
-        private userRepository: IUserRepository,
-        private eventBus: IEventBus
+        private readonly _userRepository: IUserRepository,
+        private readonly _eventBus: IEventBus
     ) { }
 
 
@@ -31,7 +32,7 @@ export class UpdateUserProfile implements IUpdateUserProfile {
             }
         }
 
-        const user = await this.userRepository.findById(userId);
+        const user = await this._userRepository.findById(userId);
 
         if (!user) {
             throw new AppError(ResponseMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -44,15 +45,12 @@ export class UpdateUserProfile implements IUpdateUserProfile {
             companyName: data.companyName
         });
 
-        await this.userRepository.save(updatedUser);
+        await this._userRepository.save(updatedUser);
 
-        // Log audit event
-        const changes: string[] = [];
-        if (data.name !== undefined) changes.push(`name: ${data.name}`);
-        if (data.phone !== undefined) changes.push(`phone: ${data.phone}`);
-        if (data.companyName !== undefined) changes.push(`companyName: ${data.companyName}`);
+        // Log audit event via DiffUtil
+        const changes = DiffUtil.getChanges(user as unknown as Record<string, unknown>, updatedUser as unknown as Record<string, unknown>, ["password", "id", "updatedAt", "createdAt"]);
 
-        this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+        this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
             userId: userContext.userId,
             userRole: userContext.userRole,
             userName: userContext.userName,

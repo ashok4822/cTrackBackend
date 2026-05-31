@@ -4,10 +4,10 @@ import { ContainerResponseDto } from "../dto/ContainerDto";
 import { ContainerMapper } from "../mappers/ContainerMapper";
 
 export class GetContainerById implements IGetContainerById {
-    constructor(private containerRepository: IContainerRepository) { }
+    constructor(private readonly _containerRepository: IContainerRepository) { }
 
     async execute(id: string): Promise<ContainerResponseDto | null> {
-        const container = await this.containerRepository.findById(id);
+        const container = await this._containerRepository.findById(id);
         return container ? ContainerMapper.toResponseDto(container) : null;
     }
 }

@@ -1,9 +1,12 @@
 import { INotificationService } from "../../application/services/INotificationService";
-import { NotificationModel } from "../models/NotificationModel";
 import { ISocketService } from "../../application/services/ISocketService";
+import { INotificationRepository } from "../../domain/repositories/INotificationRepository";
 
 export class SocketNotificationService implements INotificationService {
-  constructor(private socketService: ISocketService) {}
+  constructor(
+    private readonly _socketService: ISocketService,
+    private readonly _notificationRepository: INotificationRepository
+  ) {}
 
   async send(userId: string, notification: {
     type: "success" | "error" | "info" | "warning" | "alert";
@@ -12,8 +15,8 @@ export class SocketNotificationService implements INotificationService {
     link?: string;
   }): Promise<void> {
     try {
-      // Persist to database
-      const savedNotification = await NotificationModel.create({
+      // Persist to database using repository
+      const savedNotification = await this._notificationRepository.create({
         userId,
         type: notification.type,
         title: notification.title,
@@ -22,13 +25,13 @@ export class SocketNotificationService implements INotificationService {
       });
 
       // Emit via socket
-      this.socketService.emitNotification({
-        id: savedNotification._id.toString(),
+      this._socketService.emitNotification({
+        id: savedNotification.id,
         type: notification.type === "error" ? "alert" : notification.type,
         title: notification.title,
         message: notification.message,
         link: notification.link,
-        read: false,
+        read: savedNotification.read,
         timestamp: savedNotification.createdAt || new Date(),
       }, userId);
     } catch (error) {

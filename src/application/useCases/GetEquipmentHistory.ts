@@ -4,10 +4,10 @@ import { EquipmentHistoryCollectionResponseDto } from "../dto/EquipmentDto";
 import { EquipmentMapper } from "../mappers/EquipmentMapper";
 
 export class GetEquipmentHistory implements IGetEquipmentHistory {
-    constructor(private historyRepository: IEquipmentHistoryRepository) { }
+    constructor(private readonly _historyRepository: IEquipmentHistoryRepository) { }
 
     async execute(equipmentId: string): Promise<EquipmentHistoryCollectionResponseDto> {
-        const historyList = await this.historyRepository.findByEquipmentId(equipmentId);
+        const historyList = await this._historyRepository.findByEquipmentId(equipmentId);
         return EquipmentMapper.toHistoryCollectionResponseDto(historyList);
     }
 }

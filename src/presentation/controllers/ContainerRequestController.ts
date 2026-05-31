@@ -14,12 +14,12 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class ContainerRequestController {
     constructor(
-        private createContainerRequest: ICreateContainerRequest,
-        private getCustomerRequests: IGetCustomerRequests,
-        private getContainerById: IGetContainerById,
-        private getAllContainerRequests: IGetAllContainerRequests,
-        private updateContainerRequest: IUpdateContainerRequest,
-        private getContainerRequestById: IGetContainerRequestById
+        private readonly _createContainerRequest: ICreateContainerRequest,
+        private readonly _getCustomerRequests: IGetCustomerRequests,
+        private readonly _getContainerById: IGetContainerById,
+        private readonly _getAllContainerRequests: IGetAllContainerRequests,
+        private readonly _updateContainerRequest: IUpdateContainerRequest,
+        private readonly _getContainerRequestById: IGetContainerRequestById
     ) { }
 
     create = asyncHandler(async (req: Request, res: Response) => {
@@ -30,7 +30,7 @@ export class ContainerRequestController {
 
         // If it's a destuffing request, verify container exists and belongs to customer
         if (req.body.type === "destuffing" && req.body.containerId) {
-            const container = await this.getContainerById.execute(req.body.containerId);
+            const container = await this._getContainerById.execute(req.body.containerId);
             if (!container) {
                 throw new AppError(ResponseMessage.CONTAINER_NOT_FOUND, HttpStatus.NOT_FOUND);
             }
@@ -42,7 +42,7 @@ export class ContainerRequestController {
             userContext.targetCustomerId = req.body.customerId;
         }
 
-        const result = await this.createContainerRequest.execute({
+        const result = await this._createContainerRequest.execute({
             ...req.body,
             customerId,
         }, userContext);
@@ -56,12 +56,12 @@ export class ContainerRequestController {
             throw new AppError(ResponseMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
         }
 
-        const results = await this.getCustomerRequests.execute(customerId);
+        const results = await this._getCustomerRequests.execute(customerId);
         return res.status(HttpStatus.OK).json(ApiResponse.success(results));
     });
 
     getAll = asyncHandler(async (req: Request, res: Response) => {
-        const results = await this.getAllContainerRequests.execute();
+        const results = await this._getAllContainerRequests.execute();
         return res.status(HttpStatus.OK).json(ApiResponse.success(results));
     });
 
@@ -79,7 +79,7 @@ export class ContainerRequestController {
                 throw new AppError(ResponseMessage.FORBIDDEN_COMPLETE_ONLY, HttpStatus.FORBIDDEN);
             }
 
-            const existing = await this.getContainerRequestById.execute(id as string);
+            const existing = await this._getContainerRequestById.execute(id as string);
             if (!existing) {
                 throw new AppError(ResponseMessage.CONTAINER_REQUEST_NOT_FOUND, HttpStatus.NOT_FOUND);
             }
@@ -88,7 +88,7 @@ export class ContainerRequestController {
             }
         }
 
-        const updated = await this.updateContainerRequest.execute(id as string, data, userContext);
+        const updated = await this._updateContainerRequest.execute(id as string, data, userContext);
 
         if (!updated) {
             throw new AppError(ResponseMessage.CONTAINER_REQUEST_NOT_FOUND, HttpStatus.NOT_FOUND);

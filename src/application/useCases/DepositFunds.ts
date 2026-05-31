@@ -7,16 +7,16 @@ import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class DepositFunds implements IDepositFunds {
-    constructor(private pdaRepository: IPDARepository) { }
+    constructor(private readonly _pdaRepository: IPDARepository) { }
 
     async execute(data: DepositFundsRequestDto): Promise<PDATransactionResponseDto> {
         const { userId, amount, description } = data;
-        const pda = await this.pdaRepository.findByUserId(userId!);
+        const pda = await this._pdaRepository.findByUserId(userId!);
         if (!pda) throw new AppError(ResponseMessage.PDA_NOT_FOUND, HttpStatus.NOT_FOUND);
 
         const newBalance = pda.balance + amount;
 
-        const transaction = await this.pdaRepository.createTransaction({
+        const transaction = await this._pdaRepository.createTransaction({
             pdaId: pda.id,
             type: "credit",
             amount,
@@ -25,7 +25,7 @@ export class DepositFunds implements IDepositFunds {
             timestamp: new Date()
         });
 
-        await this.pdaRepository.updateBalance(pda.id, newBalance);
+        await this._pdaRepository.updateBalance(pda.id, newBalance);
 
         return PDAMapper.toTransactionResponseDto(transaction);
     }

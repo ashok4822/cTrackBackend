@@ -11,17 +11,17 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class UpdateContainer implements IUpdateContainer {
     constructor(
-        private containerRepository: IContainerRepository,
-        private equipmentRepository: IEquipmentRepository,
-        private blockRepository: IBlockRepository,
-        private eventBus: IEventBus,
+        private readonly _containerRepository: IContainerRepository,
+        private readonly _equipmentRepository: IEquipmentRepository,
+        private readonly _blockRepository: IBlockRepository,
+        private readonly _eventBus: IEventBus,
     ) { }
 
 
     async execute(request: UpdateContainerRequestDto, userContext?: UserContextDto): Promise<void> {
         const { id, equipmentName, performedBy = "System", ...data } = request;
         
-        const container = await this.containerRepository.findById(id);
+        const container = await this._containerRepository.findById(id);
         if (!container) {
             throw new AppError(ResponseMessage.CONTAINER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
@@ -34,7 +34,7 @@ export class UpdateContainer implements IUpdateContainer {
             }
 
             if (data.yardLocation.block) {
-                const newBlock = await this.blockRepository.findByName(data.yardLocation.block);
+                const newBlock = await this._blockRepository.findByName(data.yardLocation.block);
                 if (!newBlock) {
                     throw new AppError(ResponseMessage.BLOCK_NOT_FOUND, HttpStatus.NOT_FOUND);
                 }
@@ -47,10 +47,10 @@ export class UpdateContainer implements IUpdateContainer {
         // 2. Perform Primary State Update
         const updatedContainer = container.update(data);
 
-        await this.containerRepository.save(updatedContainer);
+        await this._containerRepository.save(updatedContainer);
 
         // Domain side-effects
-        this.eventBus.emit(DomainEvents.CONTAINER_UPDATED, {
+        this._eventBus.emit(DomainEvents.CONTAINER_UPDATED, {
             oldContainer: container,
             newContainer: updatedContainer,
             performedBy,
@@ -60,7 +60,7 @@ export class UpdateContainer implements IUpdateContainer {
 
         // Audit Log (Keep here as it's a primary responsibility of the Use Case to log what happened)
         if (userContext) {
-            this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+            this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
                 userId: userContext.userId,
                 userRole: userContext.userRole,
                 userName: userContext.userName,

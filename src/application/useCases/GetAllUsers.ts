@@ -4,10 +4,10 @@ import { UserCollectionResponseDto } from "../dto/UserDto";
 import { UserMapper } from "../mappers/UserMapper";
 
 export class GetAllUsers implements IGetAllUsers {
-    constructor(private userRepository: IUserRepository) { }
+    constructor(private readonly _userRepository: IUserRepository) { }
 
     async execute(): Promise<UserCollectionResponseDto> {
-        const users = await this.userRepository.findAll();
+        const users = await this._userRepository.findAll();
         return UserMapper.toCollectionResponseDto(users);
     }
 }

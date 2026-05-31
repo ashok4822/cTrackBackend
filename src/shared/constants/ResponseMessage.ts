@@ -90,6 +90,7 @@ export enum ResponseMessage {
   FORBIDDEN_OWN_ONLY = "You can only update your own requests.",
   AI_CONFIG_ERROR = "AI Service Configuration Error",
   INTERNAL_SERVER_ERROR = "Internal Server Error",
+  VALIDATION_FAILED = "Validation Failed",
 
   // Auth Errors
   INVALID_CREDENTIALS = "Invalid credentials",

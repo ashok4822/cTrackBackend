@@ -5,7 +5,7 @@ import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CreateRazorpayPDAOrder implements ICreateRazorpayPDAOrder {
-    constructor(private paymentService: IPaymentService) { }
+    constructor(private readonly _paymentService: IPaymentService) { }
 
     async execute(amount: number, userId: string): Promise<PaymentOrder> {
         if (!amount || isNaN(amount) || amount <= 0) {
@@ -15,7 +15,7 @@ export class CreateRazorpayPDAOrder implements ICreateRazorpayPDAOrder {
         const receipt = `pda_${userId.substring(userId.length - 10)}_${Date.now()}`;
 
         try {
-            const order = await this.paymentService.createOrder(amount, receipt);
+            const order = await this._paymentService.createOrder(amount, receipt);
             return order;
         } catch (error: unknown) {
             console.error("[PDA] Razorpay Order Creation Error:", error);

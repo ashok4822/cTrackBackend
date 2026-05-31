@@ -10,9 +10,9 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class ShippingLineController {
     constructor(
-        private createShippingLineUseCase: ICreateShippingLine,
-        private getAllShippingLinesUseCase: IGetAllShippingLines,
-        private updateShippingLineUseCase: IUpdateShippingLine
+        private readonly _createShippingLineUseCase: ICreateShippingLine,
+        private readonly _getAllShippingLinesUseCase: IGetAllShippingLines,
+        private readonly _updateShippingLineUseCase: IUpdateShippingLine
     ) { }
 
     private getUserContext(req: Request): UserContextDto {
@@ -29,12 +29,12 @@ export class ShippingLineController {
     createShippingLine = asyncHandler(async (req: Request, res: Response) => {
         const { name, code } = req.body;
         const userContext = this.getUserContext(req);
-        const result = await this.createShippingLineUseCase.execute({ name, code }, userContext);
+        const result = await this._createShippingLineUseCase.execute({ name, code }, userContext);
         return res.status(HttpStatus.CREATED).json(ApiResponse.success(result, ResponseMessage.SHIPPING_LINE_CREATED));
     });
 
     getAllShippingLines = asyncHandler(async (req: Request, res: Response) => {
-        const shippingLines = await this.getAllShippingLinesUseCase.execute();
+        const shippingLines = await this._getAllShippingLinesUseCase.execute();
         return res.status(HttpStatus.OK).json(ApiResponse.success(shippingLines));
     });
 
@@ -42,7 +42,7 @@ export class ShippingLineController {
         const { id } = req.params;
         const { name, code } = req.body;
         const userContext = this.getUserContext(req);
-        const result = await this.updateShippingLineUseCase.execute(id as string, { name, code }, userContext);
+        const result = await this._updateShippingLineUseCase.execute(id as string, { name, code }, userContext);
         return res.status(HttpStatus.OK).json(ApiResponse.success(result, ResponseMessage.SHIPPING_LINE_UPDATED));
     });
 }

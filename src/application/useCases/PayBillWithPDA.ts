@@ -14,12 +14,12 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class PayBillWithPDA implements IPayBillWithPDA {
   constructor(
-    private billRepository: IBillRepository,
-    private pdaRepository: IPDARepository,
-    private eventBus: IEventBus,
-    private notificationService: INotificationService,
-    private configService: IConfigService,
-    private transactionRepository?: IBillTransactionRepository,
+    private readonly _billRepository: IBillRepository,
+    private readonly _pdaRepository: IPDARepository,
+    private readonly _eventBus: IEventBus,
+    private readonly _notificationService: INotificationService,
+    private readonly _configService: IConfigService,
+    private readonly _transactionRepository?: IBillTransactionRepository,
   ) {}
 
 
@@ -28,7 +28,7 @@ export class PayBillWithPDA implements IPayBillWithPDA {
     userContext?: UserContextDto,
   ): Promise<BillResponseDto> {
     const { billId, userId } = request;
-    const bill = await this.billRepository.findById(billId);
+    const bill = await this._billRepository.findById(billId);
     if (!bill) {
       throw new AppError(ResponseMessage.BILL_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
@@ -41,7 +41,7 @@ export class PayBillWithPDA implements IPayBillWithPDA {
       throw new AppError(ResponseMessage.BILL_ALREADY_PAID, HttpStatus.CONFLICT);
     }
 
-    const pda = await this.pdaRepository.findByUserId(userId);
+    const pda = await this._pdaRepository.findByUserId(userId);
     if (!pda) {
       throw new AppError(
         ResponseMessage.PDA_NOT_FOUND,
@@ -58,10 +58,10 @@ export class PayBillWithPDA implements IPayBillWithPDA {
 
     // Deduct balance
     const newBalance = pda.balance - bill.totalAmount;
-    await this.pdaRepository.updateBalance(pda.id, newBalance);
+    await this._pdaRepository.updateBalance(pda.id, newBalance);
 
     // Create transaction record
-    await this.pdaRepository.createTransaction({
+    await this._pdaRepository.createTransaction({
       pdaId: pda.id,
       type: "debit",
       amount: bill.totalAmount,
@@ -71,7 +71,7 @@ export class PayBillWithPDA implements IPayBillWithPDA {
     });
 
     // Update bill status
-    const updatedBill = await this.billRepository.update(billId, {
+    const updatedBill = await this._billRepository.update(billId, {
       status: "paid",
       paidAt: new Date(),
       paymentMethod: "pda",
@@ -81,15 +81,15 @@ export class PayBillWithPDA implements IPayBillWithPDA {
     }
 
     // Log bill transaction
-    if (this.transactionRepository) {
-      await this.transactionRepository.save(
+    if (this._transactionRepository) {
+      await this._transactionRepository.save(
         BillingMapper.toTransactionEntity(billId, userId, bill.totalAmount, "pda", "success", `pda_${Date.now()}`)
       );
     }
 
     // Audit Log (Event-driven)
     if (userContext) {
-      this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+      this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
         userId: userContext.userId,
         userRole: userContext.userRole,
         userName: userContext.userName,
@@ -107,7 +107,7 @@ export class PayBillWithPDA implements IPayBillWithPDA {
 
     // Notify customer about successful payment via PDA
     try {
-      await this.notificationService.send(userId, {
+      await this._notificationService.send(userId, {
         type: "success",
         title: ResponseMessage.PAYMENT_SUCCESSFUL_PDA_TITLE,
         message: `${ResponseMessage.PDA_PAYMENT_PROCESSED_MESSAGE}. Bill: ${updatedBill.billNumber}, Amount: ₹${updatedBill.totalAmount.toLocaleString()}`,
@@ -115,9 +115,9 @@ export class PayBillWithPDA implements IPayBillWithPDA {
       });
 
       // Check for low balance alert using centralized config
-      const threshold = this.configService.getNumber('PDA_LOW_BALANCE_THRESHOLD');
+      const threshold = this._configService.getNumber('PDA_LOW_BALANCE_THRESHOLD');
       if (newBalance < threshold) {
-        await this.notificationService.send(userId, {
+        await this._notificationService.send(userId, {
           type: "warning",
           title: ResponseMessage.LOW_PDA_BALANCE_ALERT_TITLE,
           message: `${ResponseMessage.LOW_PDA_BALANCE_MESSAGE} Current Balance: ₹${newBalance.toLocaleString()}`,

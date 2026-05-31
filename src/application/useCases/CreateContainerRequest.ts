@@ -12,10 +12,10 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CreateContainerRequest implements ICreateContainerRequest {
   constructor(
-    private containerRequestRepository: IContainerRequestRepository,
-    private userRepository: IUserRepository,
-    private notificationService: INotificationService,
-    private eventBus: IEventBus,
+    private readonly _containerRequestRepository: IContainerRequestRepository,
+    private readonly _userRepository: IUserRepository,
+    private readonly _notificationService: INotificationService,
+    private readonly _eventBus: IEventBus,
   ) {}
 
 
@@ -28,7 +28,7 @@ export class CreateContainerRequest implements ICreateContainerRequest {
     // Validation: Prevent duplicate destuffing requests for the same container
     if (requestData.type === "destuffing" && requestData.containerId) {
       const activeRequests =
-        await this.containerRequestRepository.findActiveRequestsByCustomerId(
+        await this._containerRequestRepository.findActiveRequestsByCustomerId(
           customerId
         );
       const hasExistingRequest = activeRequests.some(
@@ -49,11 +49,11 @@ export class CreateContainerRequest implements ICreateContainerRequest {
       customerId
     );
 
-    const savedRequest = await this.containerRequestRepository.create(request);
+    const savedRequest = await this._containerRequestRepository.create(request);
 
     // Audit Log (Event-driven)
     if (userContext) {
-      this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+      this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
         userId: userContext.userId,
         userRole: userContext.userRole,
         userName: userContext.userName,
@@ -70,7 +70,7 @@ export class CreateContainerRequest implements ICreateContainerRequest {
 
     // Notify Operators
     try {
-      const operators = await this.userRepository.findByRole("operator");
+      const operators = await this._userRepository.findByRole("operator");
       const notificationData = {
         type: "info" as const,
         title: ResponseMessage.NEW_CONTAINER_REQUEST_TITLE,
@@ -80,7 +80,7 @@ export class CreateContainerRequest implements ICreateContainerRequest {
 
       for (const operator of operators) {
         if (operator.id) {
-          await this.notificationService.send(operator.id, notificationData);
+          await this._notificationService.send(operator.id, notificationData);
         }
       }
     } catch (error) {

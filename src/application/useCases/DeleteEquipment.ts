@@ -2,9 +2,9 @@ import { IEquipmentRepository } from "../../domain/repositories/IEquipmentReposi
 import { IDeleteEquipment } from "../ports/IDeleteEquipment";
 
 export class DeleteEquipment implements IDeleteEquipment {
-    constructor(private equipmentRepository: IEquipmentRepository) { }
+    constructor(private readonly _equipmentRepository: IEquipmentRepository) { }
 
     async execute(id: string): Promise<void> {
-        await this.equipmentRepository.delete(id);
+        await this._equipmentRepository.delete(id);
     }
 }

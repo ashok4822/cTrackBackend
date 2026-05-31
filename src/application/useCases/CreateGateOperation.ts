@@ -19,15 +19,15 @@ import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CreateGateOperation implements ICreateGateOperation {
   constructor(
-    private gateOperationRepository: IGateOperationRepository,
-    private vehicleRepository: IVehicleRepository,
-    private containerRepository: IContainerRepository,
-    private containerRequestRepository: IContainerRequestRepository,
-    private vehicleService: IVehicleDomainService,
-    private containerService: IContainerDomainService,
-    private blockService: IBlockDomainService,
-    private eventBus: IEventBus,
-    private billRepository?: IBillRepository,
+    private readonly _gateOperationRepository: IGateOperationRepository,
+    private readonly _vehicleRepository: IVehicleRepository,
+    private readonly _containerRepository: IContainerRepository,
+    private readonly _containerRequestRepository: IContainerRequestRepository,
+    private readonly _vehicleService: IVehicleDomainService,
+    private readonly _containerService: IContainerDomainService,
+    private readonly _blockService: IBlockDomainService,
+    private readonly _eventBus: IEventBus,
+    private readonly _billRepository?: IBillRepository,
   ) { }
 
 
@@ -37,12 +37,12 @@ export class CreateGateOperation implements ICreateGateOperation {
     performedBy: string = "Operator",
   ): Promise<void> {
     // 1. Initial State Fetching
-    const vehicles = await this.vehicleRepository.findAll({ vehicleNumber: data.vehicleNumber });
+    const vehicles = await this._vehicleRepository.findAll({ vehicleNumber: data.vehicleNumber });
     const vehicle = vehicles.length > 0 ? vehicles[0] : null;
 
     let container = null;
     if (data.containerNumber) {
-      container = await this.containerService.findByNumber(data.containerNumber);
+      container = await this._containerService.findByNumber(data.containerNumber);
     }
 
     // 2. Gate-In/Out Specific Validations
@@ -55,8 +55,8 @@ export class CreateGateOperation implements ICreateGateOperation {
       }
     } else {
       // Gate-out validations
-      if (container && container.id && this.billRepository) {
-        const bills = await this.billRepository.findByContainerId(container.id);
+      if (container && container.id && this._billRepository) {
+        const bills = await this._billRepository.findByContainerId(container.id);
         const hasPendingBills = bills.some(b => b.status === "pending" || b.status === "overdue");
         if (hasPendingBills) {
           throw new AppError(`${ResponseMessage.PENDING_BILLS_ERROR} (${data.containerNumber})`);
@@ -64,7 +64,7 @@ export class CreateGateOperation implements ICreateGateOperation {
       }
 
       if (container && container.customer) {
-        const request = await this.containerRequestRepository.findByContainerNumber(container.containerNumber);
+        const request = await this._containerRequestRepository.findByContainerNumber(container.containerNumber);
         if (!request || request.status !== "ready-for-dispatch") {
           throw new AppError(`${ResponseMessage.NOT_READY_FOR_DISPATCH_ERROR} (${data.containerNumber})`);
         }
@@ -79,28 +79,28 @@ export class CreateGateOperation implements ICreateGateOperation {
     let updatedContainer: Container | null = null;
 
     if (data.type === "gate-in") {
-      await this.vehicleService.processGateIn(data);
+      await this._vehicleService.processGateIn(data);
       if (data.containerNumber) {
-        updatedContainer = await this.containerService.processGateIn(data, container);
+        updatedContainer = await this._containerService.processGateIn(data, container);
       }
     } else {
-      if (vehicle) await this.vehicleService.processGateOut(vehicle);
+      if (vehicle) await this._vehicleService.processGateOut(vehicle);
       if (container) {
-        updatedContainer = await this.containerService.processGateOut(container);
+        updatedContainer = await this._containerService.processGateOut(container);
       }
     }
 
     // 4. Persistence & Record Keeping
     const operation = GateMapper.toEntity(data, data.approvedBy);
-    await this.gateOperationRepository.save(operation);
+    await this._gateOperationRepository.save(operation);
 
     if (updatedContainer) {
-      const savedContainer = await this.containerRepository.save(updatedContainer);
+      const savedContainer = await this._containerRepository.save(updatedContainer);
       updatedContainer = savedContainer; // Use saved version with ID
 
       // History & Event-driven Audit
       if (savedContainer.id) {
-        this.eventBus.emit(DomainEvents.CONTAINER_HISTORY_CREATED, {
+        this._eventBus.emit(DomainEvents.CONTAINER_HISTORY_CREATED, {
           containerId: savedContainer.id,
           action: data.type === "gate-in" ? ResponseMessage.ACTION_GATE_IN : ResponseMessage.ACTION_GATE_OUT,
           details: `${data.type === "gate-in" ? ResponseMessage.DETAILS_GATE_IN : ResponseMessage.DETAILS_GATE_OUT} with vehicle ${data.vehicleNumber}`,
@@ -108,7 +108,7 @@ export class CreateGateOperation implements ICreateGateOperation {
         });
 
         if (userContext) {
-          this.eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
+          this._eventBus.emit(DomainEvents.AUDIT_LOG_CREATED, {
             userId: userContext.userId,
             userRole: userContext.userRole,
             userName: userContext.userName,
@@ -123,7 +123,7 @@ export class CreateGateOperation implements ICreateGateOperation {
     }
 
     // Emit Gate Operation Created Event for downstream side-effects (Sockets, Syncs, Occupancy)
-    this.eventBus.emit(DomainEvents.GATE_OPERATION_CREATED, {
+    this._eventBus.emit(DomainEvents.GATE_OPERATION_CREATED, {
         operation,
         data,
         performedBy,

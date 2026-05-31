@@ -10,8 +10,9 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
         super(ContainerModel);
     }
 
-    private applyFilters(filters: ContainerFilter): Record<string, unknown> {
+    private _applyFilters(filters?: ContainerFilter): Record<string, unknown> {
         const query: Record<string, unknown> = {};
+        if (!filters) return query;
 
         if (filters.containerNumber) {
             if (Array.isArray(filters.containerNumber)) {
@@ -53,19 +54,19 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
     }
 
     async findById(id: string): Promise<Container | null> {
-        const doc = await this.model.findById(id).exec();
+        const doc = await this._model.findById(id).exec();
         if (!doc) return null;
-        const [container] = await this.mapWithCustomers([doc]);
+        const [container] = await this._mapWithCustomers([doc]);
         return container;
     }
 
     async findAll(filters?: ContainerFilter): Promise<Container[]> {
-        const query = filters ? this.applyFilters(filters) : {};
-        const containers = await this.model.find(query).exec();
-        return this.mapWithCustomers(containers);
+        const query = this._applyFilters(filters);
+        const containers = await this._model.find(query).exec();
+        return this._mapWithCustomers(containers);
     }
 
-    protected async mapWithCustomers(docs: IContainerDocument[]): Promise<Container[]> {
+    protected async _mapWithCustomers(docs: IContainerDocument[]): Promise<Container[]> {
         if (docs.length === 0) return [];
 
         const customerIds = [...new Set(docs.map(d => d.customer).filter(Boolean))];
@@ -83,10 +84,10 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
             }
         }
 
-        return docs.map(doc => this.toEntity(doc, userMap[doc.customer || ""]));
+        return docs.map(doc => this._toEntity(doc, userMap[doc.customer || ""]));
     }
 
-    protected toEntity(c: IContainerDocument, customerName?: string): Container {
+    protected _toEntity(c: IContainerDocument, customerName?: string): Container {
         let dwellTime = c.dwellTime;
         if (c.gateInTime) {
             const outTime = c.gateOutTime ? new Date(c.gateOutTime) : new Date();
@@ -124,7 +125,7 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
         );
     }
 
-    protected toModelData(container: Container): UpdateQuery<IContainerDocument> {
+    protected _toModelData(container: Container): UpdateQuery<IContainerDocument> {
         const data: UpdateQuery<IContainerDocument> = {
             containerNumber: container.containerNumber,
             size: container.size,
@@ -158,44 +159,44 @@ export class ContainerRepository extends BaseRepository<Container, IContainerDoc
     }
 
     async countByStatus(status: string | string[], filter?: ContainerFilter): Promise<number> {
-        const query = filter ? this.applyFilters(filter) : {};
+        const query = this._applyFilters(filter);
         if (Array.isArray(status)) {
             query.status = { $in: status };
         } else {
             query.status = status;
         }
-        return await this.model.countDocuments(query).exec();
+        return await this._model.countDocuments(query).exec();
     }
 
     async countByBlockNameAndStatuses(blockName: string, statuses: string[]): Promise<number> {
-        return await this.model.countDocuments({
+        return await this._model.countDocuments({
             'yardLocation.block': blockName,
             status: { $in: statuses },
         }).exec();
     }
 
     async findInYard(filter?: ContainerFilter): Promise<Container[]> {
-        const query = filter ? this.applyFilters(filter) : {};
+        const query = this._applyFilters(filter);
         query.status = { $in: ["gate-in", "in-yard", "damaged"] };
         query.gateInTime = { $exists: true };
         
-        const docs = await this.model.find(query).exec();
-        return this.mapWithCustomers(docs);
+        const docs = await this._model.find(query).exec();
+        return this._mapWithCustomers(docs);
     }
 
     async getDistinctContainerNumbers(filter?: ContainerFilter): Promise<string[]> {
-        const query = filter ? this.applyFilters(filter) : {};
-        return await this.model.find(query).distinct("containerNumber").exec() as unknown as string[];
+        const query = this._applyFilters(filter);
+        return await this._model.find(query).distinct("containerNumber").exec() as unknown as string[];
     }
 
     async getDistinctContainerIds(filter?: ContainerFilter): Promise<string[]> {
-        const query = filter ? this.applyFilters(filter) : {};
-        return (await this.model.find(query).distinct("_id").exec()).map(id => id.toString());
+        const query = this._applyFilters(filter);
+        return (await this._model.find(query).distinct("_id").exec()).map(id => id.toString());
     }
 
     async findRecent(filter: ContainerFilter, limit: number): Promise<Container[]> {
-        const query = this.applyFilters(filter);
-        const docs = await this.model.find(query).sort({ updatedAt: -1 as const }).limit(limit).exec();
-        return this.mapWithCustomers(docs);
+        const query = this._applyFilters(filter);
+        const docs = await this._model.find(query).sort({ updatedAt: -1 as const }).limit(limit).exec();
+        return this._mapWithCustomers(docs);
     }
 }

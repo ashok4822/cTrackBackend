@@ -7,12 +7,12 @@ import { HttpStatus } from "../../shared/constants/HttpStatus";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
 export class CreateCharge implements ICreateCharge {
-    constructor(private chargeRepository: IChargeRepository) { }
+    constructor(private readonly _chargeRepository: IChargeRepository) { }
 
     async execute(chargeDto: CreateChargeRequestDto): Promise<ChargeResponseDto> {
         const chargeData = ChargeMapper.toEntity(chargeDto);
         
-        const existing = await this.chargeRepository.findByCriteria(
+        const existing = await this._chargeRepository.findByCriteria(
             chargeData.activityId,
             chargeData.containerSize,
             chargeData.containerType
@@ -22,7 +22,7 @@ export class CreateCharge implements ICreateCharge {
             throw new AppError(`${ResponseMessage.CHARGE_ALREADY_EXISTS_ERROR} (${chargeData.containerSize}, ${chargeData.containerType})`, HttpStatus.CONFLICT);
         }
 
-        const savedCharge = await this.chargeRepository.save(chargeData);
+        const savedCharge = await this._chargeRepository.save(chargeData);
         return ChargeMapper.toResponseDto(savedCharge);
     }
 }

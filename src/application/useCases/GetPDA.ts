@@ -7,9 +7,9 @@ import { PDAMapper } from "../mappers/PDAMapper";
 
 export class GetPDA implements IGetPDA {
   constructor(
-    private _pdaRepository: IPDARepository,
-    private _userRepository: IUserRepository,
-    private _configService: IConfigService,
+    private readonly _pdaRepository: IPDARepository,
+    private readonly _userRepository: IUserRepository,
+    private readonly _configService: IConfigService,
   ) {}
 
   async execute(

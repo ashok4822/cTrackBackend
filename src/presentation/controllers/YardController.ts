@@ -10,9 +10,9 @@ import { ApiResponse } from "../../shared/utils/ApiResponse";
 
 export class YardController {
     constructor(
-        private _getBlocksUseCase: IGetBlocks,
-        private _createBlockUseCase: ICreateBlock,
-        private _updateBlockUseCase: IUpdateBlock,
+        private readonly _getBlocksUseCase: IGetBlocks,
+        private readonly _createBlockUseCase: ICreateBlock,
+        private readonly _updateBlockUseCase: IUpdateBlock,
     ) { }
 
     getBlocks = asyncHandler(async (req: Request, res: Response) => {

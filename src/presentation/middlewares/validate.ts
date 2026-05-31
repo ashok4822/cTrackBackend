@@ -1,11 +1,18 @@
 import { Request, Response, NextFunction } from "express";
-import { z } from "zod";
 import { AppError } from "../../domain/exceptions/AppError";
 import { HttpStatus } from "../../shared/constants/HttpStatus";
 
-export const validate = (schema: z.ZodTypeAny) => (req: Request, res: Response, next: NextFunction) => {
+/**
+ * Higher-order middleware for data validation.
+ * Agnostic of the underlying validation library.
+ *
+ * @param schema The schema object to validate against
+ * @param validator A bound validate function from an ISchemaValidator instance
+ */
+export const validate = (schema: unknown, validator: (schema: unknown, data: unknown) => unknown) =>
+  (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = schema.parse({
+    const result = validator(schema, {
       body: req.body,
       query: req.query,
       params: req.params,
@@ -30,12 +37,18 @@ export const validate = (schema: z.ZodTypeAny) => (req: Request, res: Response, 
         enumerable: true,
       });
     }
-    
+
     next();
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      const message = error.issues.map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`).join(", ");
+    // Handle ZodError-shaped objects (has an `issues` array) without importing Zod
+    if (error !== null && typeof error === "object" && "issues" in error) {
+      const issues = (error as { issues: Array<{ path: string[]; message: string }> }).issues;
+      const message = issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ");
       return next(new AppError(message, HttpStatus.BAD_REQUEST));
+    }
+
+    if (error instanceof Error) {
+      return next(new AppError(error.message, HttpStatus.BAD_REQUEST));
     }
 
     next(error);

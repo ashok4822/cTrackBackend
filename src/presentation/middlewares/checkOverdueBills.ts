@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { HttpStatus } from "../../shared/constants/HttpStatus";
-import { IBillRepository } from "../../domain/repositories/IBillRepository";
+import { IGetOverdueStatus } from "../../application/ports/IGetOverdueStatus";
 import { ResponseMessage } from "../../shared/constants/ResponseMessage";
 
-export const createCheckOverdueBillsMiddleware = (billRepository: IBillRepository) =>
+export const createCheckOverdueBillsMiddleware = (getOverdueStatus: IGetOverdueStatus) =>
     async (
         req: Request,
         res: Response,
@@ -20,7 +20,7 @@ export const createCheckOverdueBillsMiddleware = (billRepository: IBillRepositor
                 return next();
             }
 
-            const hasOverdue = await billRepository.hasOverdueBills(user.id);
+            const hasOverdue = await getOverdueStatus.execute(user.id);
 
             if (hasOverdue) {
                 return res.status(HttpStatus.FORBIDDEN).json({

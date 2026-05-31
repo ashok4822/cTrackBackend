@@ -1,59 +1,28 @@
 import { Router } from "express";
 import { EquipmentController } from "../controllers/EquipmentController";
-import { CreateEquipment } from "../../application/useCases/CreateEquipment";
-import { UpdateEquipment } from "../../application/useCases/UpdateEquipment";
-import { DeleteEquipment } from "../../application/useCases/DeleteEquipment";
-import { GetAllEquipment } from "../../application/useCases/GetAllEquipment";
-import { GetEquipmentHistory } from "../../application/useCases/GetEquipmentHistory";
-import { EquipmentRepository } from "../../infrastructure/repositories/EquipmentRepository";
-import { EquipmentHistoryRepository } from "../../infrastructure/repositories/EquipmentHistoryRepository";
-import { UserRepository } from "../../infrastructure/repositories/UserRepository";
 import { ITokenService } from "../../application/services/ITokenService";
-import { IConfigService } from "../../application/services/IConfigService";
-import { IEventBus } from "../../domain/events/IEventBus";
-import { INotificationService } from "../../application/services/INotificationService";
 import {
     createAuthMiddleware,
     roleMiddleware,
-} from "../../infrastructure/services/authMiddleWare";
+} from "../middlewares/authMiddleware";
 
 export const createEquipmentRouter = (
     tokenService: ITokenService,
-    config: IConfigService,
-    eventBus: IEventBus,
-    notificationService: INotificationService
+    equipmentController: EquipmentController
 ) => {
     const router = Router();
-    const authMiddleware = createAuthMiddleware(tokenService, config.get("JWT_ACCESS_SECRET"));
-
-    const repository = new EquipmentRepository();
-    const historyRepository = new EquipmentHistoryRepository();
-    const userRepository = new UserRepository();
-
-    const createUseCase = new CreateEquipment(repository, eventBus);
-    const updateUseCase = new UpdateEquipment(repository, userRepository, eventBus, notificationService);
-    const deleteUseCase = new DeleteEquipment(repository);
-    const getAllUseCase = new GetAllEquipment(repository);
-    const getHistoryUseCase = new GetEquipmentHistory(historyRepository);
-
-    const controller = new EquipmentController(
-        createUseCase,
-        updateUseCase,
-        deleteUseCase,
-        getAllUseCase,
-        getHistoryUseCase
-    );
+    const authMiddleware = createAuthMiddleware(tokenService);
 
     router.get(
         "/",
         authMiddleware,
         roleMiddleware(["admin", "operator"]),
-        controller.fetchAll
+        equipmentController.fetchAll
     );
-    router.post("/", authMiddleware, roleMiddleware(["admin"]), controller.create);
-    router.get("/:id/history", authMiddleware, controller.fetchHistory);
-    router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator"]), controller.update);
-    router.delete("/:id", authMiddleware, roleMiddleware(["admin"]), controller.delete);
+    router.post("/", authMiddleware, roleMiddleware(["admin"]), equipmentController.create);
+    router.get("/:id/history", authMiddleware, equipmentController.fetchHistory);
+    router.put("/:id", authMiddleware, roleMiddleware(["admin", "operator"]), equipmentController.update);
+    router.delete("/:id", authMiddleware, roleMiddleware(["admin"]), equipmentController.delete);
 
     return router;
 };
