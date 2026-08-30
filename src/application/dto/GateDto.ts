@@ -1,11 +1,11 @@
-export interface CreateGateOperationRequestDto {
-  type: "gate-in" | "gate-out";
+export class CreateGateOperationRequestDto {
+  type!: "gate-in" | "gate-out";
   containerNumber?: string;
-  vehicleNumber: string;
-  driverName: string;
+  vehicleNumber!: string;
+  driverName!: string;
   driverPhone?: string;
   vehicleType?: string;
-  purpose: "port" | "factory" | "transfer";
+  purpose!: "port" | "factory" | "transfer";
   remarks?: string;
   cargoCategory?: string;
   size?: "20ft" | "40ft";
@@ -22,20 +22,20 @@ export interface CreateGateOperationRequestDto {
   approvedBy?: string;
 }
 
-export interface GateOperationResponseDto {
-  id: string | null;
-  type: "gate-in" | "gate-out";
+export class GateOperationResponseDto {
+  id!: string | null;
+  type!: "gate-in" | "gate-out";
   containerNumber?: string;
-  vehicleNumber: string;
-  driverName: string;
-  purpose: "port" | "factory" | "transfer";
-  timestamp: Date;
+  vehicleNumber!: string;
+  driverName!: string;
+  purpose!: "port" | "factory" | "transfer";
+  timestamp!: Date;
   approvedBy?: string;
   remarks?: string;
   cargoCategory?: string;
 }
 
-export interface GateOperationCollectionResponseDto {
-  items: GateOperationResponseDto[];
-  total: number;
+export class GateOperationCollectionResponseDto {
+  items!: GateOperationResponseDto[];
+  total!: number;
 }

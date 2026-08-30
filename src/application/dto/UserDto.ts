@@ -2,43 +2,43 @@ export type UserRole = "admin" | "operator" | "customer";
 import { UserContextDto } from "./CommonDto";
 
 
-export interface CreateUserRequestDto {
-  email: string;
-  role: UserRole;
+export class CreateUserRequestDto {
+  email!: string;
+  role!: UserRole;
   name?: string;
-  userContext: UserContextDto;
+  userContext!: UserContextDto;
 }
 
-export interface UpdateUserRequestDto {
+export class UpdateUserRequestDto {
   role?: UserRole;
   name?: string;
   phone?: string;
   companyName?: string;
   isBlocked?: boolean;
-  userContext: UserContextDto;
+  userContext!: UserContextDto;
 }
 
-export interface UpdateUserProfileRequestDto {
+export class UpdateUserProfileRequestDto {
   name?: string;
   phone?: string;
   profileImage?: string;
   companyName?: string;
 }
 
-export interface UserResponseDto {
-  id: string;
-  email: string;
-  role: UserRole;
+export class UserResponseDto {
+  id!: string;
+  email!: string;
+  role!: UserRole;
   name?: string;
   phone?: string;
   profileImage?: string;
   companyName?: string;
-  isBlocked: boolean;
+  isBlocked!: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export interface UserCollectionResponseDto {
-  items: UserResponseDto[];
-  total: number;
+export class UserCollectionResponseDto {
+  items!: UserResponseDto[];
+  total!: number;
 }

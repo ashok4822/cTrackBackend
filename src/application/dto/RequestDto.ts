@@ -1,6 +1,6 @@
-export interface CreateContainerRequestDto {
+export class CreateContainerRequestDto {
   customerId?: string;
-  type: "stuffing" | "destuffing";
+  type!: "stuffing" | "destuffing";
   cargoCategoryId?: string;
   cargoCategoryName?: string;
   containerSize?: string;
@@ -18,7 +18,7 @@ export interface CreateContainerRequestDto {
   remarks?: string;
 }
 
-export interface UpdateContainerRequestDto {
+export class UpdateContainerRequestDto {
   status?: "approved" | "rejected" | "completed" | "ready-for-dispatch" | "in-transit" | "at-factory" | "operation-completed" | "cancelled";
   remarks?: string;
   cargoCharge?: number;
@@ -30,12 +30,12 @@ export interface UpdateContainerRequestDto {
   checkpoints?: Array<{ location: string, timestamp: Date, status: string, remarks?: string }>;
 }
 
-export interface ContainerRequestResponseDto {
-  id: string | null;
-  customerId: string;
+export class ContainerRequestResponseDto {
+  id!: string | null;
+  customerId!: string;
   customerName?: string;
-  type: "stuffing" | "destuffing";
-  status: string;
+  type!: "stuffing" | "destuffing";
+  status!: string;
   cargoCategoryId?: string;
   cargoCategoryName?: string;
   containerSize?: string;
@@ -57,7 +57,7 @@ export interface ContainerRequestResponseDto {
   updatedAt?: Date;
 }
 
-export interface ContainerRequestCollectionResponseDto {
-  items: ContainerRequestResponseDto[];
-  total: number;
+export class ContainerRequestCollectionResponseDto {
+  items!: ContainerRequestResponseDto[];
+  total!: number;
 }

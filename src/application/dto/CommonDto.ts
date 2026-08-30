@@ -1,17 +1,17 @@
-export interface UserContextDto {
-  userId: string;
-  userName: string;
-  userRole: string;
-  ipAddress: string;
+export class UserContextDto {
+  userId!: string;
+  userName!: string;
+  userRole!: string;
+  ipAddress!: string;
   targetCustomerId?: string; // For admin acting on behalf of a customer
 }
 
-export interface PaginationDto {
+export class PaginationDto {
   page?: number;
   limit?: number;
 }
 
-export interface BaseFilterDto extends PaginationDto {
+export class BaseFilterDto extends PaginationDto {
   startDate?: Date;
   endDate?: Date;
   search?: string;
