@@ -2,19 +2,19 @@
 
 export type NotificationType = "success" | "error" | "info" | "warning" | "alert";
 
-export interface NotificationResponseDto {
-  id: string;
-  userId: string;
-  type: NotificationType;
-  title: string;
-  message: string;
+export class NotificationResponseDto {
+  id!: string;
+  userId!: string;
+  type!: NotificationType;
+  title!: string;
+  message!: string;
   link?: string;
-  read: boolean;
-  createdAt: Date;
-  timestamp: Date;
+  read!: boolean;
+  createdAt!: Date;
+  timestamp!: Date;
 }
 
-export interface NotificationCollectionResponseDto {
-  items: NotificationResponseDto[];
-  total: number;
+export class NotificationCollectionResponseDto {
+  items!: NotificationResponseDto[];
+  total!: number;
 }

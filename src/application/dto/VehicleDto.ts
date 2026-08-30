@@ -1,15 +1,15 @@
 import { BaseFilterDto } from "./CommonDto";
 
-export interface CreateVehicleRequestDto {
-  vehicleNumber: string;
-  driverName: string;
-  driverPhone: string;
-  type: "truck" | "trailer" | "chassis";
+export class CreateVehicleRequestDto {
+  vehicleNumber!: string;
+  driverName!: string;
+  driverPhone!: string;
+  type!: "truck" | "trailer" | "chassis";
   gpsDeviceId?: string;
   currentLocation?: string;
 }
 
-export interface UpdateVehicleRequestDto {
+export class UpdateVehicleRequestDto {
   vehicleNumber?: string;
   driverName?: string;
   driverPhone?: string;
@@ -19,26 +19,26 @@ export interface UpdateVehicleRequestDto {
   currentLocation?: string;
 }
 
-export interface VehicleFiltersDto extends BaseFilterDto {
+export class VehicleFiltersDto extends BaseFilterDto {
   type?: string;
   vehicleNumber?: string;
   status?: string;
 }
 
-export interface VehicleResponseDto {
+export class VehicleResponseDto {
   id?: string;
-  vehicleNumber: string;
-  driverName: string;
-  driverPhone: string;
-  type: string;
-  status: string;
+  vehicleNumber!: string;
+  driverName!: string;
+  driverPhone!: string;
+  type!: string;
+  status!: string;
   gpsDeviceId?: string;
   currentLocation?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export interface VehicleCollectionResponseDto {
-  items: VehicleResponseDto[];
-  total: number;
+export class VehicleCollectionResponseDto {
+  items!: VehicleResponseDto[];
+  total!: number;
 }

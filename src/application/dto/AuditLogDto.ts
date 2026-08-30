@@ -25,39 +25,39 @@ export type AuditActionDto =
 
 export type EntityTypeDto = "User" | "Container" | "ShippingLine" | "Block" | "Auth" | "Profile" | "Request" | "Bill";
 
-export interface CreateAuditLogRequestDto {
-  userId: string;
-  userRole: string;
-  userName: string;
-  action: AuditActionDto;
-  entityType: EntityTypeDto;
+export class CreateAuditLogRequestDto {
+  userId!: string;
+  userRole!: string;
+  userName!: string;
+  action!: AuditActionDto;
+  entityType!: EntityTypeDto;
   entityId?: string;
-  details: string;
-  ipAddress: string;
+  details!: string;
+  ipAddress!: string;
 }
 
-export interface AuditLogResponseDto {
-  id: string | null;
-  userId: string;
-  userRole: string;
-  userName: string;
-  action: AuditActionDto;
-  entityType: EntityTypeDto;
-  entityId: string | null;
-  details: string;
-  ipAddress: string;
-  timestamp: Date;
+export class AuditLogResponseDto {
+  id!: string | null;
+  userId!: string;
+  userRole!: string;
+  userName!: string;
+  action!: AuditActionDto;
+  entityType!: EntityTypeDto;
+  entityId!: string | null;
+  details!: string;
+  ipAddress!: string;
+  timestamp!: Date;
   createdAt?: Date;
 }
 
-export interface AuditLogCollectionResponseDto {
-  logs: AuditLogResponseDto[];
-  total: number;
-  page: number;
-  limit: number;
+export class AuditLogCollectionResponseDto {
+  logs!: AuditLogResponseDto[];
+  total!: number;
+  page!: number;
+  limit!: number;
 }
 
-export interface AuditLogFiltersDto {
+export class AuditLogFiltersDto {
   page?: number;
   limit?: number;
   userId?: string;

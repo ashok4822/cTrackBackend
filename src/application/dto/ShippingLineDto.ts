@@ -1,20 +1,20 @@
-export interface CreateShippingLineRequestDto {
-  name: string;
+export class CreateShippingLineRequestDto {
+  name!: string;
   code?: string;
 }
 
-export interface UpdateShippingLineRequestDto {
+export class UpdateShippingLineRequestDto {
   name?: string;
   code?: string;
 }
 
-export interface ShippingLineResponseDto {
-  id: string;
-  name: string;
+export class ShippingLineResponseDto {
+  id!: string;
+  name!: string;
   code?: string;
 }
 
-export interface ShippingLineCollectionResponseDto {
-  items: ShippingLineResponseDto[];
-  total: number;
+export class ShippingLineCollectionResponseDto {
+  items!: ShippingLineResponseDto[];
+  total!: number;
 }
